@@ -1,0 +1,12 @@
+# vim: set sw=2 ts=2 softtabstop=2 expandtab:
+remove_work_dirs: true
+runner: Symbooglix
+runner_config:
+  tool_path: "/home/dan/dev/symbooglix/symbooglix/src/SymbooglixDriver/bin/Release/symbooglix.exe"
+  max_memory: 4096
+  max_time: 61
+  additional_args:
+    - "--force-qfabv"
+    - "--solver-timeout=20"
+  entry_point:
+    use_bool_attribute: "kernel"
