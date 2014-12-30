@@ -8,21 +8,21 @@ import yaml
 
 _logger = logging.getLogger(__name__)
 
-class CorralBenchmarkRunnerException(Exception):
+class CorralRunnerException(Exception):
   def __init__(self, msg):
     self.msg = msg
 
-class CorralBenchmarkRunner(RunnerBaseClass):
+class CorralRunner(RunnerBaseClass):
   def __init__(self, boogieProgram, config):
     _logger.debug('Initialising {}'.format(boogieProgram))
-    super(CorralBenchmarkRunner, self).__init__(boogieProgram, config)
+    super(CorralRunner, self).__init__(boogieProgram, config)
 
   @property
   def name(self):
     return "corral"
 
   def getResults(self):
-    results = super(CorralBenchmarkRunner, self).getResults()
+    results = super(CorralRunner, self).getResults()
 
     # Interpret exit code and contents of the log file
     resultType = ResultType.UNKNOWN
@@ -85,4 +85,4 @@ class CorralBenchmarkRunner(RunnerBaseClass):
       _logger.warning('Corral hit timeout')
 
 def get():
-  return CorralBenchmarkRunner
+  return CorralRunner
