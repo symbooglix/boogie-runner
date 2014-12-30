@@ -7,22 +7,22 @@ import yaml
 
 _logger = logging.getLogger(__name__)
 
-class SymbooglixBenchmarkRunnerException(Exception):
+class SymbooglixRunnerException(Exception):
   def __init__(self, msg):
     self.msg = msg
 
-class SymbooglixBenchmarkRunner(RunnerBaseClass):
+class SymbooglixRunner(RunnerBaseClass):
   softTimeoutDiff = 10
   def __init__(self, boogieProgram, config):
     _logger.debug('Initialising {}'.format(boogieProgram))
-    super(SymbooglixBenchmarkRunner, self).__init__(boogieProgram, config)
+    super(SymbooglixRunner, self).__init__(boogieProgram, config)
 
     # Sanity checks
 
     # We handle timeout ourselves, don't let the user set it
     for arg in self.additionalArgs:
       if arg.startswith('--timeout='):
-        raise SymbooglixBenchmarkRunnerException(
+        raise SymbooglixRunnerException(
           '--timeout must not be specified')
 
     # If we have a timeout it needs to be more than softTimeoutDiff
@@ -32,14 +32,14 @@ class SymbooglixBenchmarkRunner(RunnerBaseClass):
     # once it hits the softimeout.
     if self.maxTimeInSeconds > 0 and (
        self.maxTimeInSeconds <= self.softTimeoutDiff):
-      raise SymbooglixBenchmarkRunnerException('Need larger timeout')
+      raise SymbooglixRunnerException('Need larger timeout')
 
   @property
   def name(self):
     return "symbooglix"
 
   def getResults(self):
-    results = super(SymbooglixBenchmarkRunner, self).getResults()
+    results = super(SymbooglixRunner, self).getResults()
     results['sbx_dir'] = self.outputDir
 
     # Interpret the ResultType to set
@@ -97,5 +97,4 @@ class SymbooglixBenchmarkRunner(RunnerBaseClass):
       _logger.warning('Hard timeout hit')
 
 def get():
-  return SymbooglixBenchmarkRunner
-
+  return SymbooglixRunner
