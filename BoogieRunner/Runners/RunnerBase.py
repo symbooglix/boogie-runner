@@ -170,6 +170,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['program'] = self.program
     results['total_time'] = self.time
     results['working_directory'] = self.workingDirectory
+
+    # Sub classes should set this appropriately
+    results['result'] = ResultType.UNKNOWN
+
     return results
 
   @abc.abstractproperty
