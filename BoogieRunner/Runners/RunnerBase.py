@@ -197,7 +197,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Run the tool
     exitCode = None
     process = None
-    startTime = time.process_time()
+    startTime = time.perf_counter()
     with open(self.logFile, 'w') as f:
       try:
         process = psutil.Popen(cmdLine,
@@ -213,12 +213,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         # Now aggresively kill
         process.kill()
 
-        endTime = time.process_time()
+        endTime = time.perf_counter()
         self.time = endTime - startTime
 
         raise e
       finally:
-        endTime = time.process_time()
+        endTime = time.perf_counter()
         self.time = endTime - startTime
 
     return exitCode
