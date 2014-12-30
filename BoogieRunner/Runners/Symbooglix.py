@@ -77,6 +77,8 @@ class SymbooglixBenchmarkRunner(RunnerBaseClass):
     self.outputDir = os.path.join(self.workingDirectory, "symboolix-0")
     cmdLine.append('--output-dir={}'.format(self.outputDir))
 
+    # Set implementation to enter
+    cmdLine.append('--entry-points={}'.format(self.entryPoint))
 
     # Compute soft timeout and add as command line param
     softTimeout = self.maxTimeInSeconds - self.softTimeoutDiff
