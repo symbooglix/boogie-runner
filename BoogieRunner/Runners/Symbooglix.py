@@ -12,7 +12,7 @@ class SymbooglixBenchmarkRunnerException(Exception):
     self.msg = msg
 
 class SymbooglixBenchmarkRunner(RunnerBaseClass):
-  softTimeoutDiff = 60
+  softTimeoutDiff = 10
   def __init__(self, boogieProgram, config):
     _logger.debug('Initialising {}'.format(boogieProgram))
     super(SymbooglixBenchmarkRunner, self).__init__(boogieProgram, config)
