@@ -180,13 +180,14 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def name(self):
     pass
 
-  def runTool(self, cmdLine, isDotNet):
+  def runTool(self, cmdLine, isDotNet, envExtra = {}):
     finalCmdLine = list(cmdLine)
     if isDotNet and os.name == 'posix':
       finalCmdLine = ['mono'] + finalCmdLine
 
 
     env = {}
+    env.update(envExtra)
     # Setup environment to enforce memory limit
     if self.maxMemoryInMB > 0:
       if not isDotNet:
