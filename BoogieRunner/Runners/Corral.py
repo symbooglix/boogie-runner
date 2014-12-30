@@ -78,6 +78,8 @@ class CorralRunner(RunnerBaseClass):
                "/main:{}".format(self.entryPoint)
               ]
 
+    cmdLine.extend(self.additionalArgs)
+
     self.exitCode = None
     try:
       self.exitCode = self.runTool(cmdLine, isDotNet=True)

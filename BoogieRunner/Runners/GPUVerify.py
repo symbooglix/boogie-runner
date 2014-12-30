@@ -102,6 +102,8 @@ class GPUVerifyRunner(RunnerBaseClass):
     cmdLine.append('--local_size=2')
     cmdLine.append('--num_groups=2')
 
+    cmdLine.extend(self.additionalArgs)
+
     # Add the boogie source file as last arg
     cmdLine.append(self.program)
 
