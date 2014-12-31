@@ -124,6 +124,9 @@ class BoogalooRunner(RunnerBaseClass):
     if self.useDocker:
       cmdLine.extend(['docker', 'run', '--rm'])
 
+      # Specifying tty prevents buffering of boogaloo's output
+      cmdLine.append('--tty')
+
       containerName = 'boogaloo-bg-{}-{}'.format(os.getpid(), self.counter)
 
       # Compute the volume we need to mount inside the container
@@ -134,8 +137,14 @@ class BoogalooRunner(RunnerBaseClass):
 
       cmdLine.append('--name={}'.format(containerName))
 
+      # Compute working directory inside the container
+      containerWorkDir = os.path.join(self.dockerVolume, self.workDirName)
+      cmdLine.append('--workdir={}'.format(containerWorkDir))
+
       cmdLine.append(self.dockerImage)
       cmdLine.append(self.toolPath)
+
+
     else:
       cmdLine.append(self.toolPath)
 
