@@ -65,6 +65,7 @@ def entryPoint(args):
 
   # Run the runners and build the report
   report = []
+  exitCode = 0
   for r in runners:
     try:
       r.run()
@@ -78,6 +79,7 @@ def entryPoint(args):
       errorLog['program'] = r.program
       errorLog['error'] = traceback.format_exc()
       report.append(errorLog)
+      exitCode = 1
 
   # Write result to YAML file
   result = yaml.dump(report, default_flow_style=False)
@@ -85,4 +87,4 @@ def entryPoint(args):
     f.write('# BoogieRunner report using runner {}\n'.format(config['runner']))
     f.write(result)
 
-  return 0
+  return exitCode
