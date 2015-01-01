@@ -76,34 +76,7 @@ class BoogalooRunner(RunnerBaseClass):
   def run(self):
     cmdLine = [ ]
 
-    # FIXME: Move this into RunnerBaseClass
-    containerName = ""
-    if self.useDocker:
-      cmdLine.extend(['docker', 'run', '--rm'])
-
-      # Specifying tty prevents buffering of boogaloo's output
-      cmdLine.append('--tty')
-
-      containerName = 'boogaloo-bg-{}-{}'.format(os.getpid(), self.uid)
-
-      # Compute the volume we need to mount inside the container
-      volumeSrc = os.path.dirname(self.program)
-
-      cmdLine.append('--volume={src}:{dest}'.format(
-        src=volumeSrc, dest=self.dockerVolume))
-
-      cmdLine.append('--name={}'.format(containerName))
-
-      # Compute working directory inside the container
-      containerWorkDir = os.path.join(self.dockerVolume, self.workDirName)
-      cmdLine.append('--workdir={}'.format(containerWorkDir))
-
-      cmdLine.append(self.dockerImage)
-      cmdLine.append(self.toolPath)
-
-
-    else:
-      cmdLine.append(self.toolPath)
+    cmdLine.append(self.toolPath)
 
     # Use Boogaloo in execute mode
     cmdLine.append('exec')
@@ -121,11 +94,6 @@ class BoogalooRunner(RunnerBaseClass):
       self.exitCode = self.runTool(cmdLine, isDotNet=False)
     except psutil.TimeoutExpired as e:
       _logger.warning('Boogaloo hit hard timeout')
-
-      if self.useDocker:
-        _logger.info('Trying to kill container {}'.format(containerName))
-        process = psutil.Popen(['docker', 'kill', containerName])
-        process.wait()
 
 def get():
   return BoogalooRunner

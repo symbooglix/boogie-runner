@@ -262,20 +262,55 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     return self.program
 
+  @property
+  def dockerContainerName(self):
+    return '{}-bg-{}-{}'.format(self.name, os.getpid(), self.uid)
+
   def runTool(self, cmdLine, isDotNet, envExtra = {}):
-    finalCmdLine = list(cmdLine)
-    if isDotNet and os.name == 'posix':
-      finalCmdLine = ['mono'] + finalCmdLine
+    finalCmdLine = []
 
+    containerName=""
+    if self.useDocker:
+      finalCmdLine.extend(['docker', 'run', '--rm'])
 
+      # Specifying tty prevents buffering of boogaloo's output
+      finalCmdLine.append('--tty')
+
+      # Compute the volume we need to mount inside the container
+      volumeSrc = os.path.dirname(self.program)
+
+      finalCmdLine.append('--volume={src}:{dest}'.format(
+        src=volumeSrc, dest=self.dockerVolume))
+
+      finalCmdLine.append('--name={}'.format(self.dockerContainerName))
+
+      # Compute working directory inside the container
+      containerWorkDir = os.path.join(self.dockerVolume, self.workDirName)
+      finalCmdLine.append('--workdir={}'.format(containerWorkDir))
+
+    # Setup memory limits
     env = {}
     env.update(envExtra)
     # Setup environment to enforce memory limit
     if self.maxMemoryInMB > 0:
-      if not isDotNet:
-        raise NotImplementedError('Enforcing memory limit when not using mono')
+      if self.useDocker:
+        # Use docker to enforce the memory limit
+        finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMB))
+      else:
+        if isDotNet:
+          env['MONO_GC_PARAM'] = '-max-heap-size={}m'.format(self.maxMemoryInMB)
+        else:
+          # FIXME: Figure out how to enforce this
+          raise NotImplementedError('Enforcing memory limit when not using mono or docker')
 
-      env['MONO_GC_PARAM'] = '-max-heap-size={}m'.format(self.maxMemoryInMB)
+    if self.useDocker:
+      finalCmdLine.append(self.dockerImage)
+
+    if isDotNet and os.name == 'posix':
+      finalCmdLine.append('mono')
+
+    # Now add the arguments
+    finalCmdLine.extend(cmdLine)
 
     _logger.debug('Running: {}\nwith env:{}'.format(
       pprint.pformat(finalCmdLine),
@@ -302,6 +337,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         endTime = time.perf_counter()
         self.time = endTime - startTime
+
+        if self.useDocker:
+          # The container will carry on running so we need to kill it
+          _logger.info('Trying to kill container {}'.format(self.dockerContainerName))
+          process = psutil.Popen(['docker', 'kill', self.dockerContainerName])
+          process.wait()
 
         raise e
       finally:
