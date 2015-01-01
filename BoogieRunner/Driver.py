@@ -66,8 +66,18 @@ def entryPoint(args):
   # Run the runners and build the report
   report = []
   for r in runners:
-    r.run()
-    report.append(r.getResults())
+    try:
+      r.run()
+      report.append(r.getResults())
+    except:
+      _logger.error("Error handling:{}".format(r.program))
+      _logger.error(traceback.format_exc())
+
+      # Attempt to add the error to the report
+      errorLog = {}
+      errorLog['program'] = r.program
+      errorLog['error'] = traceback.format_exc()
+      report.append(errorLog)
 
   # Write result to YAML file
   result = yaml.dump(report, default_flow_style=False)
