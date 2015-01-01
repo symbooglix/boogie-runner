@@ -13,9 +13,9 @@ class BoogieRunnerException(Exception):
     self.msg = msg
 
 class BoogieRunner(RunnerBaseClass):
-  def __init__(self, boogieProgram, config):
+  def __init__(self, boogieProgram, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
-    super(BoogieRunner, self).__init__(boogieProgram, config)
+    super(BoogieRunner, self).__init__(boogieProgram, rc)
 
   @property
   def name(self):

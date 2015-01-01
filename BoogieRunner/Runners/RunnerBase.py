@@ -22,7 +22,7 @@ class ResultType:
   UNKNOWN = 4
 
 class RunnerBaseClass(metaclass=abc.ABCMeta):
-  def __init__(self, boogieProgram, config):
+  def __init__(self, boogieProgram, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
 
     if not os.path.isabs(boogieProgram):
@@ -34,12 +34,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         'Boogie program ("{}") does not exist'.format(boogieProgram))
 
     self.program = boogieProgram
-
-    # Load config
-    if not 'runner_config' in config:
-      raise RunnerBaseException('"runner_config" key missing')
-
-    rc = config['runner_config']
 
     if not 'tool_path' in rc:
       raise RunnerBaseException('"tool_path" missing from "runner_config"')

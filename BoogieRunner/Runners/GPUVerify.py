@@ -16,9 +16,9 @@ class GPUVerifyRunnerException(Exception):
 class GPUVerifyRunner(RunnerBaseClass):
   softTimeoutDiff = 5
 
-  def __init__(self, boogieProgram, config):
+  def __init__(self, boogieProgram, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
-    super(GPUVerifyRunner, self).__init__(boogieProgram, config)
+    super(GPUVerifyRunner, self).__init__(boogieProgram, rc)
 
     # Sanity checks
     # TODO

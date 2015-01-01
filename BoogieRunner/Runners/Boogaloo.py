@@ -15,7 +15,7 @@ class BoogalooRunnerException(Exception):
 class BoogalooRunner(RunnerBaseClass):
 
   staticCounter = 0
-  def __init__(self, boogieProgram, config):
+  def __init__(self, boogieProgram, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
 
     # Needed to give unique name for docker containers
@@ -23,18 +23,18 @@ class BoogalooRunner(RunnerBaseClass):
     BoogalooRunner.staticCounter += 1
 
     try:
-      toolPath = config['runner_config']['tool_path']
+      toolPath = rc['tool_path']
     except KeyError:
-      raise BoogalooRunnerException('"runner_config":"tool_path" not in config')
+      raise BoogalooRunnerException('"tool_path" not in config')
 
-    self.useDocker = 'docker' in config['runner_config']
+    self.useDocker = 'docker' in rc
 
     if self.useDocker:
       # We need to fake 'tool_path' because its inside the container
       # We'll use the path to this python file
-      config['runner_config']['tool_path'] = os.path.abspath(__file__)
+      rc['tool_path'] = os.path.abspath(__file__)
       
-    super(BoogalooRunner, self).__init__(boogieProgram, config)
+    super(BoogalooRunner, self).__init__(boogieProgram, rc)
 
     if self.useDocker:
       # Set the toolPath to be correct (overriding what parent constructor did)
@@ -42,7 +42,7 @@ class BoogalooRunner(RunnerBaseClass):
 
       # Check that the docker image is specified correctly
 
-      dockerConfig = config['runner_config']['docker']
+      dockerConfig = rc['docker']
       if not isinstance(dockerConfig, dict):
         raise BoogalooRunnerException('"docker" key must map to a dictionary')
       

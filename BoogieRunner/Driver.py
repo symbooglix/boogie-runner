@@ -58,10 +58,22 @@ def entryPoint(args):
   # Get Runner class to use
   RunnerClass = RunnerFactory.getRunnerClass(config['runner'])
 
+  if not 'runner_config' in config:
+    _logger.error('"runner_config" missing from config')
+    return 1
+
+  if not isinstance(config['runner_config'],dict):
+    _logger.error('"runner_config" should map to a dictionary')
+    return 1
+
+  rc = config['runner_config']
+
   # Create the runners
   runners = []
   for program in programList:
-    runners.append(RunnerClass(program, config))
+    # Pass in a copy of rc so that if a runner accidently modifies
+    # a config it won't affect other runners.
+    runners.append(RunnerClass(program, rc.copy()))
 
   # Run the runners and build the report
   report = []

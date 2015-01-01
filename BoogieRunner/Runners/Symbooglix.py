@@ -13,9 +13,9 @@ class SymbooglixRunnerException(Exception):
 
 class SymbooglixRunner(RunnerBaseClass):
   softTimeoutDiff = 10
-  def __init__(self, boogieProgram, config):
+  def __init__(self, boogieProgram, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
-    super(SymbooglixRunner, self).__init__(boogieProgram, config)
+    super(SymbooglixRunner, self).__init__(boogieProgram, rc)
 
     # Sanity checks
 
