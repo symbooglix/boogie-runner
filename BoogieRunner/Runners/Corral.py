@@ -74,7 +74,7 @@ class CorralRunner(RunnerBaseClass):
     # Looking at Corral's code "/timeLimit:" seems to
     # zero by default despite what the usage message says
     cmdLine = [self.toolPath,
-               self.program,
+               self.programPathArgument,
                "/main:{}".format(self.entryPoint)
               ]
 

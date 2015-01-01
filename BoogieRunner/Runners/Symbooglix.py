@@ -86,7 +86,7 @@ class SymbooglixRunner(RunnerBaseClass):
     cmdLine.append('--timeout={}'.format(softTimeout))
 
     # Add the source file as the last arg
-    cmdLine.append(self.program)
+    cmdLine.append(self.programPathArgument)
 
     self.exitCode = None
     self.hitHardTimeout = False

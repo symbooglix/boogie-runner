@@ -22,8 +22,15 @@ class ResultType:
   UNKNOWN = 4
 
 class RunnerBaseClass(metaclass=abc.ABCMeta):
+  staticCounter = 0
+  _toolInDockerImageCache = {}
+
   def __init__(self, boogieProgram, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
+
+    # Unique ID (we assume this constructor is never called in parallel)
+    self.uid = RunnerBaseClass.staticCounter
+    RunnerBaseClass.staticCounter += 1
 
     if not os.path.isabs(boogieProgram):
       raise RunnerBaseException(
@@ -38,10 +45,78 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     if not 'tool_path' in rc:
       raise RunnerBaseException('"tool_path" missing from "runner_config"')
 
+    if not os.path.isabs(rc['tool_path']):
+      raise RunnerBaseException('"tool_path" must be an absolute path')
+
     self.toolPath = rc['tool_path']
 
-    if not os.path.exists(self.toolPath):
-      raise RunnerBaseException('tool_path set to "{}", but it does not exist'.format(self.toolPath))
+    # Check if docker will be used in this runner
+    self.useDocker = 'docker' in rc
+
+    self.dockerImage = None
+    self.dockerVolume = None
+    if self.useDocker:
+      # Check that the docker image is specified correctly
+      _logger.info('Using docker')
+
+      dockerConfig = rc['docker']
+      if not isinstance(dockerConfig, dict):
+        raise BoogalooRunnerException('"docker" key must map to a dictionary')
+
+      if not 'image' in dockerConfig:
+        raise BoogalooRunner('"image" missing from docker config')
+
+      self.dockerImage = dockerConfig['image']
+
+      if not isinstance(self.dockerImage, str):
+        raise BoogalooRunnerException(
+          '"image" must be a string that is a valid docker image name')
+
+      if len(self.dockerImage) == 0:
+        raise BoogalooRunnerException('"image" cannot be an empty string')
+
+      # Get the docker volume location (inside the container)
+      try:
+        self.dockerVolume = dockerConfig['volume']
+      except KeyError:
+        raise BoogalooRunnerException('"volume" not specified for docker container')
+
+      checkImg = False
+      try:
+        # Try the cache first
+        if self.toolPath in RunnerBaseClass._toolInDockerImageCache[self.dockerImage]:
+          checkImg = False
+          _logger.debug('Cache hit not checking if {} is in docker image {}'.format(
+          self.toolPath, self.dockerImage))
+          checkImg = False
+        else:
+          checkImg = True
+      except KeyError:
+        checkImg = True
+
+      if checkImg:
+        # check the tool exists inside the container
+        _logger.debug('Cache miss, checking if {} is in docker image {}'.format(
+          self.toolPath, self.dockerImage))
+        process = psutil.Popen(['docker','run','--rm', self.dockerImage, 'ls', self.toolPath])
+        exitCode = process.wait()
+        if exitCode != 0:
+          raise RunnerBaseException('"{}" (tool_path) does not exist inside container'.format(
+            self.toolPath))
+
+        toolsInDockerImage = None
+        try:
+          toolsInDockerImage = RunnerBaseClass._toolInDockerImageCache[self.dockerImage]
+        except KeyError:
+          toolsInDockerImage = set()
+          RunnerBaseClass._toolInDockerImageCache[self.dockerImage] = toolsInDockerImage
+
+        toolsInDockerImage.add(self.toolPath)
+
+    else:
+      # check the tool exists in the current filesystem
+      if not os.path.exists(self.toolPath):
+        raise RunnerBaseException('tool_path set to "{}", but it does not exist'.format(self.toolPath))
 
     removeWorkDirs = False
     try:
@@ -173,6 +248,19 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   @abc.abstractproperty
   def name(self):
     pass
+
+  @property
+  def programPathArgument(self):
+    """
+      This the argument to pass to the tool when running.
+      This should be used instead of ``self.program`` because
+      this property takes into account if docker is being used
+    """
+    if self.useDocker:
+      progFilename = os.path.basename(self.program)
+      return os.path.join(self.dockerVolume, progFilename)
+
+    return self.program
 
   def runTool(self, cmdLine, isDotNet, envExtra = {}):
     finalCmdLine = list(cmdLine)

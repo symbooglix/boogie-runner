@@ -85,7 +85,7 @@ class BoogieRunner(RunnerBaseClass):
                "/proc:{}".format(self.entryPoint),
               ]
     cmdLine.extend(self.additionalArgs)
-    cmdLine.append(self.program)
+    cmdLine.append(self.programPathArgument)
 
     # We assume that Boogie has no default timeout
     # so we force the timeout within python

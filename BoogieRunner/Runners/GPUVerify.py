@@ -105,7 +105,7 @@ class GPUVerifyRunner(RunnerBaseClass):
     cmdLine.extend(self.additionalArgs)
 
     # Add the boogie source file as last arg
-    cmdLine.append(self.program)
+    cmdLine.append(self.programPathArgument)
 
     # We assume that Boogie has no default timeout
     # so we force the timeout within python

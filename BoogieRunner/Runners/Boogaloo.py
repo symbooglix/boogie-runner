@@ -18,51 +18,7 @@ class BoogalooRunner(RunnerBaseClass):
   def __init__(self, boogieProgram, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
 
-    # Needed to give unique name for docker containers
-    self.counter = BoogalooRunner.staticCounter
-    BoogalooRunner.staticCounter += 1
-
-    try:
-      toolPath = rc['tool_path']
-    except KeyError:
-      raise BoogalooRunnerException('"tool_path" not in config')
-
-    self.useDocker = 'docker' in rc
-
-    if self.useDocker:
-      # We need to fake 'tool_path' because its inside the container
-      # We'll use the path to this python file
-      rc['tool_path'] = os.path.abspath(__file__)
-      
     super(BoogalooRunner, self).__init__(boogieProgram, rc)
-
-    if self.useDocker:
-      # Set the toolPath to be correct (overriding what parent constructor did)
-      self.toolPath = toolPath
-
-      # Check that the docker image is specified correctly
-
-      dockerConfig = rc['docker']
-      if not isinstance(dockerConfig, dict):
-        raise BoogalooRunnerException('"docker" key must map to a dictionary')
-      
-      if not 'image' in dockerConfig:
-        raise BoogalooRunner('"image" missing from docker config')
-
-      self.dockerImage = dockerConfig['image']
-
-      if not isinstance(self.dockerImage, str):
-        raise BoogalooRunnerException(
-          '"image" must be a string that is a valid docker image name')
-
-      if len(self.dockerImage) == 0:
-        raise BoogalooRunnerException('"image" cannot be an empty string')
-
-      # Get the docker volume location (inside the container)
-      try:
-        self.dockerVolume = dockerConfig['volume']
-      except KeyError:
-        raise BoogalooRunnerException('"volume" not specified for docker container')
 
     # Sanity checks
     # TODO
@@ -120,6 +76,7 @@ class BoogalooRunner(RunnerBaseClass):
   def run(self):
     cmdLine = [ ]
 
+    # FIXME: Move this into RunnerBaseClass
     containerName = ""
     if self.useDocker:
       cmdLine.extend(['docker', 'run', '--rm'])
@@ -127,7 +84,7 @@ class BoogalooRunner(RunnerBaseClass):
       # Specifying tty prevents buffering of boogaloo's output
       cmdLine.append('--tty')
 
-      containerName = 'boogaloo-bg-{}-{}'.format(os.getpid(), self.counter)
+      containerName = 'boogaloo-bg-{}-{}'.format(os.getpid(), self.uid)
 
       # Compute the volume we need to mount inside the container
       volumeSrc = os.path.dirname(self.program)
@@ -154,14 +111,8 @@ class BoogalooRunner(RunnerBaseClass):
     cmdLine.extend(self.additionalArgs)
     cmdLine.append('--proc={}'.format(self.entryPoint))
 
-
     # Add the boogie source file as last arg
-    if self.useDocker:
-      progFilename = os.path.basename(self.program)  
-      programPathInContainer = os.path.join(self.dockerVolume, progFilename)
-      cmdLine.append(programPathInContainer)
-    else:
-      cmdLine.append(self.program)
+    cmdLine.append(self.programPathArgument)
 
     # We assume that Boogie has no default timeout
     # so we force the timeout within python
