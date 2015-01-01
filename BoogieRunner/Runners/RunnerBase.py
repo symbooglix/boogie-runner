@@ -51,7 +51,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     removeWorkDirs = False
     try:
-      removeWorkDirs = config['remove_work_dirs']
+      removeWorkDirs = rc['remove_work_dirs']
       if not isinstance(removeWorkDirs, bool):
         raise RunnerBaseException('"remove_work_dirs" must be boolean')
     except KeyError:

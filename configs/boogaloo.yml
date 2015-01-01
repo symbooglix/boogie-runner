@@ -1,9 +1,9 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
-remove_work_dirs: true
 runner: Boogaloo
 runner_config:
   # This is the tool_path inside the container
   tool_path: "/home/boogaloo/.cabal/bin/boogaloo"
+  remove_work_dirs: true
   docker:
     image: "delcypher/boogaloo-docker"
     volume: "/vol/"

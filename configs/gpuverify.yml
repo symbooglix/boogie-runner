@@ -1,7 +1,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
-remove_work_dirs: true
 runner: GPUVerify
 runner_config:
   tool_path: "/home/dan/dev/gpuverify/autobuild/linux/gpuverify/GPUVerify.py"
+  remove_work_dirs: true
   max_time: 6
   # Entry point is ignored by the runner so don't set it
