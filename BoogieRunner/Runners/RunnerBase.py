@@ -199,7 +199,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     startTime = time.perf_counter()
     with open(self.logFile, 'w') as f:
       try:
-        process = psutil.Popen(cmdLine,
+        process = psutil.Popen(finalCmdLine,
                                 cwd=self.workingDirectory,
                                 stdout=f,
                                 stderr=f,
