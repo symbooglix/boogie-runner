@@ -50,11 +50,11 @@ class BoogalooRunner(RunnerBaseClass):
         matchS = successR.search(line)
         if matchS != None:
           successes += 1
-        
+
         matchE = errorR.search(line)
         if matchE != None:
           errors += 1
-   
+
     _logger.debug('Found {} errors, {} successes'.format(
       errors, successes))
     if errors > 0:
@@ -62,14 +62,14 @@ class BoogalooRunner(RunnerBaseClass):
         resultType = ResultType.BUGS_TIMEOUT
       else:
         resultType = ResultType.BUGS_NO_TIMEOUT
-    elif successes > 0: 
+    elif successes > 0:
       if timeoutHit:
         resultType = ResultType.NO_BUGS_TIMEOUT
       else:
         resultType = ResultType.NO_BUGS_NO_TIMEOUT
     else:
       _logger.warning('Unknown result')
-    
+
     results['result'] = resultType
     return results
 
