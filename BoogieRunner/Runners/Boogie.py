@@ -56,14 +56,12 @@ class BoogieRunner(RunnerBaseClass):
       return True
 
     with open(self.logFile, 'r') as f:
-      lines = [l.rstrip() for l in f.readlines()]
-
       # This is kind of a hack to detect if a bug was found
-      # by Corral. Corral needs something better
+      # by Boogie. Boogie needs something better
       r = re.compile(r'Boogie program verifier finished with (\d+) verified, (?P<errors>\d+) error(s)?')
 
       bugsFound = None
-      for line in lines:
+      for line in f:
         m = r.search(line)
         if m != None:
           numOfErrors = int(m.group('errors'))

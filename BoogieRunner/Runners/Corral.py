@@ -56,13 +56,11 @@ class CorralRunner(RunnerBaseClass):
       return True
 
     with open(self.logFile, 'r') as f:
-      lines = [l.rstrip() for l in f.readlines()]
-
       # This is kind of a hack to detect if a bug was found
       # by Corral. Corral needs something better
       r = re.compile(r'Program has a potential bug: True bug')
 
-      for line in lines:
+      for line in f:
         m = r.search(line)
         if m != None:
           return True
