@@ -82,6 +82,9 @@ def entryPoint(args):
     try:
       r.run()
       report.append(r.getResults())
+    except KeyboardInterrupt:
+      _logger.error('Keyboard interrupt')
+      break
     except:
       _logger.error("Error handling:{}".format(r.program))
       _logger.error(traceback.format_exc())

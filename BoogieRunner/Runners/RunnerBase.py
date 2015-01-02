@@ -328,11 +328,13 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
                                 stderr=f,
                                 env=env)
         exitCode = process.wait(timeout=self.maxTimeInSeconds)
-      except psutil.TimeoutExpired as e:
+      except (psutil.TimeoutExpired, KeyboardInterrupt) as e:
+        _logger.debug('Trying to terminate')
         # Gently terminate
         process.terminate()
         time.sleep(1)
         # Now aggresively kill
+        _logger.debug('Trying to kill')
         process.kill()
 
         endTime = time.perf_counter()
