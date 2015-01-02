@@ -105,7 +105,7 @@ dictionary describes the result of a run of a single Boogie program by a tool.
 The following keys are written by all runners
 
 * ``program`` - The absolute path the Boogie program that was used.
-* ``result`` - The result code (see ``BoogieRunner/Runners/RunnerBase.py``)
+* ``result`` - The result code (see ``BoogieRunner/ResultType.py``)
 * ``total_time`` - The total run time in seconds.
 * ``working_directory`` - The working directory that the tool was run in. Each programs
   is run in a unique working directory. Tools may dump output in this directory.
