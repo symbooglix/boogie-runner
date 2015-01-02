@@ -340,6 +340,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
           process = psutil.Popen(['docker', 'kill', self.dockerContainerName])
           process.wait()
 
+          # We also may need to manually remove the container
+          _logger.info('Trying to remove container {}'.format(self.dockerContainerName))
+          process = psutil.Popen(['docker', 'rm', self.dockerContainerName])
+          process.wait()
+
         raise e
       finally:
         endTime = time.perf_counter()
