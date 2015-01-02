@@ -17,6 +17,7 @@ def entryPoint(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="debug", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for program_list")
+  parser.add_argument("-j", "--jobs", type=int, default="1", help="Number of jobs to run in parallel (Default %(default)s)")
   parser.add_argument("config_file", help="YAML configuration file")
   parser.add_argument("program_list", help="File containing list of Boogie programs")
   parser.add_argument("yaml_output", help="path to write YAML output to")
@@ -25,12 +26,16 @@ def entryPoint(args):
 
   logLevel = getattr(logging, pargs.log_level.upper(),None)
   if logLevel == logging.DEBUG:
-    logFormat = '%(levelname)s:%(filename)s:%(lineno)d %(funcName)s()  : %(message)s'
+    logFormat = '%(levelname)s:%(threadName)s: %(filename)s:%(lineno)d %(funcName)s()  : %(message)s'
   else:
-    logFormat = '%(levelname)s: %(message)s'
+    logFormat = '%(levelname)s:%(threadName)s: %(message)s'
 
   logging.basicConfig(level=logLevel, format=logFormat)
   _logger = logging.getLogger(__name__)
+
+  if pargs.jobs <= 0:
+    _logger.error('jobs must be <= 0')
+    return 1
 
   config = None
   programList = None
@@ -78,25 +83,52 @@ def entryPoint(args):
   # Run the runners and build the report
   report = []
   exitCode = 0
-  for r in runners:
-    try:
-      r.run()
-      report.append(r.getResults())
-    except KeyboardInterrupt:
-      _logger.error('Keyboard interrupt')
-      break
-    except:
-      _logger.error("Error handling:{}".format(r.program))
-      _logger.error(traceback.format_exc())
+  if pargs.jobs == 1:
+    _logger.info('Running jobs sequentially')
+    for r in runners:
+      try:
+        r.run()
+        report.append(r.getResults())
+      except KeyboardInterrupt:
+        _logger.error('Keyboard interrupt')
+        break
+      except:
+        _logger.error("Error handling:{}".format(r.program))
+        _logger.error(traceback.format_exc())
 
-      # Attempt to add the error to the report
-      errorLog = {}
-      errorLog['program'] = r.program
-      errorLog['error'] = traceback.format_exc()
-      report.append(errorLog)
-      exitCode = 1
+        # Attempt to add the error to the report
+        errorLog = {}
+        errorLog['program'] = r.program
+        errorLog['error'] = traceback.format_exc()
+        report.append(errorLog)
+        exitCode = 1
+  else:
+    _logger.info('Running jobs in parallel')
+    import concurrent.futures
+    try:
+      with concurrent.futures.ThreadPoolExecutor(max_workers=pargs.jobs) as executor:
+        futureToRunner = { executor.submit(r.run) : r for r in runners }
+        for future in concurrent.futures.as_completed(futureToRunner):
+          r = futureToRunner[future]
+          _logger.debug('{} runner finished'.format(r.programPathArgument))
+
+          if future.exception():
+            e = future.exception()
+            # Attempt to log the error report
+            errorLog = {}
+            errorLog['program'] = r.program
+            errorLog['error'] = "\n".join(traceback.format_exception(type(e), e, None))
+            _logger.error('{} runner hit exception:\n{}'.format(r.programPathArgument, errorLog['error']))
+            report.append(errorLog)
+          else:
+            report.append(r.getResults())
+    except KeyboardInterrupt:
+      # The executor should of been cleaned terminated.
+      # We'll then write what we can to the output YAML file
+      _logger.error('Keyboard interrupt')
 
   # Write result to YAML file
+  _logger.info('Writing output to {}'.format(yamlOutputFile))
   result = yaml.dump(report, default_flow_style=False)
   with open(yamlOutputFile, 'w') as f:
     f.write('# BoogieRunner report using runner {}\n'.format(config['runner']))
