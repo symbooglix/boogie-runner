@@ -41,6 +41,7 @@ class BoogalooRunner(RunnerBaseClass):
 
     timeoutHit = (self.exitCode == None)
     # scan for know keywords to determine if any bugs were found
+    # FIXME: Not using successes for anything, should we remove it?
     successes = 0
     errors = 0
 
@@ -63,14 +64,12 @@ class BoogalooRunner(RunnerBaseClass):
         resultType = ResultType.BUGS_TIMEOUT
       else:
         resultType = ResultType.BUGS_NO_TIMEOUT
-    elif successes > 0:
+    else:
       if timeoutHit:
         resultType = ResultType.NO_BUGS_TIMEOUT
       else:
         resultType = ResultType.NO_BUGS_NO_TIMEOUT
-    else:
-      _logger.warning('Unknown result')
-
+    
     results['result'] = resultType
     return results
 
