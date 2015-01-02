@@ -1,5 +1,6 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
-from . RunnerBase import RunnerBaseClass, ResultType
+from . RunnerBase import RunnerBaseClass
+from .. ResultType import ResultType
 import logging
 import os
 import psutil

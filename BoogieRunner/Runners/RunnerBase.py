@@ -7,19 +7,13 @@ import psutil
 import re
 import shutil
 import time
+from .. ResultType import ResultType
 
 _logger = logging.getLogger(__name__)
 
 class RunnerBaseException(Exception):
   def __init__(self, msg):
     self.msg = msg
-
-class ResultType:
-  NO_BUGS_NO_TIMEOUT = 0
-  BUGS_NO_TIMEOUT = 1
-  NO_BUGS_TIMEOUT = 2
-  BUGS_TIMEOUT = 3
-  UNKNOWN = 4
 
 class RunnerBaseClass(metaclass=abc.ABCMeta):
   staticCounter = 0
