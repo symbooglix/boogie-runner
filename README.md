@@ -4,16 +4,17 @@ This is a python script and framework for running various
 Boogie tools on a set of boogie programs. Supported tools ("runners")
 include
 
-* Boogie
-* Boogaloo
-* Corral
-* GPUVerify
-* Symbooglix
+* [Boogie](https://boogie.codeplex.com/)
+* [Boogaloo](https://bitbucket.org/nadiapolikarpova/boogaloo/wiki/Home)
+* [Corral](https://corral.codeplex.com/)
+* [GPUVerify](http://multicore.doc.ic.ac.uk/tools/GPUVerify/)
+* [Symbooglix](FIXME)
 
 # Requirements
 
 * Python >= 3.3
-* The tools (e.g. ``Corral``) built or a Docker image containing them.
+* The Boogie tools (e.g. ``Corral``) that you wish to run built or a Docker
+  image containing them.
 
 The following python packages (available via ``pip install <package>``)
 
