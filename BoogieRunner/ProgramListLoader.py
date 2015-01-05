@@ -30,6 +30,9 @@ def load(programListFileName, relativePathPrefix):
       if line.startswith('#'):
         logging.debug('Skipping comment line')
         continue
+      if len(line) == 0:
+        logging.debug('Skipping empty line')
+        continue
 
       path = None
       if os.path.isabs(line):
