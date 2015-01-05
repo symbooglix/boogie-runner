@@ -14,9 +14,9 @@ class CorralRunnerException(Exception):
     self.msg = msg
 
 class CorralRunner(RunnerBaseClass):
-  def __init__(self, boogieProgram, rc):
+  def __init__(self, boogieProgram, workingDirectory, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
-    super(CorralRunner, self).__init__(boogieProgram, rc)
+    super(CorralRunner, self).__init__(boogieProgram, workingDirectory, rc)
 
   @property
   def name(self):

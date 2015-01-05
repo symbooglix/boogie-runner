@@ -21,6 +21,7 @@ def entryPoint(args):
   parser.add_argument("-j", "--jobs", type=int, default="1", help="Number of jobs to run in parallel (Default %(default)s)")
   parser.add_argument("config_file", help="YAML configuration file")
   parser.add_argument("program_list", help="File containing list of Boogie programs")
+  parser.add_argument("working_dirs_root", help="Directory to create working directories inside")
   parser.add_argument("yaml_output", help="path to write YAML output to")
 
   pargs = parser.parse_args()
@@ -47,7 +48,7 @@ def entryPoint(args):
     programList = ProgramListLoader.load(pargs.program_list, pargs.rprefix)
   except (ProgramListLoader.ProgramListLoaderException, ConfigLoader.ConfigLoaderException) as e:
     _logger.error(e)
-    logging.debug(traceback.format_exc())
+    _logger.debug(traceback.format_exc())
 
     return 1
 
@@ -60,6 +61,28 @@ def entryPoint(args):
   if os.path.exists(yamlOutputFile):
     _logger.error('yaml_output file ("{}") already exists'.format(yamlOutputFile))
     return 1
+
+  # Setup the directory to hold working directories
+  workDirsRoot = os.path.abspath(pargs.working_dirs_root)
+  if os.path.exists(workDirsRoot):
+    # Check its a directory and its empty
+    if not os.path.isdir(workDirsRoot):
+      _logger.error('"{}" exists but is not a directory'.format(workDirsRoot))
+      return 1
+
+    workDirsRootContents = next(os.walk(workDirsRoot, topdown=True))
+    if len(workDirsRoot[1]) > 0 or len(workDirsRoot[1]) > 0:
+      _logger.error('"{}" is not empty'.format(workDirsRoot))
+      return 1
+  else:
+    # Try to create the working directory
+    try:
+      os.mkdir(workDirsRoot)
+    except Exception as e:
+      _logger.error('Failed to create working_dirs_root "{}"'.format(workDirsRoot))
+      _logger.error(e)
+      _logger.debug(traceback.format_exc())
+      return 1
 
   # Get Runner class to use
   RunnerClass = RunnerFactory.getRunnerClass(config['runner'])
@@ -76,10 +99,22 @@ def entryPoint(args):
 
   # Create the runners
   runners = []
-  for program in programList:
+  for index, program in enumerate(programList):
+    # Create working directory for this runner
+    workDir = os.path.join(workDirsRoot, 'workdir-{}'.format(index))
+    assert not os.path.exists(workDir)
+
+    try:
+      os.mkdir(workDir)
+    except Exception as e:
+      _logger.error('Failed to create working directory "{}"'.format(workDir))
+      _logger.error(e)
+      _logger.debug(traceback.format_exc())
+      return 1
+
     # Pass in a copy of rc so that if a runner accidently modifies
     # a config it won't affect other runners.
-    runners.append(RunnerClass(program, rc.copy()))
+    runners.append(RunnerClass(program, workDir, rc.copy()))
 
   # Run the runners and build the report
   report = []

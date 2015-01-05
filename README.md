@@ -52,7 +52,6 @@ is a dictionary.
 ### ``runner_config`` keys
 
 * ``tool_path`` - absolute path to tool executable. Note if using Docker this should be the absolute path to the tool inside the container.
-* ``remove_work_dirs`` - **Optional** if set to true old working directories of a previous run will be removed. By default this is false.
 * ``max_memory`` - **Optional** The maximum amount of memory (in MiB) that a single run is allowed to use. By default there is no limit
 * ``max_time`` - **Optional** The maximum amount of time (in seconds) that a single run is allowed to use before being killed. By default there is no limit.
 * ``additional_args`` a list of additional command line arguments to pass to the tool

@@ -14,9 +14,9 @@ class SymbooglixRunnerException(Exception):
 
 class SymbooglixRunner(RunnerBaseClass):
   softTimeoutDiff = 10
-  def __init__(self, boogieProgram, rc):
+  def __init__(self, boogieProgram, workingDirectory, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
-    super(SymbooglixRunner, self).__init__(boogieProgram, rc)
+    super(SymbooglixRunner, self).__init__(boogieProgram, workingDirectory, rc)
 
     # Sanity checks
 
@@ -77,7 +77,7 @@ class SymbooglixRunner(RunnerBaseClass):
     cmdLine = [ self.toolPath ] + self.additionalArgs
 
     # symbooglix outputdir
-    self.outputDir = os.path.join(self.workingDirectory, "symboolix-0")
+    self.outputDir = os.path.join(self.workingDirectory, "sbx")
     cmdLine.append('--output-dir={}'.format(self.outputDir))
 
     # Set implementation to enter

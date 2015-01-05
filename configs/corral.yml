@@ -2,7 +2,6 @@
 runner: Corral
 runner_config:
   tool_path: "/home/dan/dev/corral/corral/bin/Release/corral.exe"
-  remove_work_dirs: true
   max_memory: 4096
   max_time: 5
   entry_point: "main"

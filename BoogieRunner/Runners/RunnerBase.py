@@ -19,7 +19,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   staticCounter = 0
   _toolInDockerImageCache = {}
 
-  def __init__(self, boogieProgram, rc):
+  # FIXME: Add a lock so instances cannot be created in parallel
+  def __init__(self, boogieProgram, workingDirectory, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
 
     # Unique ID (we assume this constructor is never called in parallel)
@@ -36,6 +37,32 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     self.program = boogieProgram
 
+    # Check working directory
+    if not os.path.isabs(workingDirectory):
+      raise RunnerBaseException(
+        'working directory "{}" must be an absolute path'.format(workingDirectory))
+
+    if not os.path.exists(workingDirectory):
+      raise RunnerBaseException(
+        'working directory "{}" does not exist'.format(workingDirectory))
+
+    if not os.path.isdir(workingDirectory):
+      raise RunnerBaseException(
+        'Specified working directory ("{}") is not a directory'.format(workingDirectory))
+
+    # Check the directory is empty
+    firstLevel = next(os.walk(workingDirectory, topdown=True))
+    if len(firstLevel[1]) > 0 or len(firstLevel[2]) > 0:
+      raise RunnerBaseException(
+        'working directory "{}" is not empty'.format(workingDirectory))
+
+    # Set working directory and create empty log file in it This should avoid
+    # there being two instances of this class using the same working directory
+    # (due to empty dir check) provided the instances are created sequentially.
+    self.workingDirectory = workingDirectory
+    with open(self.logFile, 'w') as f:
+      pass
+
     if not 'tool_path' in rc:
       raise RunnerBaseException('"tool_path" missing from "runner_config"')
 
@@ -48,7 +75,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self.useDocker = 'docker' in rc
 
     self.dockerImage = None
-    self.dockerVolume = None
+    self.dockerSourceVolume = None
     if self.useDocker:
       # Check that the docker image is specified correctly
       _logger.info('Using docker')
@@ -71,7 +98,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
       # Get the docker volume location (inside the container)
       try:
-        self.dockerVolume = dockerConfig['volume']
+        self.dockerSourceVolume = dockerConfig['volume']
       except KeyError:
         raise BoogalooRunnerException('"volume" not specified for docker container')
 
@@ -111,14 +138,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       # check the tool exists in the current filesystem
       if not os.path.exists(self.toolPath):
         raise RunnerBaseException('tool_path set to "{}", but it does not exist'.format(self.toolPath))
-
-    removeWorkDirs = False
-    try:
-      removeWorkDirs = rc['remove_work_dirs']
-      if not isinstance(removeWorkDirs, bool):
-        raise RunnerBaseException('"remove_work_dirs" must be boolean')
-    except KeyError:
-      pass
 
     try:
       self.maxMemoryInMB = rc['max_memory']
@@ -162,21 +181,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         self.additionalArgs.append(arg)
 
-    # Sanity checks
-    if os.path.exists(self.workingDirectory):
-      if not removeWorkDirs:
-        raise RunnerBaseException(
-          'workingDirectory "{}" already exists'.format(self.workingDirectory))
-      else:
-        _logger.warning(
-          'Removing working directory "{}" and its contents'.format(self.workingDirectory))
-        shutil.rmtree(self.workingDirectory)
-
-    # Create the working directory
-    os.mkdir(self.workingDirectory)
-
-    self.logFile = os.path.join(self.workingDirectory, "log.txt")
-
   def findEntryPoint(self, constraint):
     if not isinstance(constraint, dict):
       raise RunnerBaseException("Expected \"entry_point\" to be a dictionary")
@@ -213,16 +217,20 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     _logger.debug('Found entry point "{}" in "{}"'.format(entryPoint, self.program))
     return entryPoint
 
-  @property
-  def workDirName(self):
-    # We need to use the program name to handle the case where there are multiple
-    # boogie programs in the same directory
-    mangled = os.path.basename(self.program).replace(' ','.')
-    return "{}.{}.br.d".format(self.name, mangled)
+#  @property
+#  def workDirName(self):
+#    # We need to use the program name to handle the case where there are multiple
+#    # boogie programs in the same directory
+#    mangled = os.path.basename(self.program).replace(' ','.')
+#    return "{}.{}.br.d".format(self.name, mangled)
+#
+#  @property
+#  def workingDirectory(self):
+#    return os.path.join(os.path.dirname(os.path.abspath(self.program)), self.workDirName)
 
   @property
-  def workingDirectory(self):
-    return os.path.join(os.path.dirname(os.path.abspath(self.program)), self.workDirName)
+  def logFile(self):
+    return os.path.join(self.workingDirectory, 'log.txt')
 
   @abc.abstractmethod
   def run(self):
@@ -252,7 +260,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     """
     if self.useDocker:
       progFilename = os.path.basename(self.program)
-      return os.path.join(self.dockerVolume, progFilename)
+      return os.path.join(self.dockerSourceVolume, progFilename)
 
     return self.program
 
@@ -270,17 +278,20 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       # Specifying tty prevents buffering of boogaloo's output
       finalCmdLine.append('--tty')
 
-      # Compute the volume we need to mount inside the container
+      # Setup the volume to mount the directory containing boogie program
+      # we do this as as read-only volume
       volumeSrc = os.path.dirname(self.program)
+      finalCmdLine.append('--volume={src}:{dest}:ro'.format(
+        src=volumeSrc, dest=self.dockerSourceVolume))
 
-      finalCmdLine.append('--volume={src}:{dest}'.format(
-        src=volumeSrc, dest=self.dockerVolume))
+
+      # Setup working directory inside the container (this is writable)
+      # FIXME: We should make this settable from the config
+      containerWorkDir = '/mnt/'
+      finalCmdLine.append('--volume={src}:{dest}:rw'.format(src=self.workingDirectory, dest=containerWorkDir))
+      finalCmdLine.append('--workdir={}'.format(containerWorkDir))
 
       finalCmdLine.append('--name={}'.format(self.dockerContainerName))
-
-      # Compute working directory inside the container
-      containerWorkDir = os.path.join(self.dockerVolume, self.workDirName)
-      finalCmdLine.append('--workdir={}'.format(containerWorkDir))
 
     # Setup memory limits
     env = {}

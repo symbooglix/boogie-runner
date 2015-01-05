@@ -2,7 +2,6 @@
 runner: Symbooglix
 runner_config:
   tool_path: "/home/dan/dev/symbooglix/symbooglix/src/SymbooglixDriver/bin/Release/symbooglix.exe"
-  remove_work_dirs: true
   max_memory: 4096
   max_time: 61
   additional_args:

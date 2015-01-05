@@ -16,10 +16,10 @@ class BoogalooRunnerException(Exception):
 class BoogalooRunner(RunnerBaseClass):
 
   staticCounter = 0
-  def __init__(self, boogieProgram, rc):
+  def __init__(self, boogieProgram, workingDirectory, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
 
-    super(BoogalooRunner, self).__init__(boogieProgram, rc)
+    super(BoogalooRunner, self).__init__(boogieProgram, workingDirectory, rc)
 
     # Sanity checks
     # TODO
