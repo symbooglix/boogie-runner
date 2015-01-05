@@ -1,0 +1,13 @@
+# BoogieRunner report using runner Symbooglix
+- hit_hard_timeout: false
+  program: /home/dan/dev/symbooglix/boogie-runner/test/inf.bpl
+  result: 2
+  sbx_dir: /home/dan/dev/symbooglix/boogie-runner/test/symbooglix.inf.bpl.br.d/symboolix-0
+  total_time: 7.40208269499999
+  working_directory: /home/dan/dev/symbooglix/boogie-runner/test/symbooglix.inf.bpl.br.d
+- hit_hard_timeout: false
+  program: /home/dan/dev/symbooglix/boogie-runner/test/req.bpl
+  result: 1
+  sbx_dir: /home/dan/dev/symbooglix/boogie-runner/test/symbooglix.req.bpl.br.d/symboolix-0
+  total_time: 1.376605669996934
+  working_directory: /home/dan/dev/symbooglix/boogie-runner/test/symbooglix.req.bpl.br.d
