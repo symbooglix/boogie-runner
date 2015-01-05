@@ -67,7 +67,7 @@ class GPUVerifyRunner(RunnerBaseClass):
       else:
         _logger.error("GPUVerify had unrecognised exit code")
 
-      results['exitCode'] = self.exitCode
+      results['exit_code'] = self.exitCode
 
 
     results['result'] = resultType.value
