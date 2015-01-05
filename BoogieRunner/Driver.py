@@ -17,6 +17,7 @@ def entryPoint(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="debug", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for program_list")
+  parser.add_argument("--dry", action='store_true', help="Stop after initialising runners")
   parser.add_argument("-j", "--jobs", type=int, default="1", help="Number of jobs to run in parallel (Default %(default)s)")
   parser.add_argument("config_file", help="YAML configuration file")
   parser.add_argument("program_list", help="File containing list of Boogie programs")
@@ -83,6 +84,11 @@ def entryPoint(args):
   # Run the runners and build the report
   report = []
   exitCode = 0
+
+  if pargs.dry:
+    _logger.info('Not running runners')
+    return exitCode
+
   if pargs.jobs == 1:
     _logger.info('Running jobs sequentially')
     for r in runners:
