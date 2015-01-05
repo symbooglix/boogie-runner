@@ -28,19 +28,22 @@ class CorralRunner(RunnerBaseClass):
     # Interpret exit code and contents of the log file
     resultType = ResultType.UNKNOWN
     timedOut = self.exitCode == None
-    if timedOut:
-      if self.foundBug():
-        resultType = ResultType.BUGS_TIMEOUT
-      else:
-        resultType = ResultType.NO_BUGS_TIMEOUT
-    else:
-      if self.exitCode == 0:
-        if self.foundBug():
-          resultType = ResultType.BUGS_NO_TIMEOUT
+
+    foundBugs = self.foundBug()
+    if foundBugs != None:
+      if timedOut:
+        if foundBugs:
+          resultType = ResultType.BUGS_TIMEOUT
         else:
-          resultType = ResultType.NO_BUGS_NO_TIMEOUT
+          resultType = ResultType.NO_BUGS_TIMEOUT
       else:
-        _logger.error("Corral didn't exit properly")
+        if self.exitCode == 0:
+          if foundBugs:
+            resultType = ResultType.BUGS_NO_TIMEOUT
+          else:
+            resultType = ResultType.NO_BUGS_NO_TIMEOUT
+        else:
+          _logger.error("Corral didn't exit properly")
 
 
     results['result'] = resultType.value
@@ -52,9 +55,8 @@ class CorralRunner(RunnerBaseClass):
     """
     if not os.path.exists(self.logFile):
       _logger.error('Could not find log file')
-      # This isn't a bug but the fact that the log output
-      # is missing is an issue which needs attention
-      return True
+      # We don't know what happened
+      return None
 
     with open(self.logFile, 'r') as f:
       # This is kind of a hack to detect if a bug was found
