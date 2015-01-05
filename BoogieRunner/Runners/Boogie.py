@@ -28,19 +28,21 @@ class BoogieRunner(RunnerBaseClass):
     # Interpret exit code and contents of the log file
     resultType = ResultType.UNKNOWN
     timedOut = self.exitCode == None
-    if timedOut:
-      if self.foundBug():
-        resultType = ResultType.BUGS_TIMEOUT
-      else:
-        resultType = ResultType.NO_BUGS_TIMEOUT
-    else:
-      if self.exitCode == 0:
-        if self.foundBug():
-          resultType = ResultType.BUGS_NO_TIMEOUT
+    foundBugs = self.foundBug()
+    if foundBugs != None:
+      if timedOut:
+        if foundBugs:
+          resultType = ResultType.BUGS_TIMEOUT
         else:
-          resultType = ResultType.NO_BUGS_NO_TIMEOUT
+          resultType = ResultType.NO_BUGS_TIMEOUT
       else:
-        _logger.error("Boogie didn't exit properly")
+        if self.exitCode == 0:
+          if foundBugs:
+            resultType = ResultType.BUGS_NO_TIMEOUT
+          else:
+            resultType = ResultType.NO_BUGS_NO_TIMEOUT
+        else:
+          _logger.error("Boogie didn't exit properly")
 
 
     results['result'] = resultType.value
@@ -54,7 +56,7 @@ class BoogieRunner(RunnerBaseClass):
       _logger.error('Could not find log file')
       # This isn't a bug but the fact that the log output
       # is missing is an issue which needs attention
-      return True
+      return None
 
     with open(self.logFile, 'r') as f:
       # This is kind of a hack to detect if a bug was found
@@ -73,9 +75,6 @@ class BoogieRunner(RunnerBaseClass):
 
     if bugsFound == None:
       _logger.error("Could not read report from log!")
-      # This is not really a bug in the Boogie program
-      # but something went really wrong here
-      bugsFound = True
 
     return bugsFound
 
