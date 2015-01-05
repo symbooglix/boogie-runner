@@ -47,6 +47,8 @@ class SymbooglixRunner(RunnerBaseClass):
     resultType = ResultType.UNKNOWN
 
     if not self.hitHardTimeout:
+      # Note the tool's exit code
+      results['exit_code'] = self.exitCode
 
       # Use Symbooglix exitCode
       if self.exitCode == 0:
