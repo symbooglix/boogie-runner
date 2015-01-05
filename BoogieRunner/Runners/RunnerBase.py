@@ -320,7 +320,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     _logger.debug('Running: {}\nwith env:{}'.format(
       pprint.pformat(finalCmdLine),
       pprint.pformat(env)))
-    
+
     # Run the tool
     exitCode = None
     process = None
