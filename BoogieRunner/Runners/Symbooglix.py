@@ -67,7 +67,7 @@ class SymbooglixRunner(RunnerBaseClass):
       _logger.error('FIXME: hard timeout was hit')
 
 
-    results['result'] = resultType
+    results['result'] = resultType.value
     results['hit_hard_timeout'] = self.hitHardTimeout
     return results
 

@@ -43,7 +43,7 @@ class BoogieRunner(RunnerBaseClass):
         _logger.error("Boogie didn't exit properly")
 
 
-    results['result'] = resultType
+    results['result'] = resultType.value
     return results
 
   def foundBug(self):

@@ -70,7 +70,7 @@ class GPUVerifyRunner(RunnerBaseClass):
       results['exitCode'] = self.exitCode
 
 
-    results['result'] = resultType
+    results['result'] = resultType.value
     return results
 
   def run(self):

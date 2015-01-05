@@ -43,7 +43,7 @@ class CorralRunner(RunnerBaseClass):
         _logger.error("Corral didn't exit properly")
 
 
-    results['result'] = resultType
+    results['result'] = resultType.value
     return results
 
   def foundBug(self):

@@ -235,7 +235,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['working_directory'] = self.workingDirectory
 
     # Sub classes should set this appropriately
-    results['result'] = ResultType.UNKNOWN
+    results['result'] = ResultType.UNKNOWN.value
 
     return results
 

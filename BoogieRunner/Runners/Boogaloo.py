@@ -70,7 +70,7 @@ class BoogalooRunner(RunnerBaseClass):
       else:
         resultType = ResultType.NO_BUGS_NO_TIMEOUT
     
-    results['result'] = resultType
+    results['result'] = resultType.value
     return results
 
   def run(self):
