@@ -25,13 +25,13 @@ def load(programListFileName, relativePathPrefix):
     lineCounter=0
     for line in [ l.rstrip("\r\n") for l in lines ]:
       lineCounter += 1
-      logging.debug('Reading line {}: "{}"'.format(lineCounter, line))
+      _logger.debug('Reading line {}: "{}"'.format(lineCounter, line))
 
       if line.startswith('#'):
-        logging.debug('Skipping comment line')
+        _logger.debug('Skipping comment line')
         continue
       if len(line) == 0:
-        logging.debug('Skipping empty line')
+        _logger.debug('Skipping empty line')
         continue
 
       path = None
