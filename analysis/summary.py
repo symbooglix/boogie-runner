@@ -24,15 +24,19 @@ def main(args):
     # Count
     binned = {}
     for r in results:
-        resultCode = r['result']
+        resultCode = ResultType(r['result'])
         try:
             count = binned[resultCode]
             binned[resultCode] = count +1
         except KeyError:
             binned[resultCode] = 1
 
-    print(binned)
-        
+    # print results
+    total = 0
+    for rType, count in binned.items():
+        print("{type} : {count}".format(type=rType, count=count))
+        total += count
+    print("Total benchmarks : {}".format(total))
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
