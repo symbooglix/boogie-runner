@@ -39,6 +39,11 @@ class BoogalooRunner(RunnerBaseClass):
       _logger.error('log file is missing')
       return results
 
+    if self.exitCode != None and self.exitCode != 0:
+      # Boogaloo returns a non zero exit code if parser/type check errors occurred
+      _logger.error('Boogaloo hit error')
+      return results
+
     timeoutHit = (self.exitCode == None)
     # scan for know keywords to determine if any bugs were found
     # FIXME: Not using successes for anything, should we remove it?
@@ -69,7 +74,7 @@ class BoogalooRunner(RunnerBaseClass):
         resultType = ResultType.NO_BUGS_TIMEOUT
       else:
         resultType = ResultType.NO_BUGS_NO_TIMEOUT
-    
+
     results['result'] = resultType.value
     return results
 
