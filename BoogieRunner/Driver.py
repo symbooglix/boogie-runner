@@ -71,8 +71,9 @@ def entryPoint(args):
       return 1
 
     workDirsRootContents = next(os.walk(workDirsRoot, topdown=True))
-    if len(workDirsRoot[1]) > 0 or len(workDirsRoot[1]) > 0:
-      _logger.error('"{}" is not empty'.format(workDirsRoot))
+    if len(workDirsRootContents[1]) > 0 or len(workDirsRootContents[2]) > 0:
+      _logger.error('"{}" is not empty ({},{})'.format(workDirsRoot,
+        workDirsRootContents[1], workDirsRootContents[2]))
       return 1
   else:
     # Try to create the working directory
