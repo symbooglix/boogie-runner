@@ -50,7 +50,7 @@ class BatchRunnerTool:
 
   @property
   def tool(self):
-    return os.path.join(repoDir, 'boogie-runner.py')
+    return os.path.join(repoDir, 'boogie-batch-runner.py')
 
 
 def main(args):

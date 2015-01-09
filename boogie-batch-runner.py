@@ -1,12 +1,14 @@
+#!/usr/bin/env python
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 import argparse
 import logging
 import os
-from . import ProgramListLoader
-from . import ConfigLoader
-from . import RunnerFactory
+from  BoogieRunner import ProgramListLoader
+from  BoogieRunner import ConfigLoader
+from  BoogieRunner import RunnerFactory
 import traceback
 import yaml
+import sys
 
 _logger = None
 
@@ -177,3 +179,6 @@ def entryPoint(args):
     f.write(result)
 
   return exitCode
+
+if __name__ == '__main__':
+  sys.exit(entryPoint(sys.argv[1:]))
