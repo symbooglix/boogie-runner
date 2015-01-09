@@ -217,17 +217,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     _logger.debug('Found entry point "{}" in "{}"'.format(entryPoint, self.program))
     return entryPoint
 
-#  @property
-#  def workDirName(self):
-#    # We need to use the program name to handle the case where there are multiple
-#    # boogie programs in the same directory
-#    mangled = os.path.basename(self.program).replace(' ','.')
-#    return "{}.{}.br.d".format(self.name, mangled)
-#
-#  @property
-#  def workingDirectory(self):
-#    return os.path.join(os.path.dirname(os.path.abspath(self.program)), self.workDirName)
-
   @property
   def logFile(self):
     return os.path.join(self.workingDirectory, 'log.txt')
