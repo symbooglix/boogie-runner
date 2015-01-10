@@ -1,6 +1,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 runner: Boogaloo
 runner_config:
+  mode: "exec" # Use Boogaloo's exec mode
   # This is the tool_path inside the container
   tool_path: "/home/boogaloo/.cabal/bin/boogaloo"
   docker:

@@ -24,6 +24,14 @@ class BoogalooRunner(RunnerBaseClass):
     # Sanity checks
     # TODO
 
+    try:
+      self.boogalooMode = rc['mode']
+    except KeyError:
+      raise BoogalooRunnerException('"mode" key missing from config')
+
+    if self.boogalooMode != 'test' and self.boogalooMode != 'exec':
+      raise BoogalooRunnerException('"mode" key\'s value must be "test" or "exec"')
+
 
   @property
   def name(self):
@@ -84,7 +92,7 @@ class BoogalooRunner(RunnerBaseClass):
     cmdLine.append(self.toolPath)
 
     # Use Boogaloo in execute mode
-    cmdLine.append('exec')
+    cmdLine.append(self.boogalooMode)
 
     cmdLine.extend(self.additionalArgs)
     cmdLine.append('--proc={}'.format(self.entryPoint))
