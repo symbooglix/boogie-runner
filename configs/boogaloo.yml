@@ -1,17 +1,17 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 runner: Boogaloo
 runner_config:
-  mode: "exec" # Use Boogaloo's exec mode
+  mode: "test"
   # This is the tool_path inside the container
   tool_path: "/home/boogaloo/.cabal/bin/boogaloo"
   docker:
     image: "delcypher/boogaloo-docker"
     volume: "/vol/"
-  #max_memory: 4096
+  max_memory: 4096
   max_time: 5
   additional_args:
     - "--format=Plain"
-    - "--per-path=1"
     - "--loop-max=-1"
-    - "--out=-1" # Unbounded number of executions
+    - "--out=1" # Look for at most one fault
+    - "--concretize=False" # Do not concretize, otherwise we can easily miss bugs
   entry_point: "main"
