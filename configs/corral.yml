@@ -5,3 +5,5 @@ runner_config:
   max_memory: 4096
   max_time: 5
   entry_point: "main"
+  additional_args:
+    - "/recursionBound:1000"

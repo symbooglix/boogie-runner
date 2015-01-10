@@ -5,7 +5,6 @@ runner_config:
   max_memory: 4096
   max_time: 61
   additional_args:
-    - "--force-qfabv"
     - "--solver-timeout=20"
     - "--stop-at-failure=1" # Stop when we find the first bug
   entry_point: "main"
