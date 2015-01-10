@@ -7,5 +7,5 @@ runner_config:
   additional_args:
     - "--force-qfabv"
     - "--solver-timeout=20"
-  entry_point:
-    use_bool_attribute: "kernel"
+    - "--stop-at-failure=1" # Stop when we find the first bug
+  entry_point: "main"
