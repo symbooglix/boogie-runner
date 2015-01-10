@@ -6,6 +6,7 @@ import pprint
 import psutil
 import re
 import shutil
+import sys
 import time
 from .. ResultType import ResultType
 
@@ -285,6 +286,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Setup memory limits
     env = {}
     env.update(envExtra)
+    useRlimit = False
     # Setup environment to enforce memory limit
     if self.maxMemoryInMB > 0:
       if self.useDocker:
@@ -294,8 +296,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         if isDotNet:
           env['MONO_GC_PARAM'] = '-max-heap-size={}m'.format(self.maxMemoryInMB)
         else:
-          # FIXME: Figure out how to enforce this
-          raise NotImplementedError('Enforcing memory limit when not using mono or docker')
+          if sys.platform == 'linux':
+            useRlimit = True
+          else:
+            raise NotImplementedError(
+              'Enforcing memory limit not supported (when not using docker or mono) when not using Linux')
 
     if self.useDocker:
       finalCmdLine.append(self.dockerImage)
@@ -316,11 +321,19 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     startTime = time.perf_counter()
     with open(self.logFile, 'w') as f:
       try:
+        _logger.debug('writing to log file {}'.format(self.logFile))
         process = psutil.Popen(finalCmdLine,
                                 cwd=self.workingDirectory,
                                 stdout=f,
                                 stderr=f,
                                 env=env)
+
+        if useRlimit:
+          numBytes = self.maxMemoryInMB * (2**20)
+          _logger.debug('Using rlimit() to limit memory usage to {} MiB ({} bytes)'.format(
+            self.maxMemoryInMB, numBytes))
+          process.rlimit(psutil.RLIMIT_AS, (numBytes, numBytes))
+
         exitCode = process.wait(timeout=self.maxTimeInSeconds)
       except (psutil.TimeoutExpired, KeyboardInterrupt) as e:
         _logger.debug('Trying to terminate')
