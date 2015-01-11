@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
+"""
+    Script to run a Boogie tool over a set of boogie programs
+"""
 import argparse
 import logging
 import os
@@ -13,9 +16,6 @@ import sys
 _logger = None
 
 def entryPoint(args):
-  """
-      Script to run a Boogie tool over boogie programs
-  """
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="debug", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for program_list")
