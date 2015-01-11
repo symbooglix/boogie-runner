@@ -42,6 +42,8 @@ This tool runs a Boogie tool over one or more Boogie programs specified in the
 $ boogie-batch-runner.py <config_file> <program_list> <working_dirs_root> <yaml_output>
 ```
 
+# Command line parameters
+
 ## ``config_file``
 
 The configuration file instructs the boogie-runner how to run the tool. Examples
