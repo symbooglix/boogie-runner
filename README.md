@@ -110,8 +110,9 @@ If not using mono and using Docker then the memory limit is enforced by using th
 argument to the ``docker run`` command. **NOTE: You should check that this flag works before
 using boogie-runner because this flag has no effect unless your kernel is configured correctly**
 
-If not using mono or Docker then an exception will be throw as this support is not implemented
-currently.
+If running a native executable directly (i.e. not Mono or Docker) and Linux is
+not being used then an exception will be throw as this support is not
+implemented currently.
 
 # ``yaml_output``
 
