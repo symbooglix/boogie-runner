@@ -1,7 +1,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 runner: Symbooglix
 runner_config:
-  tool_path: "/home/dan/dev/symbooglix/symbooglix/src/SymbooglixDriver/bin/Release/symbooglix.exe"
+  tool_path: "~/dev/symbooglix/symbooglix/src/SymbooglixDriver/bin/Release/symbooglix.exe"
   max_memory: 4096
   max_time: 61
   additional_args:

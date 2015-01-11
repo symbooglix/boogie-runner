@@ -70,10 +70,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     if not 'tool_path' in rc:
       raise RunnerBaseException('"tool_path" missing from "runner_config"')
 
-    if not os.path.isabs(rc['tool_path']):
+    self.toolPath = os.path.expanduser(rc['tool_path'])
+    if not os.path.isabs(self.toolPath):
       raise RunnerBaseException('"tool_path" must be an absolute path')
 
-    self.toolPath = rc['tool_path']
 
     # Check if docker will be used in this runner
     self.useDocker = 'docker' in rc

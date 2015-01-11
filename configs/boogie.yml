@@ -1,7 +1,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 runner: Boogie
 runner_config:
-  tool_path: "/home/dan/dev/boogie/Binaries/Boogie.exe"
+  tool_path: "~/dev/boogie/Binaries/Boogie.exe"
   max_memory: 4096
   max_time: 5
   entry_point: "main"

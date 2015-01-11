@@ -61,7 +61,7 @@ is a dictionary.
 
 ### ``runner_config`` keys
 
-* ``tool_path`` - Absolute path to tool executable. Note if using Docker this should be the absolute path to the tool inside the container.
+* ``tool_path`` - Absolute path to tool executable. Note ``~`` will be expanded to the users home directory. Note if using Docker this should be the absolute path to the tool inside the container.
 * ``max_memory`` - **Optional** The maximum amount of memory (in MiB) that a single run is allowed to use. By default there is no limit
 * ``max_time`` - **Optional** The maximum amount of time (in seconds) that a single run is allowed to use before being killed. By default there is no limit.
 * ``additional_args`` **Optional** A list of additional command line arguments to pass to the tool

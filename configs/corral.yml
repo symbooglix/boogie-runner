@@ -1,7 +1,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 runner: Corral
 runner_config:
-  tool_path: "/home/dan/dev/corral/corral/bin/Release/corral.exe"
+  tool_path: "~/dev/corral/corral/bin/Release/corral.exe"
   max_memory: 4096
   max_time: 5
   entry_point: "main"
