@@ -1,8 +1,7 @@
 # Boogie Runner
 
-This is a python script and framework for running various
-Boogie tools on a set of boogie programs. Supported tools ("runners")
-include
+This is a framework for running various Boogie tools on a set of boogie
+programs. Supported tools ("runners") include
 
 * [Boogie](https://boogie.codeplex.com/)
 * [Boogaloo](https://bitbucket.org/nadiapolikarpova/boogaloo/wiki/Home)
@@ -23,16 +22,25 @@ The following python packages (available via ``pip install <package>``)
 
 # Running
 
-The tool requires three arguments
+Two tools are provided ``boogie-runner.py`` and ``boogie-batch-runner.py``.
+
+## ``boogie-runner.py``
+
+This tool runs a Boogie tool on a single boogie program and outputs the result
+to a YAML file. The tool requires four arguments.
 
 ```
-$ boogie-batch-runner.py <config_file> <program_list> <yaml_output>
+$ boogie-runner.py <config_file> <boogie_program> <working_dir> <yaml_output>
 ```
 
-* ``config_file`` is a YAML file describing the configuration for the run.
-* ``program_list`` is a plain text file containing a line seperatored list of boogie
-  programs to run over.
-* ``yaml_output`` is the destination to store the results of the run as a YAML file.
+## ``boogie-batch-runner.py``
+
+This tool runs a Boogie tool over one or more Boogie programs specified in the
+``program_list`` and writes the results to a YAML file. The tool requires four arguments.
+
+```
+$ boogie-batch-runner.py <config_file> <program_list> <working_dirs_root> <yaml_output>
+```
 
 ## ``config_file``
 

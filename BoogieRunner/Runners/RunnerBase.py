@@ -64,6 +64,9 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     with open(self.logFile, 'w') as f:
       pass
 
+    if not isinstance(rc, dict):
+      raise RunnerBaseException('Config passed to runner must be a dictionary')
+
     if not 'tool_path' in rc:
       raise RunnerBaseException('"tool_path" missing from "runner_config"')
 

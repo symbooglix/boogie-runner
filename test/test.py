@@ -52,27 +52,74 @@ class BatchRunnerTool:
   def tool(self):
     return os.path.join(repoDir, 'boogie-batch-runner.py')
 
+class SingleRunTool:
+  def __init__(self, configFile):
+    self.configFile = configFile
+
+  def getFileList(self):
+    _, _, filenames = next(os.walk(testDir, topdown=True))
+    return [ f for f in filenames if f.endswith('.bpl')]
+
+  def getResults(self, testFiles):
+    
+    # Run over the tests
+    results = [ ]
+    for testFile in testFiles.keys():
+      exitCode = subprocess.call([self.tool,
+                                  self.configFile,
+                                  testFile,
+                                  workDir,
+                                  yamlOutput
+                                 ])
+      if exitCode != 0:
+        logging.error('Tool failed')
+        sys.exit(1)
+
+      if not os.path.exists(yamlOutput):
+        logging.error('Yaml output is missing')
+        sys.exit(1)
+
+      with open(yamlOutput, 'r') as f:
+        results.extend(yaml.load(f))
+
+      shutil.rmtree(workDir)
+      os.remove(yamlOutput)
+
+    return results
+
+  @property
+  def tool(self):
+    return os.path.join(repoDir, 'boogie-runner.py')
 
 def main(args):
   logging.basicConfig(level=logging.DEBUG)
   parser = argparse.ArgumentParser()
   parser.add_argument("config_file")
+  parser.add_argument("mode", choices=['single', 'batch'], help="Front end to use. Valid options %(choices)s")
   pargs = parser.parse_args(args)
 
   if not os.path.exists(pargs.config_file):
     logging.error('Could not find config_file {}'.format(pargs.config_file))
     return 1
 
-  runner = BatchRunnerTool(pargs.config_file)
+  if pargs.mode == 'single':
+    runner = SingleRunTool(pargs.config_file)
+  elif pargs.mode == 'batch':
+    runner = BatchRunnerTool(pargs.config_file)
+  else:
+    logging.error('Invalid mode')
+    return 1
 
   if not os.path.exists(runner.tool):
     logging.error('Cannot find {}'.format(runner.tool))
     return 1
 
+  if os.path.exists(yamlOutput):
+    logging.error('Yaml output file "{}" exists. Remove it'.format(yamlOutput))
+    return 1
+
   # Find all the tests
   testFiles = {}
-  #_, _, filenames = next(os.walk(testDir, topdown=True))
-  #filenames = [ f for f in filenames if f.endswith('.bpl')]
   filenames = runner.getFileList()
   for potentialTest in [os.path.basename(f) for f in filenames]:
 

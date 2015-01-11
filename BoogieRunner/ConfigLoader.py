@@ -32,5 +32,10 @@ def load(configFileName):
       raise ConfigLoaderException(
         '"{}" key missing from config file "{}"'.format(key, configFileName))
 
+  if not isinstance(config['runner'], str):
+    raise ConfigLoaderException('Key "runner" must be a string')
+  if not isinstance(config['runner_config'], dict):
+    raise ConfigLoaderException('Key "runner_config" must map to a dictionary')
+
   _logger.info('Loaded config:\n{}'.format(pprint.pformat(config)))
   return config
