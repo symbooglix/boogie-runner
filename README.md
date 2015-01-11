@@ -26,7 +26,7 @@ The following python packages (available via ``pip install <package>``)
 The tool requires three arguments
 
 ```
-$ boogie-runner.py <config_file> <program_list> <yaml_output>
+$ boogie-batch-runner.py <config_file> <program_list> <yaml_output>
 ```
 
 * ``config_file`` is a YAML file describing the configuration for the run.
@@ -51,10 +51,10 @@ is a dictionary.
 
 ### ``runner_config`` keys
 
-* ``tool_path`` - absolute path to tool executable. Note if using Docker this should be the absolute path to the tool inside the container.
+* ``tool_path`` - Absolute path to tool executable. Note if using Docker this should be the absolute path to the tool inside the container.
 * ``max_memory`` - **Optional** The maximum amount of memory (in MiB) that a single run is allowed to use. By default there is no limit
 * ``max_time`` - **Optional** The maximum amount of time (in seconds) that a single run is allowed to use before being killed. By default there is no limit.
-* ``additional_args`` a list of additional command line arguments to pass to the tool
+* ``additional_args`` **Optional** A list of additional command line arguments to pass to the tool
 * ``entry_point`` - **Optional** Specifies the entry point in the Boogie program to use. This will be further explained in another section.
 * ``docker`` - **Optional** Specifies that the tool should be run in a [Docker](https://www.docker.com) container. This will be further explained in another section.
 * ``env`` - **Optional** Specifies the environment variables to pass when running.
