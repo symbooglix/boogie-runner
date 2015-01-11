@@ -57,6 +57,7 @@ is a dictionary.
 * ``additional_args`` a list of additional command line arguments to pass to the tool
 * ``entry_point`` - **Optional** Specifies the entry point in the Boogie program to use. This will be further explained in another section.
 * ``docker`` - **Optional** Specifies that the tool should be run in a [Docker](https://www.docker.com) container. This will be further explained in another section.
+* ``env`` - **Optional** Specifies the environment variables to pass when running.
 
 ### ``entry_point`` key
 
@@ -69,6 +70,11 @@ Two different values are currently supported
 
 * The name of the procedure/implementation in the Boogie program as a ``string``.
 * A dictionary with a single key ``use_bool_attribute`` that maps to a ``string``. In this case the boogie program will be searched for the first procedure (scanning syntactically from the beginning of the file to the end) that has a boolean attribute with the name specified by ``use_bool_attribute``.
+
+### ``env`` key
+
+If this key is present in ``runner_config`` then if should map to a dictionary which maps environment variable names to values
+(string to string). Note a runner may chose to modify the enviroment variables and can override what is specifed in the config file.
 
 ### ``docker`` key
 

@@ -182,6 +182,22 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         self.additionalArgs.append(arg)
 
+    # Set environment variables
+    self.toolEnvironmentVariables = {}
+    if 'env' in rc:
+      if not isinstance(rc['env'],dict):
+        raise RunnerBaseException('"env" must map to a dictionary')
+
+      # Go through each key, value pair making sure they are the right type
+      for key, value in rc['env'].items():
+        if not isinstance(key, str):
+          raise RunnerBaseException('key "{}" must be a string'.format(key))
+
+        if not isinstance(value, str):
+          raise RunnerBaseException('Value for key "{}" must be a string'.format(key))
+
+        self.toolEnvironmentVariables[key] = value
+
   def findEntryPoint(self, constraint):
     if not isinstance(constraint, dict):
       raise RunnerBaseException("Expected \"entry_point\" to be a dictionary")
@@ -283,11 +299,15 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
       finalCmdLine.append('--name={}'.format(self.dockerContainerName))
 
-    # Setup memory limits
+    # Set up the initial values of the environment variables.
+    # Note we do not propagate the variables of the current environment.
     env = {}
-    env.update(envExtra)
-    useRlimit = False
+    env.update(self.toolEnvironmentVariables)
+    env.update(envExtra) # envExtra takes presedence
+    # Setup memory limits
+
     # Setup environment to enforce memory limit
+    useRlimit = False
     if self.maxMemoryInMB > 0:
       if self.useDocker:
         # Use docker to enforce the memory limit
