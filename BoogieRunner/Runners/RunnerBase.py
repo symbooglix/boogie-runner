@@ -311,6 +311,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     # Setup environment to enforce memory limit
     useRlimit = False
+    useUlimitHack = False
+    useShell = False
     if self.maxMemoryInMB > 0:
       if self.useDocker:
         # Use docker to enforce the memory limit
@@ -320,7 +322,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
           env['MONO_GC_PARAM'] = '-max-heap-size={}m'.format(self.maxMemoryInMB)
         else:
           if sys.platform == 'linux':
-            useRlimit = True
+            if getattr(psutil.Process, 'rlimit', None) == None:
+              # Older kernels don't support rlimit
+              useUlimitHack = True
+              _logger.warning('Linux is being used but rlimit support was not found. You should upgrade your kernel!')
+            else:
+              useRlimit = True
           else:
             raise NotImplementedError(
               'Enforcing memory limit not supported (when not using docker or mono) when not using Linux')
@@ -334,7 +341,16 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Now add the arguments
     finalCmdLine.extend(cmdLine)
 
-    _logger.debug('Running: {}\nwith env:{}'.format(
+    if useUlimitHack:
+      _logger.warning('Using ulimit HACK')
+      maxMemoryInKiB = self.maxMemoryInMB * 1024
+      finalCmdLine = ['ulimit', '-SHv', str(maxMemoryInKiB), '&&'] + finalCmdLine
+      # Use a string instead when invoking the shell directly
+      finalCmdLine = ' '.join(finalCmdLine)
+      assert isinstance(finalCmdLine, str)
+      useShell = True
+
+    _logger.debug('Running:\n{}\nwith env:{}'.format(
       pprint.pformat(finalCmdLine),
       pprint.pformat(env)))
 
@@ -345,18 +361,16 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     with open(self.logFile, 'w') as f:
       try:
         _logger.debug('writing to log file {}'.format(self.logFile))
+        if useShell:
+          _logger.warning('Using shell instead of invoking tool directly!')
         process = psutil.Popen(finalCmdLine,
                                 cwd=self.workingDirectory,
                                 stdout=f,
                                 stderr=f,
-                                env=env)
+                                env=env,
+                                shell=useShell)
 
         if useRlimit:
-          if getattr(psutil.Process, 'rlimit', None) == None:
-            # Older kernels don't support rlimit
-            raise RunnerBaseException(
-              'Can\'t enforce memory limit, psutil.Process.rlimit() not available. Perhaps your kernel is too old.')
-
           numBytes = self.maxMemoryInMB * (2**20)
           _logger.debug('Using rlimit() to limit memory usage to {} MiB ({} bytes)'.format(
             self.maxMemoryInMB, numBytes))
