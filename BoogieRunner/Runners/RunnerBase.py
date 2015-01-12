@@ -352,6 +352,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
                                 env=env)
 
         if useRlimit:
+          if getattr(psutil.Process, 'rlimit', None) == None:
+            # Older kernels don't support rlimit
+            raise RunnerBaseException(
+              'Can\'t enforce memory limit, psutil.Process.rlimit() not available. Perhaps your kernel is too old.')
+
           numBytes = self.maxMemoryInMB * (2**20)
           _logger.debug('Using rlimit() to limit memory usage to {} MiB ({} bytes)'.format(
             self.maxMemoryInMB, numBytes))
