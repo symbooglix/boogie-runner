@@ -94,12 +94,12 @@ def entryPoint(args):
   except KeyboardInterrupt:
     _logger.error('Keyboard interrupt')
   except:
-    _logger.error("Error handling:{}".format(r.program))
+    _logger.error("Error handling:{}".format(runner.program))
     _logger.error(traceback.format_exc())
 
     # Attempt to add the error to the report
     errorLog = {}
-    errorLog['program'] = r.program
+    errorLog['program'] = runner.program
     errorLog['error'] = traceback.format_exc()
     report.append(errorLog)
     exitCode = 1
