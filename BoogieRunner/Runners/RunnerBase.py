@@ -204,17 +204,18 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Set path to mono if specified
     self.monoExecutable = "mono"
     try:
-      self.monoExecutable = rc['mono']
+      self.monoExecutable = rc['mono_path']
       if not isinstance(self.monoExecutable, str):
-        raise RunnerBaseException('"mono" must map to a string')
+        raise RunnerBaseException('"mono_path" must map to a string')
 
       # Allow ~ to be used in config by expanding it to full absolute path
       self.monoExecutable = os.path.expanduser(self.monoExecutable)
 
       if not os.path.isabs(self.monoExecutable):
-        raise RunnerBaseException('path to mono ({}) is not absolute'.format(self.monoExecutable))
+        raise RunnerBaseException('"mono_path" does not map to a path that is absolute ({})'.format(self.monoExecutable))
       if not os.path.exists(self.monoExecutable):
-        raise RunnerBaseException('path to mono ({}) does not exist'.format(self.monoExecutable))
+        # FIXME: we probably don't want to do this check if using docker.
+        raise RunnerBaseException('"mono_path" does not map to a path that exists ({})'.format(self.monoExecutable))
     except KeyError:
       pass
 
