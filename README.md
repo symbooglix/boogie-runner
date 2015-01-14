@@ -68,6 +68,7 @@ is a dictionary.
 * ``entry_point`` - **Optional** Specifies the entry point in the Boogie program to use. This will be further explained in another section.
 * ``docker`` - **Optional** Specifies that the tool should be run in a [Docker](https://www.docker.com) container. This will be further explained in another section.
 * ``env`` - **Optional** Specifies the environment variables to pass when running.
+* ``mono`` - **Optional** Specfies the absolute path to the mono executable to use if mono is required. Note ``~`` will be expanded to the user's home directory.
 
 ### ``entry_point`` key
 

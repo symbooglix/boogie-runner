@@ -201,6 +201,28 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         self.toolEnvironmentVariables[key] = value
 
+    # Set path to mono if specified
+    self.monoExecutable = "mono"
+    try:
+      self.monoExecutable = rc['mono']
+      if not isinstance(self.monoExecutable, str):
+        raise RunnerBaseException('"mono" must map to a string')
+
+      # Allow ~ to be used in config by expanding it to full absolute path
+      self.monoExecutable = os.path.expanduser(self.monoExecutable)
+
+      if not os.path.isabs(self.monoExecutable):
+        raise RunnerBaseException('path to mono ({}) is not absolute'.format(self.monoExecutable))
+      if not os.path.exists(self.monoExecutable):
+        raise RunnerBaseException('path to mono ({}) does not exist'.format(self.monoExecutable))
+    except KeyError:
+      pass
+
+    # Note we just use "mono" if it is not specified. We don't check if mono is available in
+    # PATH because
+    # * When running natively PATH is not propagated into the running environment of the tool
+    # * We might be running inside a Docker container
+
   def findEntryPoint(self, constraint):
     if not isinstance(constraint, dict):
       raise RunnerBaseException("Expected \"entry_point\" to be a dictionary")
@@ -336,7 +358,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       finalCmdLine.append(self.dockerImage)
 
     if isDotNet and os.name == 'posix':
-      finalCmdLine.append('mono')
+      finalCmdLine.append(self.monoExecutable)
 
     # Now add the arguments
     finalCmdLine.extend(cmdLine)
