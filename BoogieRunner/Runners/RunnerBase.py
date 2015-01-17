@@ -28,6 +28,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self.uid = RunnerBaseClass.staticCounter
     RunnerBaseClass.staticCounter += 1
 
+    self._timeoutHit = False
+
     if not os.path.isabs(boogieProgram):
       raise RunnerBaseException(
         'Boogie program ("{}")must be absolute path'.format(boogieProgram))
@@ -268,6 +270,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def run(self):
     pass
 
+  @property
+  def timeoutWasHit(self):
+    return self._timeoutHit
+
   def getResults(self):
     results = {}
     results['program'] = self.program
@@ -276,6 +282,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     # Sub classes should set this appropriately
     results['result'] = ResultType.UNKNOWN.value
+
+    results['timeout_hit'] = self.timeoutWasHit
 
     return results
 
@@ -401,6 +409,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         exitCode = process.wait(timeout=self.maxTimeInSeconds)
       except (psutil.TimeoutExpired, KeyboardInterrupt) as e:
+        self._timeoutHit = True
         _logger.debug('Trying to terminate')
         # Gently terminate
         process.terminate()

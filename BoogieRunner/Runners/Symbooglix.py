@@ -39,6 +39,13 @@ class SymbooglixRunner(RunnerBaseClass):
   def name(self):
     return "symbooglix"
 
+  @property
+  def timeoutWasHit(self):
+    if not self.hitHardTimeout:
+      return self.exitCode == 2 or self.exitCode == 3
+    else:
+      return True
+
   def getResults(self):
     results = super(SymbooglixRunner, self).getResults()
     results['sbx_dir'] = self.outputDir

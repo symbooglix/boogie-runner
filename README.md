@@ -127,3 +127,4 @@ The following keys are written by all runners
 * ``total_time`` - The total run time in seconds.
 * ``working_directory`` - The working directory that the tool was run in. Each programs
   is run in a unique working directory. Tools may dump output in this directory.
+* ``timeout_hit`` - True if the tool timeout was reached, false otherwise.

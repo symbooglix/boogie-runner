@@ -37,13 +37,22 @@ class GPUVerifyRunner(RunnerBaseClass):
   def name(self):
     return "gpuverify"
 
+  @property
+  def timeoutWasHit(self):
+    if self.hitHardTimeout:
+      return True
+    else:
+      if self.exitCode == 7:
+        return True
+      else:
+        return False
+
   def getResults(self):
     results = super(GPUVerifyRunner, self).getResults()
 
     # Interpret exit code
     resultType = ResultType.UNKNOWN
-    timedOut = self.exitCode == None
-    if timedOut:
+    if self.hitHardTimeout:
         # GPUVerify won't of reported anything
         # if it hard timed out
         resultType = ResultType.NO_BUGS_TIMEOUT
@@ -74,6 +83,8 @@ class GPUVerifyRunner(RunnerBaseClass):
     return results
 
   def run(self):
+    self.hitHardTimeout = False
+
     # Run using python interpreter
     cmdLine = [ sys.executable, self.toolPath ]
 
@@ -116,6 +127,7 @@ class GPUVerifyRunner(RunnerBaseClass):
         isDotNet=False,
         envExtra=env)
     except psutil.TimeoutExpired as e:
+      self.hitHardTimeout = True
       _logger.warning('GPUVerify hit hard timeout')
 
 def get():
