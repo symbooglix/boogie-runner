@@ -43,36 +43,14 @@ class BoogalooRunner(RunnerBaseClass):
     # Interpret exit code and log output
     resultType = ResultType.UNKNOWN
 
-    if not os.path.exists(self.logFile):
-      _logger.error('log file is missing')
-      return results
-
     if self.exitCode != None and self.exitCode != 0:
       # Boogaloo returns a non zero exit code if parser/type check errors occurred
       _logger.error('Boogaloo hit error')
       return results
 
     timeoutHit = (self.exitCode == None)
-    # scan for know keywords to determine if any bugs were found
-    # FIXME: Not using successes for anything, should we remove it?
-    successes = 0
-    errors = 0
-
-    successR = re.compile(r'Execution \d+:.+ passed')
-    errorR = re.compile(r'Execution \d+:.+ failed')
-    with open(self.logFile, 'r') as f:
-      for line in f:
-        matchS = successR.search(line)
-        if matchS != None:
-          successes += 1
-
-        matchE = errorR.search(line)
-        if matchE != None:
-          errors += 1
-
-    _logger.debug('Found {} errors, {} successes'.format(
-      errors, successes))
-    if errors > 0:
+    foundBugs = self.foundBug
+    if foundBugs > 0:
       if timeoutHit:
         resultType = ResultType.BUGS_TIMEOUT
       else:
@@ -85,6 +63,34 @@ class BoogalooRunner(RunnerBaseClass):
 
     results['result'] = resultType.value
     return results
+
+  @property
+  def foundBug(self):
+    if not os.path.exists(self.logFile):
+      _logger.error('log file is missing')
+      return None
+
+    if self.exitCode != None and self.exitCode != 0:
+      # Boogaloo returns a non zero exit code if parser/type check errors occurred
+      # We don't consider this to be a bug in the program
+      return False
+
+    timeoutHit = (self.exitCode == None)
+
+    # scan for known keywords to determine if any bugs were found
+    errors = 0
+
+    errorR = re.compile(r'Execution \d+:.+ failed')
+    with open(self.logFile, 'r') as f:
+      for line in f:
+        matchE = errorR.search(line)
+        if matchE != None:
+          errors += 1
+
+    _logger.debug('Found {} errors'.format(
+      errors))
+
+    return errors > 0
 
   def run(self):
     cmdLine = [ ]

@@ -82,6 +82,26 @@ class GPUVerifyRunner(RunnerBaseClass):
     results['result'] = resultType.value
     return results
 
+  @property
+  def foundBug(self):
+    if self.hitHardTimeout:
+      return False
+
+      # GPUVerify exit codes are taken from
+      # GPUVerifyScript/error_codes.py
+      #
+      #   SUCCESS = 0
+      #   ...
+      #   GPUVERIFYVCGEN_ERROR = 5
+      #   BOOGIE_ERROR = 6
+      #   TIMEOUT = 7
+    if self.exitCode == 0 or self.exitCode == 7:
+      return False
+    elif self.exitCode == 6:
+      return True
+    else:
+      return None
+
   def run(self):
     self.hitHardTimeout = False
 

@@ -128,3 +128,5 @@ The following keys are written by all runners
 * ``working_directory`` - The working directory that the tool was run in. Each programs
   is run in a unique working directory. Tools may dump output in this directory.
 * ``timeout_hit`` - True if the tool timeout was reached, false otherwise.
+* ``bug_found`` - True if a bug was found by the tool, false if a bug was definitely not found
+  and None if it could not be determined if a bug was found.

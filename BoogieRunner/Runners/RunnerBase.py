@@ -274,6 +274,15 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def timeoutWasHit(self):
     return self._timeoutHit
 
+  @abc.abstractproperty
+  def foundBug(self):
+    """
+      Return True if one or more bugs were found
+      Return False if no bugs were found
+      Return None if it could not be determined if bugs were found
+    """
+    pass
+
   def getResults(self):
     results = {}
     results['program'] = self.program
@@ -283,6 +292,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Sub classes should set this appropriately
     results['result'] = ResultType.UNKNOWN.value
 
+    results['bug_found'] = self.foundBug
     results['timeout_hit'] = self.timeoutWasHit
 
     return results

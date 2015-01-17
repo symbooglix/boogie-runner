@@ -78,6 +78,21 @@ class SymbooglixRunner(RunnerBaseClass):
     results['hit_hard_timeout'] = self.hitHardTimeout
     return results
 
+  @property
+  def foundBug(self):
+    if self.hitHardTimeout:
+      # FIXME: We need to examine the output to see what happened
+      _logger.error('FIXME: Need to examine symbooglix\'s working dir')
+      return None
+
+    # Use Symbooglix exitCode:
+    if self.exitCode == 1 or self.exitCode == 3:
+      return True
+    elif self.exitCode == 0 or self.exitCode == 2:
+      return False
+    else:
+      return None
+
   def run(self):
 
     # Build the command line

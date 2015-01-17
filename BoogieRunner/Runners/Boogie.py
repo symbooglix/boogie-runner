@@ -28,7 +28,7 @@ class BoogieRunner(RunnerBaseClass):
     # Interpret exit code and contents of the log file
     resultType = ResultType.UNKNOWN
     timedOut = self.exitCode == None
-    foundBugs = self.foundBug()
+    foundBugs = self.foundBug
     if foundBugs != None:
       if timedOut:
         if foundBugs:
@@ -48,6 +48,7 @@ class BoogieRunner(RunnerBaseClass):
     results['result'] = resultType.value
     return results
 
+  @property
   def foundBug(self):
     """
     Opens log output and checks if a bug was found

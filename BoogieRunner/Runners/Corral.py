@@ -29,7 +29,7 @@ class CorralRunner(RunnerBaseClass):
     resultType = ResultType.UNKNOWN
     timedOut = self.exitCode == None
 
-    foundBugs = self.foundBug()
+    foundBugs = self.foundBug
     if foundBugs != None:
       if timedOut:
         if foundBugs:
@@ -49,6 +49,7 @@ class CorralRunner(RunnerBaseClass):
     results['result'] = resultType.value
     return results
 
+  @property
   def foundBug(self):
     """
     Opens log output and checks if a bug was found
