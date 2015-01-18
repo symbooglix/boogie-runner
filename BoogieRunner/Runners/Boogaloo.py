@@ -82,9 +82,9 @@ class BoogalooRunner(RunnerBaseClass):
 
     # We assume that Boogie has no default timeout
     # so we force the timeout within python
-    self.exitCode = None
     try:
-      self.exitCode = self.runTool(cmdLine, isDotNet=False)
+      exitCode = self.runTool(cmdLine, isDotNet=False)
+      assert self.exitCode == exitCode
     except psutil.TimeoutExpired as e:
       _logger.warning('Boogaloo hit hard timeout')
 

@@ -131,3 +131,4 @@ The following keys are written by all runners
 * ``bug_found`` - True if a bug was found by the tool, false if a bug was definitely not found
   and None if it could not be determined if a bug was found.
 * ``failed`` - True if the Runner failed to run correctly.
+* ``exitCode`` - The exit code of the run tool. Null if a time out was hit

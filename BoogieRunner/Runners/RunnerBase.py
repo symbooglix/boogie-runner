@@ -29,6 +29,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     RunnerBaseClass.staticCounter += 1
 
     self._timeoutHit = False
+    self.exitCode = None
 
     if not os.path.isabs(boogieProgram):
       raise RunnerBaseException(
@@ -296,6 +297,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['program'] = self.program
     results['total_time'] = self.time
     results['working_directory'] = self.workingDirectory
+    results['exit_code'] = self.exitCode
 
     # Sub classes should implement these properties
     results['bug_found'] = bugFound = self.foundBug
@@ -470,5 +472,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       finally:
         endTime = time.perf_counter()
         self.time = endTime - startTime
+        self.exitCode = exitCode
 
     return exitCode

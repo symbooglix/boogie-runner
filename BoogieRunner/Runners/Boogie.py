@@ -77,9 +77,9 @@ class BoogieRunner(RunnerBaseClass):
 
     # We assume that Boogie has no default timeout
     # so we force the timeout within python
-    self.exitCode = None
     try:
-      self.exitCode = self.runTool(cmdLine, isDotNet=True)
+      exitCode = self.runTool(cmdLine, isDotNet=True)
+      assert exitCode == self.exitCode
     except psutil.TimeoutExpired as e:
       _logger.warning('Boogie hit timeout')
 

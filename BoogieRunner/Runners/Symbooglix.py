@@ -95,10 +95,10 @@ class SymbooglixRunner(RunnerBaseClass):
     # Add the source file as the last arg
     cmdLine.append(self.programPathArgument)
 
-    self.exitCode = None
     self.hitHardTimeout = False
     try:
-      self.exitCode = self.runTool(cmdLine, isDotNet=True)
+      exitCode = self.runTool(cmdLine, isDotNet=True)
+      assert exitCode == self.exitCode
     except psutil.TimeoutExpired as e:
       self.hitHardTimeout = True
       _logger.warning('Hard timeout hit')

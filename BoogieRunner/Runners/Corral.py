@@ -62,9 +62,9 @@ class CorralRunner(RunnerBaseClass):
 
     cmdLine.extend(self.additionalArgs)
 
-    self.exitCode = None
     try:
-      self.exitCode = self.runTool(cmdLine, isDotNet=True)
+      exitCode = self.runTool(cmdLine, isDotNet=True)
+      assert self.exitCode == exitCode
     except psutil.TimeoutExpired as e:
       _logger.warning('Corral hit timeout')
 
