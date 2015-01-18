@@ -11,6 +11,7 @@ runner_config:
   max_time: 5
   additional_args:
     - "--format=Plain"
+    - "--exec=-1" # Don't bound the number of executions to try
     - "--loop-max=-1"
     - "--out=1" # Look for at most one fault
     - "--concretize=False" # Do not concretize, otherwise we can easily miss bugs
