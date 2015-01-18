@@ -22,33 +22,6 @@ class CorralRunner(RunnerBaseClass):
   def name(self):
     return "corral"
 
-  def getResults(self):
-    results = super(CorralRunner, self).getResults()
-
-    # Interpret exit code and contents of the log file
-    resultType = ResultType.UNKNOWN
-    timedOut = self.exitCode == None
-
-    foundBugs = self.foundBug
-    if foundBugs != None:
-      if timedOut:
-        if foundBugs:
-          resultType = ResultType.BUGS_TIMEOUT
-        else:
-          resultType = ResultType.NO_BUGS_TIMEOUT
-      else:
-        if self.exitCode == 0:
-          if foundBugs:
-            resultType = ResultType.BUGS_NO_TIMEOUT
-          else:
-            resultType = ResultType.NO_BUGS_NO_TIMEOUT
-        else:
-          _logger.error("Corral didn't exit properly")
-
-
-    results['result'] = resultType.value
-    return results
-
   @property
   def failed(self):
     if self.exitCode == None:

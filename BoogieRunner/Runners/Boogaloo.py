@@ -37,33 +37,6 @@ class BoogalooRunner(RunnerBaseClass):
   def name(self):
     return "boogaloo" + ('-docker' if self.useDocker else '')
 
-  def getResults(self):
-    results = super(BoogalooRunner, self).getResults()
-
-    # Interpret exit code and log output
-    resultType = ResultType.UNKNOWN
-
-    if self.exitCode != None and self.exitCode != 0:
-      # Boogaloo returns a non zero exit code if parser/type check errors occurred
-      _logger.error('Boogaloo hit error')
-      return results
-
-    timeoutHit = (self.exitCode == None)
-    foundBugs = self.foundBug
-    if foundBugs > 0:
-      if timeoutHit:
-        resultType = ResultType.BUGS_TIMEOUT
-      else:
-        resultType = ResultType.BUGS_NO_TIMEOUT
-    else:
-      if timeoutHit:
-        resultType = ResultType.NO_BUGS_TIMEOUT
-      else:
-        resultType = ResultType.NO_BUGS_NO_TIMEOUT
-
-    results['result'] = resultType.value
-    return results
-
   @property
   def foundBug(self):
     if not os.path.exists(self.logFile):

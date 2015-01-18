@@ -297,13 +297,28 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['total_time'] = self.time
     results['working_directory'] = self.workingDirectory
 
-    # Sub classes should set this appropriately
-    results['result'] = ResultType.UNKNOWN.value
+    # Sub classes should implement these properties
+    results['bug_found'] = bugFound = self.foundBug
+    results['timeout_hit'] = timeoutHit = self.timeoutWasHit
+    results['failed'] = runFailed = self.failed
 
-    results['bug_found'] = self.foundBug
-    results['timeout_hit'] = self.timeoutWasHit
-    results['failed'] = self.failed
+    # FIXME: Remove this, the bug_found, timeout_hit and failed keys
+    # describe this.
+    # Keep this classification for legacy reasons.
+    resultEnum = ResultType.UNKNOWN
+    if (not runFailed) and bugFound != None:
+      if bugFound:
+        if timeoutHit:
+          resultEnum = ResultType.BUGS_TIMEOUT
+        else:
+          resultEnum = ResultType.BUGS_NO_TIMEOUT
+      else:
+        if timeoutHit:
+          resultEnum = ResultType.NO_BUGS_TIMEOUT
+        else:
+          resultEnum = ResultType.NO_BUGS_NO_TIMEOUT
 
+    results['result'] = resultEnum.value # Record the numeric value
     return results
 
   @abc.abstractproperty

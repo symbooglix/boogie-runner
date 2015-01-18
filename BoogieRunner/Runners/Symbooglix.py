@@ -50,31 +50,6 @@ class SymbooglixRunner(RunnerBaseClass):
     results = super(SymbooglixRunner, self).getResults()
     results['sbx_dir'] = self.outputDir
 
-    # Interpret the ResultType to set
-    resultType = ResultType.UNKNOWN
-
-    if not self.hitHardTimeout:
-      # Note the tool's exit code
-      results['exit_code'] = self.exitCode
-
-      # Use Symbooglix exitCode
-      if self.exitCode == 0:
-        resultType = ResultType.NO_BUGS_NO_TIMEOUT
-      elif self.exitCode == 1:
-        resultType = ResultType.BUGS_NO_TIMEOUT
-      elif self.exitCode == 2:
-        resultType = ResultType.NO_BUGS_TIMEOUT
-      elif self.exitCode == 3:
-        resultType = ResultType.BUGS_TIMEOUT
-
-    else:
-      # hit hard timeout.
-      # FIXME: Read symbooglix YAML file to determine
-      # outcome
-      _logger.error('FIXME: hard timeout was hit')
-
-
-    results['result'] = resultType.value
     results['hit_hard_timeout'] = self.hitHardTimeout
     return results
 

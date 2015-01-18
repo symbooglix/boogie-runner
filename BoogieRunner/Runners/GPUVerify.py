@@ -49,37 +49,8 @@ class GPUVerifyRunner(RunnerBaseClass):
 
   def getResults(self):
     results = super(GPUVerifyRunner, self).getResults()
-
-    # Interpret exit code
-    resultType = ResultType.UNKNOWN
-    if self.hitHardTimeout:
-        # GPUVerify won't of reported anything
-        # if it hard timed out
-        resultType = ResultType.NO_BUGS_TIMEOUT
-    else:
-      # GPUVerify exit codes are taken from
-      # GPUVerifyScript/error_codes.py
-      #
-      #   SUCCESS = 0
-      #   ...
-      #   GPUVERIFYVCGEN_ERROR = 5
-      #   BOOGIE_ERROR = 6
-      #   TIMEOUT = 7
-
-      if self.exitCode == 0:
-        resultType = ResultType.NO_BUGS_NO_TIMEOUT
-      elif self.exitCode == 7:
-        # Soft timeout. GPUVerify won't of reported anything
-        resultType = ResultType.NO_BUGS_NO_TIMEOUT
-      elif self.exitCode == 6:
-        resultType = ResultType.BUGS_NO_TIMEOUT
-      else:
-        _logger.error("GPUVerify had unrecognised exit code")
-
+    if not self.hitHardTimeout:
       results['exit_code'] = self.exitCode
-
-
-    results['result'] = resultType.value
     return results
 
   @property
