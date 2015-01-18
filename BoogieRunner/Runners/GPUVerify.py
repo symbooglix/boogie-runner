@@ -58,7 +58,7 @@ class GPUVerifyRunner(RunnerBaseClass):
     if self.hitHardTimeout:
       return False
 
-    if self.exitCode != 0 or self.exitCode != 6:
+    if self.exitCode != 0 and self.exitCode != 6:
       return True
 
     return self._raisedException()
