@@ -49,6 +49,21 @@ class BoogieRunner(RunnerBaseClass):
     return results
 
   @property
+  def failed(self):
+    if self.exitCode == None:
+      return True # Timeout is not a failure
+
+    if self.exitCode != 0:
+      return True
+
+    if self.foundBug == None:
+      # In the way foundBug() currently works
+      # a parse error will show up as returning None
+      return True
+
+    return False
+
+  @property
   def foundBug(self):
     """
     Opens log output and checks if a bug was found

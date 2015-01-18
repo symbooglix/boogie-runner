@@ -2,5 +2,5 @@
 runner: GPUVerify
 runner_config:
   tool_path: "~/dev/gpuverify/autobuild/linux/gpuverify/GPUVerify.py"
-  max_time: 6
+  max_time: 60
   # Entry point is ignored by the runner so don't set it

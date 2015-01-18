@@ -50,6 +50,13 @@ class CorralRunner(RunnerBaseClass):
     return results
 
   @property
+  def failed(self):
+    if self.exitCode == None:
+      return False # Timeout is not failure
+
+    return self.exitCode != 0
+
+  @property
   def foundBug(self):
     """
     Opens log output and checks if a bug was found

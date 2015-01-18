@@ -70,13 +70,6 @@ class BoogalooRunner(RunnerBaseClass):
       _logger.error('log file is missing')
       return None
 
-    if self.exitCode != None and self.exitCode != 0:
-      # Boogaloo returns a non zero exit code if parser/type check errors occurred
-      # We don't consider this to be a bug in the program
-      return False
-
-    timeoutHit = (self.exitCode == None)
-
     # scan for known keywords to determine if any bugs were found
     errors = 0
 
@@ -91,6 +84,14 @@ class BoogalooRunner(RunnerBaseClass):
       errors))
 
     return errors > 0
+
+  @property
+  def failed(self):
+    if self.exitCode != None and self.exitCode !=0:
+      # Boogaloo returns a non zero exit code if parser/type check errors occurred
+      return True
+    else:
+      return False
 
   def run(self):
     cmdLine = [ ]

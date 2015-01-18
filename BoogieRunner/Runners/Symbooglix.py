@@ -93,8 +93,15 @@ class SymbooglixRunner(RunnerBaseClass):
     else:
       return None
 
-  def run(self):
+  @property
+  def failed(self):
+    if self.hitHardTimeout:
+      return False # Timeout is not a failure
 
+    # All exit codes above 3 indicate something went badly wrong
+    return self.exitCode > 3
+
+  def run(self):
     # Build the command line
     cmdLine = [ self.toolPath ] + self.additionalArgs
 

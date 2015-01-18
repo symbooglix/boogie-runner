@@ -283,6 +283,14 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     """
     pass
 
+  @abc.abstractproperty
+  def failed(self):
+    """
+      Return True if execution of this runner failed
+      Return False if execution of this runner succeeded
+    """
+    pass
+
   def getResults(self):
     results = {}
     results['program'] = self.program
@@ -294,6 +302,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     results['bug_found'] = self.foundBug
     results['timeout_hit'] = self.timeoutWasHit
+    results['failed'] = self.failed
 
     return results
 
