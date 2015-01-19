@@ -1,3 +1,4 @@
+multi_args_error.bpl
 error.bpl
 no-error.bpl
 parse-error.bpl
