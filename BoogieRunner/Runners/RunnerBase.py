@@ -245,8 +245,9 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     with open(self.program) as f:
       lines = f.readlines()
 
-      attrRegex = r'(?:\s*\{:\w+\s*\}\s*)*\s*'
-      fullRegex = r'procedure\s*' + attrRegex + r'\{:' + attribute + r'\s*\}' + attrRegex + r'(?P<proc>\w+)\('
+      attrRegex = r'(?:\s*\{:\w+\s*([0-9]+|"[^"]+?")?\}\s*)*\s*'
+      procNameRegex = r'(?P<proc>[a-zA-Z_$][a-zA-Z_$0-9]*)'
+      fullRegex = r'procedure\s*' + attrRegex + r'\{:' + attribute + r'\s*\}' + attrRegex + procNameRegex + r'\('
       r = re.compile(fullRegex)
 
       for line in [ l.rstrip() for l in lines]:
