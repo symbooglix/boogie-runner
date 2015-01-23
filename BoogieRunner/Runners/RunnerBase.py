@@ -380,7 +380,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMB))
       else:
         if isDotNet:
-          env['MONO_GC_PARAM'] = '-max-heap-size={}m'.format(self.maxMemoryInMB)
+          env['MONO_GC_PARAMS'] = 'max-heap-size={}m'.format(self.maxMemoryInMB)
         else:
           if sys.platform == 'linux':
             if getattr(psutil.Process, 'rlimit', None) == None:
