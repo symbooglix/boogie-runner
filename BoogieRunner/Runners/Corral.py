@@ -30,6 +30,30 @@ class CorralRunner(RunnerBaseClass):
     return self.exitCode != 0
 
   @property
+  def hitRecursionBound(self):
+    """
+    Opens log output and checks if recursion bound was hit
+    """
+    if not os.path.exists(self.logFile):
+      _logginer.error('could not find log file')
+      return None
+
+    with open(self.logFile, 'r') as f:
+      r = re.compile(r'Reached recursion bound of')
+      for line in f:
+        m = r.search(line)
+        if m != None:
+          return True
+
+    return False
+
+  def getResults(self):
+    results = super(CorralRunner, self).getResults()
+
+    results['recursion_bound_hit'] = self.hitRecursionBound
+    return results
+
+  @property
   def foundBug(self):
     """
     Opens log output and checks if a bug was found
