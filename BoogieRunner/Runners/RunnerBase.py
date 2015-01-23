@@ -276,21 +276,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def timeoutWasHit(self):
     return self._timeoutHit
 
-  @abc.abstractproperty
-  def foundBug(self):
-    """
-      Return True if one or more bugs were found
-      Return False if no bugs were found
-      Return None if it could not be determined if bugs were found
-    """
-    pass
-
-  @abc.abstractproperty
-  def failed(self):
-    """
-      Return True if execution of this runner failed
-      Return False if execution of this runner succeeded
-    """
+  @abc.abstractmethod
+  def GetNewAnalyser(self):
     pass
 
   def getResults(self):
@@ -300,10 +287,16 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['working_directory'] = self.workingDirectory
     results['exit_code'] = self.exitCode
 
-    # Sub classes should implement these properties
-    results['bug_found'] = bugFound = self.foundBug
     results['timeout_hit'] = timeoutHit = self.timeoutWasHit
-    results['failed'] = runFailed = self.failed
+
+    analyser = self.GetNewAnalyser()
+    # Add the results of Analyser
+    results.update(analyser.getAnalysesDict())
+    assert 'bug_found' in results
+    assert 'failed' in results
+
+    bugFound = results['bug_found']
+    runFailed = results['failed']
 
     # FIXME: Remove this, the bug_found, timeout_hit and failed keys
     # describe this.

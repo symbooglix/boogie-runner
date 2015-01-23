@@ -1,6 +1,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 from . RunnerBase import RunnerBaseClass
 from .. ResultType import ResultType
+from .. Analysers.Symbooglix import SymbooglixAnalyser
 import logging
 import os
 import psutil
@@ -39,6 +40,9 @@ class SymbooglixRunner(RunnerBaseClass):
   def name(self):
     return "symbooglix"
 
+  def GetNewAnalyser(self):
+    return SymbooglixAnalyser(self.exitCode, self.logFile, self.hitHardTimeout)
+
   @property
   def timeoutWasHit(self):
     if not self.hitHardTimeout:
@@ -52,29 +56,6 @@ class SymbooglixRunner(RunnerBaseClass):
 
     results['hit_hard_timeout'] = self.hitHardTimeout
     return results
-
-  @property
-  def foundBug(self):
-    if self.hitHardTimeout:
-      # FIXME: We need to examine the output to see what happened
-      _logger.error('FIXME: Need to examine symbooglix\'s working dir')
-      return None
-
-    # Use Symbooglix exitCode:
-    if self.exitCode == 1 or self.exitCode == 3:
-      return True
-    elif self.exitCode == 0 or self.exitCode == 2:
-      return False
-    else:
-      return None
-
-  @property
-  def failed(self):
-    if self.hitHardTimeout:
-      return False # Timeout is not a failure
-
-    # All exit codes above 3 indicate something went badly wrong
-    return self.exitCode > 3
 
   def run(self):
     # Build the command line
