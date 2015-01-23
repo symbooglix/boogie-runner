@@ -126,7 +126,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         # check the tool exists inside the container
         _logger.debug('Cache miss, checking if {} is in docker image {}'.format(
           self.toolPath, self.dockerImage))
-        process = psutil.Popen(['docker','run','--rm', self.dockerImage, 'ls', self.toolPath])
+        process = psutil.Popen(['docker','run','--net=none', '--rm', self.dockerImage, 'ls', self.toolPath])
         exitCode = process.wait()
         if exitCode != 0:
           raise RunnerBaseException('"{}" (tool_path) does not exist inside container'.format(
@@ -394,6 +394,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
               'Enforcing memory limit not supported (when not using docker or mono) when not using Linux')
 
     if self.useDocker:
+      finalCmdLine.append('--net=none') # No network access should be needed
       finalCmdLine.append(self.dockerImage)
 
     if isDotNet and os.name == 'posix':
