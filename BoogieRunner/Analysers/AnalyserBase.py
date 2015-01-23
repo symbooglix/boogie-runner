@@ -2,7 +2,7 @@
 import abc
 
 class AnalyserBaseClass(metaclass=abc.ABCMeta):
-  def __init__(self, exitCode, logFile):
+  def __init__(self, exitCode, logFile, **kargs):
     self.exitCode = exitCode
     self.logFile = logFile
 

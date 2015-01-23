@@ -7,8 +7,8 @@ import re
 _logger = logging.getLogger(__name__)
 
 class SymbooglixAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile, hitHardTimeout):
-    super(SymbooglixAnalyser, self).__init__(exitCode, logFile)
+  def __init__(self, exitCode, logFile, hitHardTimeout, **kargs):
+    super(SymbooglixAnalyser, self).__init__(exitCode, logFile, **kargs)
     self.hitHardTimeout = hitHardTimeout
 
   @property
@@ -34,3 +34,5 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     # All exit codes above 3 indicate something went badly wrong
     return self.exitCode > 3
 
+def get():
+  return SymbooglixAnalyser

@@ -7,8 +7,8 @@ import re
 _logger = logging.getLogger(__name__)
 
 class CorralAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile):
-    super(CorralAnalyser, self).__init__(exitCode, logFile)
+  def __init__(self, exitCode, logFile, **kargs):
+    super(CorralAnalyser, self).__init__(exitCode, logFile, **kargs)
 
   @property
   def foundBug(self):
@@ -58,3 +58,6 @@ class CorralAnalyser(AnalyserBaseClass):
     results = super(CorralAnalyser, self).getAnalysesDict()
     results['recursion_bound_hit'] = self.hitRecursionBound
     return results
+
+def get():
+  return CorralAnalyser

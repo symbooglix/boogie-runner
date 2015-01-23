@@ -19,5 +19,3 @@ def getRunnerClass(runnerString):
 
 
   return module.get()
-  
-
