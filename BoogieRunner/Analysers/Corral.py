@@ -7,8 +7,8 @@ import re
 _logger = logging.getLogger(__name__)
 
 class CorralAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile, **kargs):
-    super(CorralAnalyser, self).__init__(exitCode, logFile, **kargs)
+  def __init__(self, exitCode, logFile, useDocker, **kargs):
+    super(CorralAnalyser, self).__init__(exitCode, logFile, useDocker, **kargs)
 
   @property
   def foundBug(self):
@@ -53,6 +53,11 @@ class CorralAnalyser(AnalyserBaseClass):
           return True
 
     return False
+
+  @property
+  def ranOutOfMemory(self):
+    # FIXME: Find a way to detect this
+    return None
 
   def getAnalysesDict(self):
     results = super(CorralAnalyser, self).getAnalysesDict()

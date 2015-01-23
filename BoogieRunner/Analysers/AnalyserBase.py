@@ -2,9 +2,10 @@
 import abc
 
 class AnalyserBaseClass(metaclass=abc.ABCMeta):
-  def __init__(self, exitCode, logFile, **kargs):
+  def __init__(self, exitCode, logFile, useDocker, **kargs):
     self.exitCode = exitCode
     self.logFile = logFile
+    self.useDocker = useDocker
 
   @abc.abstractproperty
   def foundBug(self):
@@ -23,6 +24,19 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
     """
     pass
 
+  @abc.abstractproperty
+  def ranOutOfMemory(self):
+    """
+      Return True if the tool executed by the runner ran out of memory
+      Return False if the tool executed by the Runner did not run out of memory
+      Return None if this cannot be determined
+
+      This is part of AnalyserBaseClass rather than a Runner class because we
+      often have no nice way of determining whether or not a tool ran out of
+      memory so often we are forced to parse the log file.
+    """
+    pass
+
   def getAnalysesDict(self):
     """
       Returns a dictionary of the results of
@@ -32,4 +46,5 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
     results = {}
     results['bug_found'] = self.foundBug
     results['failed'] = self.failed
+    results['out_of_memory'] = self.ranOutOfMemory
     return results

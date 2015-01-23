@@ -7,8 +7,8 @@ import re
 _logger = logging.getLogger(__name__)
 
 class GPUVerifyAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile, hitHardTimeout, **kargs):
-    super(GPUVerifyAnalyser, self).__init__(exitCode, logFile, **kargs)
+  def __init__(self, exitCode, logFile, useDocker, hitHardTimeout, **kargs):
+    super(GPUVerifyAnalyser, self).__init__(exitCode, logFile, useDocker, **kargs)
     self.hitHardTimeout = hitHardTimeout
 
   @property
@@ -81,6 +81,11 @@ class GPUVerifyAnalyser(AnalyserBaseClass):
             return True
 
     return False
+
+  @property
+  def ranOutOfMemory(self):
+    # FIXME: Find a way to detect this
+    return None
 
 def get():
   return GPUVerifyAnalyser

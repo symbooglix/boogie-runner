@@ -41,7 +41,7 @@ class SymbooglixRunner(RunnerBaseClass):
     return "symbooglix"
 
   def GetNewAnalyser(self):
-    return SymbooglixAnalyser(self.exitCode, self.logFile, self.hitHardTimeout)
+    return SymbooglixAnalyser(self.exitCode, self.logFile, self.useDocker, self.hitHardTimeout)
 
   @property
   def timeoutWasHit(self):

@@ -39,7 +39,7 @@ class BoogalooRunner(RunnerBaseClass):
     return "boogaloo" + ('-docker' if self.useDocker else '')
 
   def GetNewAnalyser(self):
-    return BoogalooAnalyser(self.exitCode, self.logFile)
+    return BoogalooAnalyser(self.exitCode, self.logFile, self.useDocker)
 
   def run(self):
     cmdLine = [ ]

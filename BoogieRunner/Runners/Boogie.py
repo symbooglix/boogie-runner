@@ -24,8 +24,8 @@ class BoogieRunner(RunnerBaseClass):
     return "boogie"
 
   def GetNewAnalyser(self):
-    return BoogieAnalyser(self.exitCode, self.logFile)
-    
+    return BoogieAnalyser(self.exitCode, self.logFile, self.useDocker)
+
   def run(self):
     cmdLine = [self.toolPath,
                "/proc:{}".format(self.entryPoint),

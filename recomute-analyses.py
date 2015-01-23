@@ -17,6 +17,7 @@ def entryPoint(args):
   global _logger
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="debug", dest="log_level", choices=['debug','info','warning','error'])
+  parser.add_argument("--fake-use-docker", dest="useDocker", default=False, action='store_true', help='pretend docker was used')
   parser.add_argument("analyser", help="Analyser name (e.g. Boogaloo)")
   parser.add_argument("yaml_old_results")
   parser.add_argument("yaml_output")
@@ -104,7 +105,7 @@ def entryPoint(args):
       return 1
 
     # Create analyser and reanalyse result
-    analyser = analyserClass(exitCode=exitCode, logFile=logFilePath, hitHardTimeout=hitHardTimeout)
+    analyser = analyserClass(exitCode=exitCode, logFile=logFilePath, useDocker=pargs.useDocker, hitHardTimeout=hitHardTimeout)
     updatedAnalyses = analyser.getAnalysesDict()
 
     # Merge the old and new results

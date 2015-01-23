@@ -53,7 +53,7 @@ class GPUVerifyRunner(RunnerBaseClass):
     return results
 
   def GetNewAnalyser(self):
-    return GPUVerifyAnalyser(self.exitCode, self.logFile, self.hitHardTimeout)
+    return GPUVerifyAnalyser(self.exitCode, self.logFile, self.useDocker, self.hitHardTimeout)
 
   def run(self):
     self.hitHardTimeout = False
