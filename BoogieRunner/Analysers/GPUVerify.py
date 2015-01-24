@@ -16,44 +16,25 @@ class GPUVerifyAnalyser(AnalyserBaseClass):
     if self.hitHardTimeout:
       return False
 
-    # First try read the tool output and extract if we found a bug
-    verifiedCount=0
-    errorCount=0
-    if os.path.exists(self.logFile):
-      with open(self.logFile, 'r') as f:
-        r = re.compile(r'GPUVerify kernel analyser finished with (\d+) verified, (\d+) error')
-        for line in f:
-          m = r.match(line)
-          if m != None:
-            verifiedCount = int(m.group(1))
-            errorCount = int(m.group(2))
-        _logger.info('Found {} verified, {} errors'.format(verifiedCount, errorCount))
-
-      if errorCount > 0:
-        return True
-      elif verifiedCount > 0:
-        return False
-
-      # We couldn't parse out the information we wanted so fallback on the exit code
-      _logger.warning('Failed to parse info from GPUVerify output, falling back on exit code')
-
       # GPUVerify exit codes are taken from
       # GPUVerifyScript/error_codes.py
-      #
-      #   SUCCESS = 0
-      #   ...
-      #   GPUVERIFYVCGEN_ERROR = 5
-      #   BOOGIE_ERROR = 6
-      #   TIMEOUT = 7
+      # SUCCESS = 0
+      # COMMAND_LINE_ERROR = 1
+      # CLANG_ERROR = 2
+      # OPT_ERROR = 3
+      # BUGLE_ERROR = 4
+      # GPUVERIFYVCGEN_ERROR = 5
+      # NOT_ALL_VERIFIED = 6
+      # TIMEOUT = 7
+      # CTRL_C = 8
+      # CONFIGURATION_ERROR = 9
+      # JSON_ERROR = 10
+      # BOOGIE_INTERNAL_ERROR = 11 # Internal failure of Boogie Driver or Cruncher
+      # BOOGIE_OTHER_ERROR = 12 # Uncategorised failure of Boogie Driver or Cruncher
     if self.exitCode == 0 or self.exitCode == 7:
       return False
     elif self.exitCode == 6:
-      # Workaround design flaw in GPUVerify. This exit code
-      # can also be emitted if GPUVerify hits an exception
-      if self.raisedException:
-        return None
-      else:
-        return True # bug report should been emitted.
+      return True # bug report should been emitted.
     else:
       return None
 
@@ -62,25 +43,10 @@ class GPUVerifyAnalyser(AnalyserBaseClass):
     if self.hitHardTimeout:
       return False
 
-    if self.exitCode != 0 and self.exitCode != 6:
-      return True
+    if self.exitCode == 0 or self.exitCode == 6 or self.exitCode == 7:
+      return False
 
-    return self.raisedException
-
-  # FIXME: Remove this, GPUVerify has been fixed so we can rely on exit codes
-  @property
-  def raisedException(self):
-    # HACK: Look for uncaught exceptions in log output.
-    if os.path.exists(self.logFile):
-      with open(self.logFile, 'r') as f:
-        r = re.compile(r'FATAL UNHANDLED EXCEPTION')
-        for line in f:
-          m = r.search(line)
-          if m != None:
-            _logger.error('GPUVerify raised an exception')
-            return True
-
-    return False
+    return True
 
   @property
   def ranOutOfMemory(self):
