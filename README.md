@@ -69,6 +69,7 @@ is a dictionary.
 * ``docker`` - **Optional** Specifies that the tool should be run in a [Docker](https://www.docker.com) container. This will be further explained in another section.
 * ``env`` - **Optional** Specifies the environment variables to pass when running.
 * ``mono_path`` - **Optional** Specfies the absolute path to the mono executable to use if mono is required. Note ``~`` will be expanded to the user's home directory.
+* ``copy_program_to_working_directory`` - **Optional** If specified and set to ``true`` input Boogie programs to the runner will be copied to the working directory.
 
 ### ``entry_point`` key
 

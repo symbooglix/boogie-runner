@@ -8,6 +8,7 @@ import re
 import shutil
 import sys
 import time
+import traceback
 from .. ResultType import ResultType
 
 _logger = logging.getLogger(__name__)
@@ -76,6 +77,21 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self.toolPath = os.path.expanduser(rc['tool_path'])
     if not os.path.isabs(self.toolPath):
       raise RunnerBaseException('"tool_path" must be an absolute path')
+
+    # Handle making a copy of the input boogie program if necessary
+    self._copyProgramToWorkingDirectory = False
+    try:
+      self._copyProgramToWorkingDirectory = rc['copy_program_to_working_directory']
+    except KeyError:
+      pass
+
+    if not isinstance(self._copyProgramToWorkingDirectory, bool):
+      raise RunnerBaseException('"copy_program_to_working_directory" should map to a boolean')
+
+    if self._copyProgramToWorkingDirectory:
+      # Make the copy now
+      _logger.debug('Copying input program to {}'.format(self.workingDirectory))
+      shutil.copy(self.program, self.workingDirectory)
 
 
     # Check if docker will be used in this runner
@@ -326,17 +342,29 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     """
       This the argument to pass to the tool when running.
       This should be used instead of ``self.program`` because
-      this property takes into account if docker is being used
+      this property takes into account if docker is being used and
+      whether or not we need to operate on a copy of the boogie program
     """
-    if self.useDocker:
-      progFilename = os.path.basename(self.program)
-      return os.path.join(self.dockerSourceVolume, progFilename)
-
-    return self.program
+    progFilename = os.path.basename(self.program)
+    if self._copyProgramToWorkingDirectory:
+      if self.useDocker:
+        return os.path.join(self.dockerWorkDirVolume, progFilename)
+      else:
+        return os.path.join(self.workingDirectory, progFilename)
+    else:
+      if self.useDocker:
+        return os.path.join(self.dockerSourceVolume, progFilename)
+      else:
+        return self.program
 
   @property
   def dockerContainerName(self):
     return '{}-bg-{}-{}'.format(self.name, os.getpid(), self.uid)
+
+  @property
+  def dockerWorkDirVolume(self):
+    # FIXME: We should make this settable from the config
+    return '/mnt/'
 
   def runTool(self, cmdLine, isDotNet, envExtra = {}):
     finalCmdLine = []
@@ -356,10 +384,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
 
       # Setup working directory inside the container (this is writable)
-      # FIXME: We should make this settable from the config
-      containerWorkDir = '/mnt/'
-      finalCmdLine.append('--volume={src}:{dest}:rw'.format(src=self.workingDirectory, dest=containerWorkDir))
-      finalCmdLine.append('--workdir={}'.format(containerWorkDir))
+      finalCmdLine.append('--volume={src}:{dest}:rw'.format(src=self.workingDirectory, dest=self.dockerWorkDirVolume))
+      finalCmdLine.append('--workdir={}'.format(self.dockerWorkDirVolume))
 
       finalCmdLine.append('--name={}'.format(self.dockerContainerName))
 
@@ -468,5 +494,15 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         endTime = time.perf_counter()
         self.time = endTime - startTime
         self.exitCode = exitCode
+
+        if self._copyProgramToWorkingDirectory:
+          toDelete=os.path.join(self.workingDirectory, os.path.basename(self.program))
+          try:
+            _logger.debug('Removing copy of input program at "{}"'.format(toDelete))
+            os.remove(toDelete)
+          except Exception as e:
+            _logger.error('Failed to delete copy of program at "{}"'.format(toDelete))
+            _logger.debug(traceback.format_exc())
+            pass
 
     return exitCode

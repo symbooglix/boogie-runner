@@ -3,4 +3,8 @@ runner: GPUVerify
 runner_config:
   tool_path: "~/dev/gpuverify/autobuild/linux/gpuverify/GPUVerify.py"
   max_time: 60
+  # GPUVerify tries to create temporary files in the same directory as
+  # the input file which can lead to races if running multiple runners.
+  # This option avoids this issue
+  copy_program_to_working_directory: true
   # Entry point is ignored by the runner so don't set it
