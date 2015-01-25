@@ -405,19 +405,16 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         # Use docker to enforce the memory limit
         finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMB))
       else:
-        if isDotNet:
-          env['MONO_GC_PARAMS'] = 'max-heap-size={}m'.format(self.maxMemoryInMB)
-        else:
-          if sys.platform == 'linux':
-            if getattr(psutil.Process, 'rlimit', None) == None:
-              # Older kernels don't support rlimit
-              useUlimitHack = True
-              _logger.warning('Linux is being used but rlimit support was not found. You should upgrade your kernel!')
-            else:
-              useRlimit = True
+        if sys.platform == 'linux':
+          if getattr(psutil.Process, 'rlimit', None) == None:
+            # Older kernels don't support rlimit
+            useUlimitHack = True
+            _logger.warning('Linux is being used but rlimit support was not found. You should upgrade your kernel!')
           else:
-            raise NotImplementedError(
-              'Enforcing memory limit not supported (when not using docker or mono) when not using Linux')
+            useRlimit = True
+        else:
+          raise NotImplementedError(
+            'Enforcing memory limit not supported when not using linux')
 
     if self.useDocker:
       finalCmdLine.append('--net=none') # No network access should be needed
