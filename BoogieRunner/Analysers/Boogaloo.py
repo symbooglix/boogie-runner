@@ -51,7 +51,7 @@ class BoogalooAnalyser(AnalyserBaseClass):
       _logger.warning('FIXME: Can\'t detect out of memory when using Docker')
       return None
 
-    if self.exitCode !=0:
+    if self.exitCode == 0:
       return False
 
     # Check the log to see if the Haskell runtime ran out of memory
