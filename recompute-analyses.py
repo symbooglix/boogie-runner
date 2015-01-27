@@ -80,7 +80,7 @@ def entryPoint(args):
     try:
       exitCode = r['exit_code']
     except KeyError:
-      _logger('exit_code key is missing from input file at index {}'.format(index))
+      _logger.error('exit_code key is missing from input file at index {}'.format(index))
       return 1
 
     # hit_hard_timeout is only implemented by some runners
