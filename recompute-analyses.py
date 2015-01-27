@@ -8,6 +8,7 @@ import logging
 import os
 from  BoogieRunner import AnalyserFactory
 import traceback
+import re
 import yaml
 import sys
 
@@ -18,6 +19,8 @@ def entryPoint(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="debug", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--fake-use-docker", dest="useDocker", default=False, action='store_true', help='pretend docker was used')
+  parser.add_argument("-s", "--search-workdir-regex", default="", dest="search_workdir_regex", help="Substitue workdir matching this regex")
+  parser.add_argument("-r", "--replace-workdir-regex", default="", dest="replace_workdir_regex", help="replace matched workdir with this (can use backrefs)")
   parser.add_argument("analyser", help="Analyser name (e.g. Boogaloo)")
   parser.add_argument("yaml_old_results")
   parser.add_argument("yaml_output")
@@ -98,7 +101,7 @@ def entryPoint(args):
 
     # FIXME: There should be a better way to do this
     # Guess where it is
-    logFilePath = os.path.join(workingDirectory, 'log.txt')
+    logFilePath = getLogFilePath(workingDirectory, pargs.search_workdir_regex, pargs.replace_workdir_regex, 'log.txt')
 
     if not os.path.exists(logFilePath):
       _logger.error('Could not find log file {}'.format(logFilePath))
@@ -138,6 +141,20 @@ def merge(oldResult, updatedAnalyses):
       _logger.warning('New key added {}: "{}"'.format(k, v))
 
   return newResult
+
+def getLogFilePath(originalworkDir, searchRegex, replaceRegex, logFileName):
+  assert isinstance(originalworkDir, str)
+  assert isinstance(searchRegex, str)
+  assert isinstance(replaceRegex, str)
+  assert isinstance(logFileName, str)
+
+  if len(searchRegex) == 0 or len(replaceRegex) == 0:
+    # Don't use regexes to change the working directory specified
+    return os.path.join(originalworkDir, logFileName)
+
+  r = re.compile(searchRegex)
+  newWorkDir = r.sub(replaceRegex, originalworkDir, count=1)
+  return os.path.join(newWorkDir, logFileName)
 
 
 if __name__ == '__main__':
