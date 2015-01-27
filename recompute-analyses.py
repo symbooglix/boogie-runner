@@ -101,7 +101,8 @@ def entryPoint(args):
 
     # FIXME: There should be a better way to do this
     # Guess where it is
-    logFilePath = getLogFilePath(workingDirectory, pargs.search_workdir_regex, pargs.replace_workdir_regex, 'log.txt')
+    workingDirectory = getWorkingDirectory(workingDirectory, pargs.search_workdir_regex, pargs.replace_workdir_regex)
+    logFilePath = os.path.join(workingDirectory, 'log.txt')
 
     if not os.path.exists(logFilePath):
       _logger.error('Could not find log file {}'.format(logFilePath))
@@ -112,7 +113,7 @@ def entryPoint(args):
     updatedAnalyses = analyser.getAnalysesDict()
 
     # Merge the old and new results
-    mergedResult = merge(r, updatedAnalyses)
+    mergedResult = merge(r, updatedAnalyses, workingDirectory)
     newResults.append(mergedResult)
 
   # Write result to file
@@ -123,7 +124,7 @@ def entryPoint(args):
 
   return 0
 
-def merge(oldResult, updatedAnalyses):
+def merge(oldResult, updatedAnalyses, workingDirectory):
   _logger.info('Merging {}'.format(oldResult['program']))
   newResult = oldResult.copy()
 
@@ -136,25 +137,24 @@ def merge(oldResult, updatedAnalyses):
 
   for k, v in newOrChanged:
     if k in oldResult:
-      _logger.warning('Key {} changed "{}" => "{}"'.format(k, oldResult[k], v))
+      _logger.warning('[{}] Key {} changed "{}" => "{}"'.format(workingDirectory, k, oldResult[k], v))
     else:
-      _logger.warning('New key added {}: "{}"'.format(k, v))
+      _logger.info('[{}] New key added {}: "{}"'.format(workingDirectory, k, v))
 
   return newResult
 
-def getLogFilePath(originalworkDir, searchRegex, replaceRegex, logFileName):
+def getWorkingDirectory(originalworkDir, searchRegex, replaceRegex):
   assert isinstance(originalworkDir, str)
   assert isinstance(searchRegex, str)
   assert isinstance(replaceRegex, str)
-  assert isinstance(logFileName, str)
 
   if len(searchRegex) == 0 or len(replaceRegex) == 0:
     # Don't use regexes to change the working directory specified
-    return os.path.join(originalworkDir, logFileName)
+    return originalworkDir
 
   r = re.compile(searchRegex)
   newWorkDir = r.sub(replaceRegex, originalworkDir, count=1)
-  return os.path.join(newWorkDir, logFileName)
+  return newWorkDir
 
 
 if __name__ == '__main__':

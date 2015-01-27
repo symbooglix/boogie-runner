@@ -20,6 +20,7 @@ class BoogalooAnalyser(AnalyserBaseClass):
     errors = 0
 
     errorR = re.compile(r'Execution \d+:.+ failed', flags= re.MULTILINE | re.DOTALL)
+    _logger.debug('Opening {}'.format(self.logFile))
     with open(self.logFile, 'r') as f:
       # Unfortunately boogaloo errors might spread over multiple lines
       # so we need to read the whole log into memory and then do a search
