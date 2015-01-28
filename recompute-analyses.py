@@ -57,6 +57,8 @@ def entryPoint(args):
     analyserClass = AnalyserFactory.getAnalyserClass(pargs.analyser)
   except Exception as e:
     _logger.error('Failed to load analyser {}'.format(pargs.analyser))
+    if logLevel == logging.DEBUG:
+      raise e
     return 1
 
   # Try to load old results in
