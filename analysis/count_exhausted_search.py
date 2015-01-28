@@ -19,7 +19,6 @@ def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument('result_yml', type=argparse.FileType('r'), help='Input YAML file')
   parser.add_argument('output_yml', help='output yaml path')
-  parser.add_argument('--use-expected-correct', dest='use_expected_correct', action='store_true')
   pargs = parser.parse_args(args)
 
   if os.path.exists(pargs.output_yml):
@@ -32,9 +31,7 @@ def main(args):
 
   assert isinstance(results, list)
 
-  fullyExploredCorrect = [ ]
-  fullyExploredIncorrect = [ ]
-  fullyExploredUnknown = [ ]
+  fullyExplored = [ ]
   for r in results:
     if not 'bug_found' in r:
       logging.error('Key "bug_found" not in result')
@@ -42,33 +39,14 @@ def main(args):
     
     # Definition of "fully explored". If the tool used was unbounded then the boogie program was verified
     if r['bug_found'] == False and r['timeout_hit'] == False and r['failed'] == False:
+      fullyExplored.append(r)
       logging.info('Found result fully explored result: {}'.format(r['program']))
-
-      if 'expected_correct' in r and pargs.use_expected_correct:
-        # Use correctness label to group
-        correct = r['expected_correct']
-        if correct == True:
-          fullyExploredCorrect.append(r)
-        elif correct == False:
-          fullyExploredIncorrect.append(r)
-        else:
-          fullyExploredUnknown.append(r)
-      else:
-        fullyExploredUnknown.append(r)
       
-  size = len(fullyExploredCorrect) + len(fullyExploredIncorrect) + len(fullyExploredUnknown)
-  if pargs.use_expected_correct:
-    print("# of fully explored {}".format(size))
-    print("# of fully explored, correct {}".format(len(fullyExploredCorrect)))
-    print("# of fully explored, incorrect {}".format(len(fullyExploredIncorrect)))
-    print("# of fully explored, unknown {}".format(len(fullyExploredUnknown)))
-  else:
-    print("# of fully explored {}".format(size))
-    if not pargs.use_expected_correct:
-      with open(pargs.output_yml, 'w') as f:
-        logging.info('Writing results with consider as fullyExplored to {}'.format(pargs.output_yml))
-        yamlString = yaml.dump(fullyExploredUnknown, Dumper=Dumper, default_flow_style=False)
-        f.write(yamlString)
+  print("# of fully explored {}".format(len(fullyExplored)))
+  with open(pargs.output_yml, 'w') as f:
+    logging.info('Writing results with consider as fullyExplored to {}'.format(pargs.output_yml))
+    yamlString = yaml.dump(fullyExplored, Dumper=Dumper, default_flow_style=False)
+    f.write(yamlString)
 
   return 0
 
