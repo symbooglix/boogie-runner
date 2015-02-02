@@ -37,7 +37,10 @@ def main(args):
     logging.error('Second Result list is empty')
     return 1
 
-  # Create set of all used files
+  print("# of results in first {}".format(len(firstResults)))
+  print("# of results in second {}".format(len(secondResults)))
+
+  # Create sets of used files
   programsInFirst = set()
   programsInSecond = set()
   for r in firstResults:
