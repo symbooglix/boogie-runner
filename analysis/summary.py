@@ -34,13 +34,19 @@ def main(args):
   fullExplore = [ ]
   bugFound = [ ]
   timedOut = [ ]
+  hitBound = [ ]
   unknown = [ ]
   for r in results:
     fileName = os.path.basename(r['program'])
     if r['bug_found'] == False and r['timeout_hit'] == False and r['failed'] == False:
-      # fully explored
-      fullExplore.append(r)
-      logging.debug('Classified {} as fully explored'.format(fileName))
+      # might be fully explored
+      if 'recursion_bound_hit' in r and r['recursion_bound_hit'] == True:
+        # Corral run hit recursion bound
+        hitBound.append(r)
+        logging.debug('Classified {} as hit bound'.format(fileName))
+      else:
+        fullExplore.append(r)
+        logging.debug('Classified {} as fully explored'.format(fileName))
     elif r['bug_found'] == True:
       assert r['failed'] != True
       assert r['timeout_hit'] != True
@@ -58,6 +64,8 @@ def main(args):
   print("Total: {}".format(len(results)))
   print("# of fully explored: {} ({:.2f}%)".format(len(fullExplore),
     100*float(len(fullExplore))/len(results)))
+  print("# of bound hit: {} ({:.2f}%)".format(len(hitBound),
+    100*float(len(hitBound))/len(results)))
   print("# of bug found: {} ({:.2f}%)".format(len(bugFound),
     100*float(len(bugFound))/len(results)))
   print("# of timeout: {} ({:2f}%)".format(len(timedOut),
