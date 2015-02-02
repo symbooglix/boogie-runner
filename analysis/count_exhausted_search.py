@@ -5,6 +5,7 @@ import os
 import logging
 import sys
 import yaml
+from br_util import FinalResultType, classifyResult
 
 try:
   # Try to use libyaml which is faster
@@ -37,8 +38,8 @@ def main(args):
       logging.error('Key "bug_found" not in result')
       return 1
     
-    # Definition of "fully explored". If the tool used was unbounded then the boogie program was verified
-    if r['bug_found'] == False and r['timeout_hit'] == False and r['failed'] == False:
+    rType = classifyResult(r)
+    if rType == FinalResultType.FULLY_EXPLORED:
       fullyExplored.append(r)
       logging.info('Found result fully explored result: {}'.format(r['program']))
       

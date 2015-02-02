@@ -5,6 +5,7 @@ import os
 import logging
 import sys
 import yaml
+from br_util import FinalResultType, classifyResult
 
 try:
   # Try to use libyaml which is faster
@@ -38,28 +39,18 @@ def main(args):
   unknown = [ ]
   for r in results:
     fileName = os.path.basename(r['program'])
-    if r['bug_found'] == False and r['timeout_hit'] == False and r['failed'] == False:
-      # might be fully explored
-      if 'recursion_bound_hit' in r and r['recursion_bound_hit'] == True:
-        # Corral run hit recursion bound
-        hitBound.append(r)
-        logging.debug('Classified {} as hit bound'.format(fileName))
-      else:
-        fullExplore.append(r)
-        logging.debug('Classified {} as fully explored'.format(fileName))
-    elif r['bug_found'] == True:
-      assert r['failed'] != True
-      assert r['timeout_hit'] != True
+
+    rType = classifyResult(r)
+    if rType == FinalResultType.FULLY_EXPLORED:
+      fullExplore.append(r)
+    elif rType == FinalResultType.BOUND_HIT:
+      hitBound.append(r)
+    elif rType == FinalResultType.BUG_FOUND:
       bugFound.append(r)
-      logging.debug('Classified {} as bug found'.format(fileName))
-    elif r['timeout_hit'] == True and (r['failed'] == False or r['failed'] == None):
-      assert r['failed'] != None
-      logging.debug('Classified {} as timeout'.format(fileName))
+    elif rType == FinalResultType.TIMED_OUT:
       timedOut.append(r)
     else:
-      assert r['failed'] == True
       unknown.append(r)
-      logging.debug('Classified {} as unknown'.format(fileName))
 
   print("Total: {}".format(len(results)))
   print("# of fully explored: {} ({:.2f}%)".format(len(fullExplore),
