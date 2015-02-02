@@ -61,14 +61,20 @@ def main(args):
     l.append(r)
 
   # Output information
+
+  sortedResultTypeNames = [ name for name, _ in FinalResultType.__members__.items()]
+  sortedResultTypeNames.sort()
+
   print("Total # of results: {}".format(len(results)))
   print("Results expected to be correct (total {})".format(expectedCorrectCount))
-  for label, l in labelledCorrect.items():
+  for label in sortedResultTypeNames:
+    l = labelledCorrect[label]
     assert isinstance(l, list)
     percentage = 100 * (float(len(l))/ expectedCorrectCount)
     print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
   print("Results expected to be incorrect (total {})".format(expectedIncorrectCount))
-  for label, l in labelledIncorrect.items():
+  for label in sortedResultTypeNames:
+    l = labelledIncorrect[label]
     assert isinstance(l, list)
     percentage = 100 * (float(len(l))/ expectedIncorrectCount)
     print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
