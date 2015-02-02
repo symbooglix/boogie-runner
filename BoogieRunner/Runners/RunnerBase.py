@@ -429,6 +429,15 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     if useUlimitHack:
       _logger.warning('Using ulimit HACK')
       maxMemoryInKiB = self.maxMemoryInMB * 1024
+
+      # Escape shell characters
+      for index in range(0, len(finalCmdLine)):
+        c = finalCmdLine[index]
+        assert isinstance(c, str)
+        c = c.replace('$', r'\$') # Needed because sometimes GPUVerify entry points use a $ symbol
+        c = c.replace(' ', r'\ ')
+        finalCmdLine[index] = c
+
       finalCmdLine = ['ulimit', '-SHv', str(maxMemoryInKiB), '&&'] + finalCmdLine
       # Use a string instead when invoking the shell directly
       finalCmdLine = ' '.join(finalCmdLine)
