@@ -65,11 +65,13 @@ def main(args):
   print("Results expected to be correct (total {})".format(expectedCorrectCount))
   for label, l in labelledCorrect.items():
     assert isinstance(l, list)
-    print("# classified as {}: {}".format(label, len(l)))
+    percentage = 100 * (float(len(l))/ expectedCorrectCount)
+    print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
   print("Results expected to be incorrect (total {})".format(expectedIncorrectCount))
   for label, l in labelledIncorrect.items():
     assert isinstance(l, list)
-    print("# classified as {}: {}".format(label, len(l)))
+    percentage = 100 * (float(len(l))/ expectedIncorrectCount)
+    print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
 
   return 0
 
