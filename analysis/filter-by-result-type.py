@@ -3,7 +3,6 @@
 Filer a results file (as YAML) and
 output a filtered YAML file.
 
-By default only results of type 'result_type'
 are outputted. If -n is used then this is inverted.
 """
 import argparse
@@ -12,15 +11,11 @@ import logging
 import pprint
 import sys
 import yaml
+from br_util import FinalResultType, classifyResult
 
-# HACK
-_file = os.path.abspath(__file__)
-_dir = os.path.dirname(os.path.dirname(_file))
-sys.path.insert(0, _dir)
-from BoogieRunner.ResultType import ResultType
 
 def main(args):
-    resultTypes = [ r.name for r in list(ResultType)] # Get list of ResultTypes as strings
+    resultTypes = [ r.name for r in list(FinalResultType)] # Get list of ResultTypes as strings
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
     parser.add_argument('result_yml', type=argparse.FileType('r'), help='File to open, if \'-\' then use stdin')
@@ -33,14 +28,16 @@ def main(args):
     assert isinstance(results, list)
 
     # Get out of requested type
-    resultCode = ResultType[pargs.result_type].value
+    matchResulType = FinalResultType[pargs.result_type]
     collected = [ ]
     for r in results:
+        rType = classifyResult(r)
+        logging.debug('Classified {} as {}'.format(r['program'], rType))
         if pargs.not_matching:
-            if r['result'] != resultCode:
+            if rType != matchResulType:
                 collected.append(r)
         else:
-            if r['result'] == resultCode:
+            if rType == matchResulType:
                 collected.append(r)
 
     if pargs.not_matching:

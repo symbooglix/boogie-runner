@@ -38,9 +38,8 @@ def main(args):
   hitBound = [ ]
   unknown = [ ]
   for r in results:
-    fileName = os.path.basename(r['program'])
-
     rType = classifyResult(r)
+    logging.debug('Classified {} as {}'.format(r['program'], rType))
     if rType == FinalResultType.FULLY_EXPLORED:
       fullExplore.append(r)
     elif rType == FinalResultType.BOUND_HIT:

@@ -40,6 +40,8 @@ def main(args):
     
     rType = classifyResult(r)
     if rType == FinalResultType.FULLY_EXPLORED:
+    # Definition of "fully explored". If the tool used was unbounded then the boogie program was verified
+    if r['bug_found'] == False and r['timeout_hit'] == False and r['failed'] == False:
       fullyExplored.append(r)
       logging.info('Found result fully explored result: {}'.format(r['program']))
       
