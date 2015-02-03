@@ -3,8 +3,10 @@ runner: Symbooglix
 runner_config:
   tool_path: "~/dev/symbooglix/symbooglix/src/SymbooglixDriver/bin/Release/symbooglix.exe"
   max_memory: 4096
-  max_time: 61
+  max_time: 900
   additional_args:
-    - "--solver-timeout=20"
+    - "--solver-timeout=10"
     - "--stop-at-failure=1" # Stop when we find the first bug
+    - "--skip-log-success-states"
+    - "--skip-log-unsat-assume-states"
   entry_point: "main"
