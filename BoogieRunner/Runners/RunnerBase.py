@@ -470,6 +470,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
             self.maxMemoryInMB, numBytes))
           process.rlimit(psutil.RLIMIT_AS, (numBytes, numBytes))
 
+        _logger.debug('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
         exitCode = process.wait(timeout=self.maxTimeInSeconds)
       except (psutil.TimeoutExpired, KeyboardInterrupt) as e:
         self._timeoutHit = True

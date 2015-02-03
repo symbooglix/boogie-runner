@@ -14,7 +14,7 @@ class SymbooglixRunnerException(Exception):
     self.msg = msg
 
 class SymbooglixRunner(RunnerBaseClass):
-  softTimeoutDiff = 10
+  softTimeoutDiff = 180 # Allow 3 minutes for file logging to finish
   def __init__(self, boogieProgram, workingDirectory, rc):
     _logger.debug('Initialising {}'.format(boogieProgram))
     super(SymbooglixRunner, self).__init__(boogieProgram, workingDirectory, rc)
@@ -27,14 +27,13 @@ class SymbooglixRunner(RunnerBaseClass):
         raise SymbooglixRunnerException(
           '--timeout must not be specified')
 
-    # If we have a timeout it needs to be more than softTimeoutDiff
-    # seconds because we give symbooglix a soft timeout of
-    # maxTimeInSeconds - softTimeoutDiff
-    # We do this because symbooglix may take a while to complete
-    # once it hits the softimeout.
-    if self.maxTimeInSeconds > 0 and (
-       self.maxTimeInSeconds <= self.softTimeoutDiff):
-      raise SymbooglixRunnerException('Need larger timeout')
+    # Symbooglix will respect the timeout it was given and will not
+    # be able to find anymore bugs after the timeout was hit, however
+    # it needs to be allowed extra time to perform clean up because
+    # it will log many files useful for debugging.
+    self.softTimeout = self.maxTimeInSeconds
+    self.maxTimeInSeconds = self.softTimeout + self.softTimeoutDiff
+    assert self.maxTimeInSeconds >= self.softTimeout
 
   @property
   def name(self):
@@ -68,10 +67,8 @@ class SymbooglixRunner(RunnerBaseClass):
     # Set implementation to enter
     cmdLine.append('--entry-points={}'.format(self.entryPoint))
 
-    # Compute soft timeout and add as command line param
-    softTimeout = self.maxTimeInSeconds - self.softTimeoutDiff
-    assert softTimeout > 0
-    cmdLine.append('--timeout={}'.format(softTimeout))
+    # Force soft timeout
+    cmdLine.append('--timeout={}'.format(self.softTimeout))
 
     # Add the source file as the last arg
     cmdLine.append(self.programPathArgument)
