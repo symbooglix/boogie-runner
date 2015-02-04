@@ -175,7 +175,8 @@ def main(args):
             print("{}".format(program))
 
             for resultSetLabel in resultSetLabels:
-              print("{} : {}".format(resultSetLabel, classifyResult(programToRawResultMap[program][resultSetLabel])))
+              rawResult = programToRawResultMap[program][resultSetLabel]
+              print("{} : {} ({})".format(resultSetLabel, classifyResult(rawResult), rawResult['working_directory']))
 
             print("")
 
