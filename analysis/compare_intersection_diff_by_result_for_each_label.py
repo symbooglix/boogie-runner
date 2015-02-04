@@ -18,6 +18,7 @@ except ImportError:
 def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
+  parser.add_argument("--uncommon", action='store_true')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
 
@@ -121,6 +122,12 @@ def main(args):
           intersection[name][benchmarkLabel] = intersectionSet.intersection( categorised[resultSetLabel][benchmarkLabel][name]['program_set'])
 
   # Show computed information
+  uncommonResults = { }
+  for name, _ in FinalResultType.__members__.items():
+    uncommonResults[name] = { }
+    for benchmarkLabel in ['correct', 'incorrect']:
+      uncommonResults[name][benchmarkLabel] = set()
+
   for benchmarkLabel in ['correct', 'incorrect']:
     print("==={}===".format(benchmarkLabel))
     for name, _ in FinalResultType.__members__.items():
@@ -133,15 +140,31 @@ def main(args):
       else:
         percentage = 0
 
+      uncommonResults[name][benchmarkLabel] = set()
+
       # Compute if any result set (i.e. from a tool) is a super set of the unioned benchmarks
       superSetResultSet = [ ]
       for resultSetLabel in resultSetLabels:
         if categorised[resultSetLabel][benchmarkLabel][name]['program_set'].issuperset(union[name][benchmarkLabel]):
           superSetResultSet.append(resultSetLabel)
 
+      if len(superSetResultSet) == 0:
+        # No result set is a super set of the unioned benchmarks which implies
+        # there are uncommon results. Compute this and store it
+        uncommonResults[name][benchmarkLabel] = union[name][benchmarkLabel].difference( intersection[name][benchmarkLabel])
+
       superSetString = "Result sets that are super sets of the unioned benchmarks {}".format(superSetResultSet)
 
       print("# of common results of type {}: {} out of {} ({:.2f}%)\n{}\n".format(name, intersectionSize, unionSize, percentage, superSetString))
+
+  if pargs.uncommon:
+    for benchmarkLabel in ['correct', 'incorrect']:
+      print("==={}===".format(benchmarkLabel))
+      for name, _ in FinalResultType.__members__.items():
+        print("Size of uncommon results for {} {}: {}".format(benchmarkLabel, name, len(uncommonResults[name][benchmarkLabel])))
+        if name == 'BUG_FOUND' or name == 'FULLY_EXPLORED':
+          for program in uncommonResults[name][benchmarkLabel]:
+            print("{}".format(program))
 
   return 0
 
