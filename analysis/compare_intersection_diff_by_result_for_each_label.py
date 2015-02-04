@@ -68,6 +68,7 @@ def main(args):
       logging.error('There is a length mismatch for {}, expected {} entries but was'.format(name, length, len(rList)))
       return 1
     
+  programToRawResultMap = { }
   # Put results into buckets based on labels
   for resultSetLabel in resultSetLabels:
     for r in data[resultSetLabel]:
@@ -95,6 +96,13 @@ def main(args):
         logging.error('The program {} was already in the set. This shouldn\'t happen'.format(programName))
         return 1
       programSet.add(programName)
+
+      # Setup programToRawResultMap
+      try:
+        existingDict = programToRawResultMap[programName]
+        existingDict[resultSetLabel] = r
+      except KeyError:
+        programToRawResultMap[programName] = { resultSetLabel:r }
 
   # Compute union (for count only) and intersection between result sets
   union = {}
@@ -165,6 +173,11 @@ def main(args):
         if name == 'BUG_FOUND' or name == 'FULLY_EXPLORED':
           for program in uncommonResults[name][benchmarkLabel]:
             print("{}".format(program))
+
+            for resultSetLabel in resultSetLabels:
+              print("{} : {}".format(resultSetLabel, classifyResult(programToRawResultMap[program][resultSetLabel])))
+
+            print("")
 
   return 0
 
