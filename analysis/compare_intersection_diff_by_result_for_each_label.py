@@ -122,7 +122,7 @@ def main(args):
 
   # Show computed information
   for benchmarkLabel in ['correct', 'incorrect']:
-    print("{}".format(benchmarkLabel))
+    print("==={}===".format(benchmarkLabel))
     for name, _ in FinalResultType.__members__.items():
       # Get set sizes
       intersectionSize = len(intersection[name][benchmarkLabel])
@@ -141,7 +141,7 @@ def main(args):
 
       superSetString = "Result sets that are super sets of the unioned benchmarks {}".format(superSetResultSet)
 
-      print("# of common results of type {}: {} out of {} ({:.2f}%) :: {}".format(name, intersectionSize, unionSize, percentage, superSetString))
+      print("# of common results of type {}: {} out of {} ({:.2f}%)\n{}\n".format(name, intersectionSize, unionSize, percentage, superSetString))
 
   return 0
 
