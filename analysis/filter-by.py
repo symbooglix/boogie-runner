@@ -68,7 +68,11 @@ def main(args):
 
     logging.info('Filtered out {} results out of {}'.format(len(results) - len(collected), len(results)))
 
-    print(yaml.dump(collected, default_flow_style=False, Dumper=Dumper))
+    try:
+        print(yaml.dump(collected, default_flow_style=False, Dumper=Dumper))
+    except BrokenPipeError as e:
+        pass
+
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
