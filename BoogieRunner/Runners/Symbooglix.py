@@ -45,7 +45,7 @@ class SymbooglixRunner(RunnerBaseClass):
   @property
   def timeoutWasHit(self):
     if not self.hitHardTimeout:
-      return self.exitCode == 2 or self.exitCode == 3
+      return self.exitCode == 3 or self.exitCode == 4
     else:
       return True
 

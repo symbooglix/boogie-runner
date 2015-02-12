@@ -19,9 +19,9 @@ class SymbooglixAnalyser(AnalyserBaseClass):
       return None
 
     # Use Symbooglix exitCode:
-    if self.exitCode == 1 or self.exitCode == 3:
+    if self.exitCode == 2 or self.exitCode == 4:
       return True
-    elif self.exitCode == 0 or self.exitCode == 2:
+    elif self.exitCode == 0 or self.exitCode == 3:
       return False
     else:
       return None
@@ -31,12 +31,12 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     if self.hitHardTimeout:
       return False # Timeout is not a failure
 
-    # All exit codes above 3 indicate something went badly wrong
-    return self.exitCode > 3
+    # All exit codes above 4 indicate something went badly wrong
+    return self.exitCode > 4 or self.exitCode == 1
 
   @property
   def ranOutOfMemory(self):
-    return self.exitCode == 4
+    return self.exitCode == 5
 
 def get():
   return SymbooglixAnalyser
