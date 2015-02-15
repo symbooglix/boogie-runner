@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
+"""
+Script to load multiple YAML result files and check
+the files between them are consistent
+"""
 import argparse
 import os
+import pprint
 import logging
 import sys
 import yaml
@@ -14,64 +19,81 @@ except ImportError:
   from yaml import Loader, Dumper
 
 def main(args):
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
-  parser.add_argument('first_yml', type=argparse.FileType('r'))
-  parser.add_argument('second_yml', type=argparse.FileType('r'))
+  parser.add_argument('yml_files', nargs='+')
   pargs = parser.parse_args(args)
 
   logLevel = getattr(logging, pargs.log_level.upper(),None)
   logging.basicConfig(level=logLevel)
 
-  firstResults = yaml.load(pargs.first_yml, Loader=Loader)
-  secondResults = yaml.load(pargs.second_yml, Loader=Loader)
+  results = [ ]
+  for index, filePath in enumerate(pargs.yml_files):
 
-  assert isinstance(firstResults, list)
-  assert isinstance(secondResults, list)
+    if not os.path.exists(filePath):
+      logging.error('{} does not exist'.format(filePath))
+      return 1
 
-  if len(firstResults) == 0:
-    logging.error('First Result list is empty')
-    return 1
+    with open(filePath, 'r') as f:
+      logging.info('Loading {}'.format(filePath))
+      l = yaml.load(f, Loader=Loader)
+    assert isinstance(l, list)
+    results.append(l)
 
-  if len(secondResults) == 0:
-    logging.error('Second Result list is empty')
-    return 1
+    if len(l) == 0:
+      logging.error('File {} has no entries'.format(filePath))
+      return 1
 
-  print("# of results in first {}".format(len(firstResults)))
-  print("# of results in second {}".format(len(secondResults)))
 
   # Create sets of used files
-  programsInFirst = set()
-  programsInSecond = set()
-  for r in firstResults:
-    programsInFirst.add(r['program'])
-  for r in secondResults:
-    programsInSecond.add(r['program'])
+  programsIn = [ ]
+  resultsMissingFrom = []
+  for index, rList in enumerate(results):
+    assert len(programsIn) == index
+    programsIn.append(set())
+    resultsMissingFrom.append([])
+    for r in rList:
+      if r['program'] in programsIn[index]:
+        logging.error('{} has a duplicate program entry "{}"'.format(pargs.yml_files[index], r['program']))
+        return 1
+      programsIn[index].add(r['program'])
 
-  resultMissingFromSecond= [ ]
-  resultMissingFromFirst=[ ]
-  # Check for files missing in second
-  for r in firstResults:
-    if not (r['program'] in programsInSecond):
-      resultMissingFromSecond.append(r)
-      logging.warning('Program {} is missing from second but present in first'.format(r['program']))
-  # Check for files missing in first
-  for r in secondResults:
-    if not (r['program'] in programsInFirst):
-      resultMissingFromFirst.append(r)
-      logging.warning('Program {} is missing from first but present in second'.format(r['program']))
+  # Go through the different pairs (must do both orders)
+  assert len(resultsMissingFrom) == len(results)
+  for i in range(0, len(results)):
+    fromSet = programsIn[i]
+    assert len(fromSet) > 0
+    # Set up [<from id>]{<but in id>] = [ ]
+    resultsMissingFrom[i] = [ [ ] for _ in results ]
+    assert len(resultsMissingFrom[i]) == len(results)
 
-  print("# of programs missing from second but present in first: {}".format(len(resultMissingFromSecond)))
-  print("# of programs missing from first but present in second: {}".format(len(resultMissingFromFirst)))
-  print("")
-  print("# Missing from second")
-  for r in resultMissingFromSecond:
-    print(r)
-  print("# Missing from first")
-  for r in resultMissingFromFirst:
-    print(r)
+    for j in range(0, len(results)):
+      if i == j:
+        continue
+      diff = programsIn[j].difference(fromSet)
+      if len(diff) != 0:
+        for program in diff:
+          # FIXME: Record result set instead
+          resultsMissingFrom[i][j].append( program )
 
-  return 0
+
+  # Output
+  index = 0
+  exitCode = 0
+  for missingFromList, filePath in zip(resultsMissingFrom, pargs.yml_files):
+    assert isinstance(missingFromList, list)
+    print("# of results in {}: {}".format(filePath, len(results[index])))
+    for otherIndex in range(0, len(results)):
+      if index == otherIndex:
+        continue
+      missing = resultsMissingFrom[index][otherIndex]
+      if len(missing) > 0:
+        print("{} results present in {} but not in {}".format(len(missing), pargs.yml_files[otherIndex], filePath))
+        print("{}".format(pprint.pformat(missing)))
+        exitCode = 2
+    index += 1
+
+  return exitCode
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
