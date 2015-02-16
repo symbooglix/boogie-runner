@@ -64,12 +64,12 @@ def findResultFromProgramNameInResultSet(resultList, programName):
 
 def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--trust-ofe', default=[], action='append', dest='ofe',
-    help='Specify files (can specify repeatedly) where only the FULLY_EXPLORED'
-         ' results are trusted')
-  parser.add_argument('--trust-obf', action='append', default=[], dest='obf',
-    help='Specify files (can specify repeatedly) where only the BUG_FOUND'
-         ' results are trusted')
+  parser.add_argument('--trust-only-fe', default=[], action='append',
+    dest='ofe', help='Specify files (can specify repeatedly) where only the'
+    ' FULLY_EXPLORED results are trusted')
+  parser.add_argument('--trust-only-bf', action='append', default=[],
+    dest='obf', help='Specify files (can specify repeatedly) where only the'
+    'BUG_FOUND results are trusted')
   parser.add_argument('--trust-fe-and-bf', default=[], action='append',
     dest='fe_and_bf', help='Specify files (can specify repeatedly) where both'
     ' FULLY_EXPLORED and BUG_FOUND results are trusted')
