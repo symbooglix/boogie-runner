@@ -180,12 +180,14 @@ def main(args):
 
   #Output stats
   logging.info('# of programs: {}'.format(len(programNames)))
-  logging.info('# of program inferred to be correct:{}'.format(
-    countInferredCorrect))
-  logging.info('# of program inferred to be incorrect:{}'.format(
-    countInferredIncorrect))
-  logging.info('# of programs not inferred:{}'.format(
-    (len(programNames) - countInferredCorrect) - countInferredIncorrect))
+  logging.info('# of program inferred to be correct:{} ({:.2f}%)'.format(
+    countInferredCorrect, 100*float(countInferredCorrect)/len(programNames)))
+  logging.info('# of program inferred to be incorrect:{} ({:.2f}%)'.format(
+    countInferredIncorrect,
+    100*float(countInferredIncorrect)/len(programNames)))
+  countNotInferred = (len(programNames) - countInferredCorrect) - countInferredIncorrect
+  logging.info('# of programs not inferred:{} ({:.2f}%)'.format(
+    countNotInferred, 100*float(countNotInferred)/len(programNames)))
 
   if len(programsWithDisagreement) > 0:
     logging.warning('There were {} programs where results'
