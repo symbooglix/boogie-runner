@@ -74,6 +74,8 @@ def main(args):
   parser.add_argument('--trust-fe-and-bf', default=[], action='append',
     dest='fe_and_bf', help='Specify files (can specify repeatedly) where both'
     ' FULLY_EXPLORED and BUG_FOUND results are trusted')
+  parser.add_argument('--write-disagreement-info', dest='disagreement_file',
+    default=None, help='Write information on disagreement to YAML file')
   parser.add_argument('mapping_file', default=None,
     help='output file for mapping')
   pargs = parser.parse_args(args)
@@ -83,6 +85,11 @@ def main(args):
   if os.path.exists(pargs.mapping_file):
     logging.error('Refusing to overwrite {}'.format(pargs.mapping_file))
     return 1
+
+  if pargs.disagreement_file != None:
+    if os.path.exists(pargs.disagreement_file):
+      logging.error('Refusing to overwrite {}'.format(pargs.disagreement_file))
+      return 1
 
   # Load ofe, obf and fe_and_bf results
   ofe = LoadResultSets(pargs.ofe)
@@ -108,13 +115,14 @@ def main(args):
       for r in resultList:
         programNames.add( r['program'])
 
-  # Build program to { 'obe: [], 'obf': [], 'feAndBf': [] } map
+  # Build program to { 'obe: {}, 'obf': {}, 'feAndBf': {} } map
+  # The dicts {<filename>: <result>}
   programToDataMap = { }
   for programName in programNames:
     assert not programName in programToDataMap
     mapForProgram = programToDataMap[programName] = { }
     for category in ['ofe', 'obf', 'feAndBf']:
-      mapForProgram[category] = listForProgramAndCategory = []
+      mapForProgram[category] = { }
 
       resultDict = locals()[category]
       for fileName, resultList in resultDict.items():
@@ -123,7 +131,7 @@ def main(args):
         resultForProgram = findResultFromProgramNameInResultSet(resultList,
                                                                 programName)
         if resultForProgram != None:
-          listForProgramAndCategory.append(resultForProgram)
+          mapForProgram[category][fileName] = resultForProgram
         else:
           logging.warning('Could not find {} in {}'.format(
             programName, fileName))
@@ -148,7 +156,8 @@ def main(args):
       has(trustFullyExploredAndBugFound, FinalResultType.BUG_FOUND):
         logging.warning('There is disagreement on the correctness of "{}".'
           ' Assuming unknown'.format(programName))
-        programsWithDisagreement.append(programName)
+        programsWithDisagreement.append(generatedDebuggingInfoFor(
+          programName, programToDataMap))
       else:
         logging.info('"{}" inferred to be correct'.format(programName))
         correctnessLabel = True
@@ -168,7 +177,15 @@ def main(args):
   if len(programsWithDisagreement) > 0:
     logging.warning('There were {} programs where results'
       ' disagree'.format(len(programsWithDisagreement)))
-    logging.warning('\n{}'.format(pprint.pformat(programsWithDisagreement)))
+
+    if pargs.disagreement_file != None:
+      logging.info('Writing information on disagreements to {}'.format(
+        pargs.disagreement_file))
+      with open(pargs.disagreement_file, 'w') as f:
+        yamlText = yaml.dump(programsWithDisagreement,
+                             default_flow_style=False,
+                             Dumper=Dumper)
+        f.write(yamlText)
 
   # Output mapping file
   with open(pargs.mapping_file, 'w') as f:
@@ -177,12 +194,13 @@ def main(args):
                          default_flow_style=False,
                          Dumper=Dumper)
     f.write(yamlText)
+  return 0
 
 
-def has(resultList, desiredResultType):
-  assert isinstance(resultList, list)
+def has(resultDict, desiredResultType):
+  assert isinstance(resultDict, dict)
   assert isinstance(desiredResultType, FinalResultType)
-  for r in resultList:
+  for r in resultDict.values():
     resultType = classifyResult(r)
 
     if resultType == desiredResultType:
@@ -190,8 +208,19 @@ def has(resultList, desiredResultType):
 
   return False
 
+def generatedDebuggingInfoFor(programName, programToDataMap):
+  trustOnlyFullyExplored = programToDataMap[programName]['ofe']
+  trustOnlyBugFound = programToDataMap[programName]['obf']
+  trustFullyExploredAndBugFound = programToDataMap[programName]['feAndBf']
+  info = { 'program': programName, 'FinalResultTypes': {}, 'raw': {} }
 
-  return 0
+  for trustType in ['ofe', 'obf', 'feAndBf']:
+    info['FinalResultTypes'][trustType] = mapForFinalResultType = { }
+    info['raw'][trustType] = mapForRawResults = { }
+    for fileName, r in programToDataMap[programName][trustType].items():
+      mapForFinalResultType[fileName] = classifyResult(r).name
+      mapForRawResults[fileName] = r
+  return info
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
