@@ -45,6 +45,7 @@ def LoadResultSets(filePaths):
           resultFile))
         sys.exit(1)
 
+      logging.info('Loading {}'.format(resultFile))
       resultSets[resultFile] = loadYAMLResultFile(resultFile)
       assert isinstance(resultSets[resultFile], list)
     except LoadYAMLException as e:
