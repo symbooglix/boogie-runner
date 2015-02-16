@@ -166,7 +166,7 @@ def main(args):
     fileToCorrectnessLabel[programName] = {'expected_correct': correctnessLabel}
 
   if len(programsWithDisagreement) > 0:
-    logging.warning('There were one of more programs were results disagree')
+    logging.warning('There were one of more programs where results disagree')
     logging.warning('\n{}'.format(pprint.pformat(programsWithDisagreement)))
 
   # Output mapping file
