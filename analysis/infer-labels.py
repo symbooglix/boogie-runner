@@ -139,6 +139,8 @@ def main(args):
   # Infer correctness labelling
   fileToCorrectnessLabel = { }
   programsWithDisagreement = [ ]
+  countInferredCorrect = 0
+  countInferredIncorrect = 0
   for programName in programToDataMap.keys():
     logging.debug('Inferring correctness of {}'.format(programName))
 
@@ -161,18 +163,29 @@ def main(args):
       else:
         logging.info('"{}" inferred to be correct'.format(programName))
         correctnessLabel = True
+        countInferredCorrect += 1
     elif has(trustOnlyBugFound, FinalResultType.BUG_FOUND) or \
     has(trustFullyExploredAndBugFound, FinalResultType.BUG_FOUND):
       # A bug was found from a result set we trust (and no result we trust fully
       # explored the program) so we can infer that this program has a bug
       logging.info('"{}" inferred to be incorrect'.format(programName))
       correctnessLabel = False
+      countInferredIncorrect += 1
     else:
       logging.info(
         'Could not infer correctness of "{}". Assuming unknown'.format(
           programName))
 
     fileToCorrectnessLabel[programName] = {'expected_correct': correctnessLabel}
+
+  #Output stats
+  logging.info('# of programs: {}'.format(len(programNames)))
+  logging.info('# of program inferred to be correct:{}'.format(
+    countInferredCorrect))
+  logging.info('# of program inferred to be incorrect:{}'.format(
+    countInferredIncorrect))
+  logging.info('# of programs not inferred:{}'.format(
+    (len(programNames) - countInferredCorrect) - countInferredIncorrect))
 
   if len(programsWithDisagreement) > 0:
     logging.warning('There were {} programs where results'
