@@ -21,7 +21,9 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     # Use Symbooglix exitCode:
     if self.exitCode == 2 or self.exitCode == 4:
       return True
-    elif self.exitCode == 0 or self.exitCode == 3:
+    elif self.exitCode == 0 or self.exitCode == 3 or self.exitCode == 9 or self.exitCode == 10:
+      # NO_ERRORS_NO_TIMEOUT_BUT_FOUND_SPECULATIVE_PATHS : 9
+      # NO_ERRORS_NO_TIMEOUT_BUT_HIT_BOUND : 10
       return False
     else:
       return None
@@ -30,6 +32,9 @@ class SymbooglixAnalyser(AnalyserBaseClass):
   def failed(self):
     if self.hitHardTimeout:
       return False # Timeout is not a failure
+
+    # FIXME: We should not consider 9 or 10 exit codes as failure at some point
+    # but right now I want to know when this happens.
 
     # All exit codes above 4 indicate something went badly wrong
     return self.exitCode > 4 or self.exitCode == 1
