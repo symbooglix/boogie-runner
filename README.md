@@ -70,6 +70,7 @@ is a dictionary.
 * ``env`` - **Optional** Specifies the environment variables to pass when running.
 * ``mono_path`` - **Optional** Specfies the absolute path to the mono executable to use if mono is required. Note ``~`` will be expanded to the user's home directory.
 * ``copy_program_to_working_directory`` - **Optional** If specified and set to ``true`` input Boogie programs to the runner will be copied to the working directory.
+* ``memory_limit_enforcement`` - **Optional** If specified will control how the memory limit is enforced ( do not use this if you are using docker).
 
 ### ``entry_point`` key
 
@@ -97,24 +98,41 @@ The ``docker`` key should map to another dictionary which must contain the follo
 * ``image`` - The docker image to use. You should make sure the image is on your machine first (run ``docker images``)
 * ``volume`` - The location to mount the native file system (containing the Boogie program and the temporary directory) inside the container (e.g. ``/vol/``)
 
+### ``memory_limit_enforcement`` key
+
+If this key is set and ``max_memory`` is set then this specifies how the memory limit will be enforced, unless docker is being used. You
+should not use this key if you are using Docker.
+
+This key should map to a dictionary with at least the following key
+
+* ``enforcer`` - This is the enforcement method being used.
+
+There may be other keys depending on which enforcer is being used
+
+#### Memory enforcers
+
+##### ``Poll``
+
+This enforces the memory limit by polling the memory used by a process and all its children
+periodically. The polling time period is set by the ``time_period`` key which sets the time
+period in seconds.
+
 ## ``program_list``
 
 This is a line seperate list of paths to Boogie programs to run. Duplicates are not allowed and
 comments are allowed (start the line with a ``#``). The paths may be absolute or relative. If using
 relative paths the base can be specified using the ``--rprefix`` command line argument to ``boogie-runner.py``.
 
+
 # Notes on memory limit
 
-If using mono and without Docker then the memory limit is enforced by passing an environment
-variable to mono than limits the heap allocation.
+If using Docker then the memory limit is enforced by using the ``--memory=``
+argument to the ``docker run`` command. **NOTE: You should check that this flag
+works before using boogie-runner because this flag has no effect unless your
+kernel is configured correctly**
 
-If not using mono and using Docker then the memory limit is enforced by using the ``--memory=``
-argument to the ``docker run`` command. **NOTE: You should check that this flag works before
-using boogie-runner because this flag has no effect unless your kernel is configured correctly**
-
-If running a native executable directly (i.e. not Mono or Docker) and Linux is
-not being used then an exception will be throw as this support is not
-implemented currently.
+If running an executable directly (i.e. not using Docker) then by default the ``Poll``
+memory enforcer is used with a polling time period of 5 seconds.
 
 # ``yaml_output``
 

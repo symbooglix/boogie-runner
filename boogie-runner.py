@@ -16,7 +16,7 @@ _logger = None
 
 def entryPoint(args):
   parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument("-l","--log-level",type=str, default="debug", dest="log_level", choices=['debug','info','warning','error'])
+  parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--dry", action='store_true', help="Stop after initialising runners")
   parser.add_argument("config_file", help="YAML configuration file")
   parser.add_argument("boogie_program", help="Boogie program to pass to tool")

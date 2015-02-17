@@ -9,6 +9,7 @@ import shutil
 import sys
 import time
 import traceback
+import threading
 from .. ResultType import ResultType
 
 _logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     RunnerBaseClass.staticCounter += 1
 
     self._timeoutHit = False
+    self._memoryLimitHit = None
     self.exitCode = None
 
     if not os.path.isabs(boogieProgram):
@@ -90,7 +92,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     if self._copyProgramToWorkingDirectory:
       # Make the copy now
-      _logger.debug('Copying input program to {}'.format(self.workingDirectory))
+      _logger.info('Copying input program to {}'.format(self.workingDirectory))
       shutil.copy(self.program, self.workingDirectory)
 
 
@@ -130,7 +132,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         # Try the cache first
         if self.toolPath in RunnerBaseClass._toolInDockerImageCache[self.dockerImage]:
           checkImg = False
-          _logger.debug('Cache hit not checking if {} is in docker image {}'.format(
+          _logger.info('Cache hit not checking if {} is in docker image {}'.format(
           self.toolPath, self.dockerImage))
           checkImg = False
         else:
@@ -140,7 +142,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
       if checkImg:
         # check the tool exists inside the container
-        _logger.debug('Cache miss, checking if {} is in docker image {}'.format(
+        _logger.info('Cache miss, checking if {} is in docker image {}'.format(
           self.toolPath, self.dockerImage))
         process = psutil.Popen(['docker','run','--net=none', '--rm', self.dockerImage, 'ls', self.toolPath])
         exitCode = process.wait()
@@ -164,6 +166,41 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     try:
       self.maxMemoryInMB = rc['max_memory']
+
+      if self.maxMemoryInMB > 0:
+        if 'memory_limit_enforcement' in rc:
+
+          if self.useDocker:
+            raise RunnerBaseException('Cannot use "memory_limit_enforcement" when using Docker')
+
+          if not isinstance(rc['memory_limit_enforcement'], dict):
+            raise RunnerBaseException('"memory_limit_enforcement" should map to a dictionary')
+
+          mleDict = rc['memory_limit_enforcement']
+          if not 'enforcer' in mleDict:
+            raise RunnerBaseException('"enforcer" key expected in "memory_limit_enforcement" dictionary')
+
+          if mleDict['enforcer'] != 'poll':
+            raise NotImplementedError('{} enforcer not supported'.format(mleDict['enforcer']))
+
+          self.useMemoryLimitPolling = True
+
+          if not 'time_period' in mleDict:
+            raise RunnerBaseException('"time_period" key expected in "memory_limit_enforcement" dictionary')
+          self.memoryLimitPollTimePeriodInSeconds = mleDict['time_period']
+
+          if self.memoryLimitPollTimePeriodInSeconds < 1:
+            raise RunnerBaseException('"time_period" must be 1 or greater')
+
+          assert isinstance(self.memoryLimitPollTimePeriodInSeconds, int)
+        else:
+          # Set sensible defaults
+          self.useMemoryLimitPolling = True
+          self.memoryLimitPollTimePeriodInSeconds = 5
+      else:
+        self.useMemoryLimitPolling = False
+        self.memoryLimitPollTimePeriodInSeconds = 0
+
     except KeyError:
       logging.info('"max_memory" not specified, assuming no tool memory limit')
       self.maxMemoryInMB = 0
@@ -303,8 +340,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       Return False if the tool did not run out of memory
       Return None if this could not be determined
     """
-    # TODO
-    return None
+    if self.useDocker:
+      _logger.error('FIXME: Detecting memory limit being hit is not implemented when using Docker')
+      return None
+    else:
+      return self._memoryLimitHit
 
   def getResults(self):
     results = {}
@@ -320,6 +360,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results.update(analyser.getAnalysesDict())
     assert 'bug_found' in results
     assert 'failed' in results
+
+    # HACK:
+    # FIXME: Pass this information to the Analysers so they can handle it
+    if self.ranOutOfMemory:
+      _logger.warning('Setting "failed" to true due to running out of memory')
+      results['failed'] = True
 
     bugFound = results['bug_found']
     runFailed = results['failed']
@@ -378,6 +424,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
   def runTool(self, cmdLine, isDotNet, envExtra = {}):
     finalCmdLine = []
+    self._memoryLimitHit = False
 
     containerName=""
     if self.useDocker:
@@ -406,14 +453,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     env.update(envExtra) # envExtra takes presedence
     # Setup memory limits
 
-    # Setup environment to enforce memory limit
-    if self.maxMemoryInMB > 0:
-      if self.useDocker:
-        # Use docker to enforce the memory limit
-        finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMB))
-      else:
-        raise NotImplementedError(
-          'Enforcing memory limit not supported when not using docker')
+    # Setup environment to enforce memory limit if using docker
+    if self.maxMemoryInMB > 0 and self.useDocker:
+      finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMB))
+      _logger.info('Enforcing memory limit ({} MiB) using Docker'.format(self.maxMemoryInMB))
 
     if self.useDocker:
       finalCmdLine.append('--net=none') # No network access should be needed
@@ -435,24 +478,22 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     startTime = time.perf_counter()
     with open(self.logFile, 'w') as f:
       try:
-        _logger.debug('writing to log file {}'.format(self.logFile))
+        _logger.info('writing to log file {}'.format(self.logFile))
         process = psutil.Popen(finalCmdLine,
                                 cwd=self.workingDirectory,
                                 stdout=f,
                                 stderr=f,
                                 env=env)
 
-        _logger.debug('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
+        if self.useMemoryLimitPolling:
+          _logger.info('Enforcing memory limit ({} MiB) using polling time period of {} seconds'.format(self.maxMemoryInMB, self.memoryLimitPollTimePeriodInSeconds))
+          self._memoryLimitPolling(process)
+
+        _logger.info('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
         exitCode = process.wait(timeout=self.maxTimeInSeconds)
       except (psutil.TimeoutExpired, KeyboardInterrupt) as e:
         self._timeoutHit = True
-        _logger.debug('Trying to terminate')
-        # Gently terminate
-        process.terminate()
-        time.sleep(1)
-        # Now aggresively kill
-        _logger.debug('Trying to kill')
-        process.kill()
+        self._terminateProcess(process)
 
         endTime = time.perf_counter()
         self.time = endTime - startTime
@@ -477,7 +518,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         if self._copyProgramToWorkingDirectory:
           toDelete=os.path.join(self.workingDirectory, os.path.basename(self.program))
           try:
-            _logger.debug('Removing copy of input program at "{}"'.format(toDelete))
+            _logger.info('Removing copy of input program at "{}"'.format(toDelete))
             os.remove(toDelete)
           except Exception as e:
             _logger.error('Failed to delete copy of program at "{}"'.format(toDelete))
@@ -485,3 +526,57 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
             pass
 
     return exitCode
+
+  def _getProcessMemoryUsageInMB(self, process):
+    # use Virtual memory size rather than resident set
+    return process.memory_info()[1] / (2**20)
+
+  def _terminateProcess(self, process):
+    # Gently terminate
+    _logger.info('Trying to terminate PID:{}'.format(process.pid))
+    process.terminate()
+    time.sleep(1)
+    # Now aggresively kill
+    _logger.info('Trying to kill PID:{}'.format(process.pid))
+    process.kill()
+
+  def _memoryLimitPolling(self, process):
+    """
+      This function launches a new thread that will periodically
+      poll the total memory usage of the tool that is being run.
+      If it goes over the limit will kill it
+    """
+    _logger.debug('Launching memory limit polling thread with polling time period of {} seconds'.format(self.memoryLimitPollTimePeriodInSeconds))
+    assert self.memoryLimitPollTimePeriodInSeconds > 0
+
+    def threadBody():
+      _logger.info('Starting thread')
+      try:
+        while process.is_running():
+          time.sleep(self.memoryLimitPollTimePeriodInSeconds)
+          totalMemoryUsage = 0
+          totalMemoryUsage += self._getProcessMemoryUsageInMB(process)
+
+          # The process might of forked so add the memory usage of its children too
+          childCount = 0
+          try:
+            for childProc in process.children(recursive=True):
+              totalMemoryUsage += self._getProcessMemoryUsageInMB(childProc)
+              childCount += 1
+          except psutil.NoSuchProcess:
+            _logger.warning('Child process disappeared whilst examining it\'s memory use')
+
+          _logger.debug('Total memory usage in MiB:{}'.format(totalMemoryUsage))
+          _logger.debug('Total number of children: {}'.format(childCount))
+
+          if totalMemoryUsage > self.maxMemoryInMB:
+            logging.warning('Memory limit reached (recorded {} MiB). Killing tool'.format(totalMemoryUsage))
+            self._memoryLimitHit = True
+            self._terminateProcess(process)
+            break
+      except psutil.NoSuchProcess:
+        _logger.warning('Main process no longer available')
+
+    thread = threading.Thread(target=threadBody, name='memory_poller', daemon=True)
+    thread.start()
+    return thread

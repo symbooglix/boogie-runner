@@ -9,4 +9,9 @@ runner_config:
     - "--stop-at-failure=1" # Stop when we find the first bug
     - "--skip-log-success-states"
     - "--skip-log-unsat-assume-states"
+    - "--write-smt2=0"
   entry_point: "main"
+  memory_limit_enforcement:
+    enforcer: "poll"
+    # Poll every 5 seconds
+    time_period: 5
