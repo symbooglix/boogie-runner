@@ -46,7 +46,7 @@ class BoogalooRunner(RunnerBaseClass):
 
     cmdLine.append(self.toolPath)
 
-    # Use Boogaloo in execute mode
+    # Put boogaloo into execute or test mode
     cmdLine.append(self.boogalooMode)
 
     cmdLine.extend(self.additionalArgs)
@@ -55,7 +55,7 @@ class BoogalooRunner(RunnerBaseClass):
     # Add the boogie source file as last arg
     cmdLine.append(self.programPathArgument)
 
-    # We assume that Boogie has no default timeout
+    # We assume that Boogaloo has no default timeout
     # so we force the timeout within python
     try:
       exitCode = self.runTool(cmdLine, isDotNet=False)
