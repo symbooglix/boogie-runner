@@ -34,9 +34,5 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     # All exit codes above 4 indicate something went badly wrong
     return self.exitCode > 4 or self.exitCode == 1
 
-  @property
-  def ranOutOfMemory(self):
-    return self.exitCode == 5
-
 def get():
   return SymbooglixAnalyser

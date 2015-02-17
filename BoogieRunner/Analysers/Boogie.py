@@ -53,10 +53,5 @@ class BoogieAnalyser(AnalyserBaseClass):
 
     return False
 
-  @property
-  def ranOutOfMemory(self):
-    # FIXME: Find a way to detect this
-    return None
-
 def get():
   return BoogieAnalyser

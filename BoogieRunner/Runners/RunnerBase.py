@@ -296,14 +296,24 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def GetNewAnalyser(self):
     pass
 
+  @property
+  def ranOutOfMemory(self):
+    """
+      Return True if the tool ran out of memory
+      Return False if the tool did not run out of memory
+      Return None if this could not be determined
+    """
+    # TODO
+    return None
+
   def getResults(self):
     results = {}
     results['program'] = self.program
     results['total_time'] = self.time
     results['working_directory'] = self.workingDirectory
     results['exit_code'] = self.exitCode
-
     results['timeout_hit'] = timeoutHit = self.timeoutWasHit
+    results['out_of_memory'] = self.ranOutOfMemory
 
     analyser = self.GetNewAnalyser()
     # Add the results of Analyser
@@ -397,24 +407,13 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Setup memory limits
 
     # Setup environment to enforce memory limit
-    useRlimit = False
-    useUlimitHack = False
-    useShell = False
     if self.maxMemoryInMB > 0:
       if self.useDocker:
         # Use docker to enforce the memory limit
         finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMB))
       else:
-        if sys.platform == 'linux':
-          if getattr(psutil.Process, 'rlimit', None) == None:
-            # Older kernels don't support rlimit
-            useUlimitHack = True
-            _logger.warning('Linux is being used but rlimit support was not found. You should upgrade your kernel!')
-          else:
-            useRlimit = True
-        else:
-          raise NotImplementedError(
-            'Enforcing memory limit not supported when not using linux')
+        raise NotImplementedError(
+          'Enforcing memory limit not supported when not using docker')
 
     if self.useDocker:
       finalCmdLine.append('--net=none') # No network access should be needed
@@ -425,24 +424,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     # Now add the arguments
     finalCmdLine.extend(cmdLine)
-
-    if useUlimitHack:
-      _logger.warning('Using ulimit HACK')
-      maxMemoryInKiB = self.maxMemoryInMB * 1024
-
-      # Escape shell characters
-      for index in range(0, len(finalCmdLine)):
-        c = finalCmdLine[index]
-        assert isinstance(c, str)
-        c = c.replace('$', r'\$') # Needed because sometimes GPUVerify entry points use a $ symbol
-        c = c.replace(' ', r'\ ')
-        finalCmdLine[index] = c
-
-      finalCmdLine = ['ulimit', '-SHv', str(maxMemoryInKiB), '&&'] + finalCmdLine
-      # Use a string instead when invoking the shell directly
-      finalCmdLine = ' '.join(finalCmdLine)
-      assert isinstance(finalCmdLine, str)
-      useShell = True
 
     _logger.debug('Running:\n{}\nwith env:{}'.format(
       pprint.pformat(finalCmdLine),
@@ -455,20 +436,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     with open(self.logFile, 'w') as f:
       try:
         _logger.debug('writing to log file {}'.format(self.logFile))
-        if useShell:
-          _logger.warning('Using shell instead of invoking tool directly!')
         process = psutil.Popen(finalCmdLine,
                                 cwd=self.workingDirectory,
                                 stdout=f,
                                 stderr=f,
-                                env=env,
-                                shell=useShell)
-
-        if useRlimit:
-          numBytes = self.maxMemoryInMB * (2**20)
-          _logger.debug('Using rlimit() to limit memory usage to {} MiB ({} bytes)'.format(
-            self.maxMemoryInMB, numBytes))
-          process.rlimit(psutil.RLIMIT_AS, (numBytes, numBytes))
+                                env=env)
 
         _logger.debug('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
         exitCode = process.wait(timeout=self.maxTimeInSeconds)

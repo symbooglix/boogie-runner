@@ -45,30 +45,5 @@ class BoogalooAnalyser(AnalyserBaseClass):
     else:
       return False
 
-  @property
-  def ranOutOfMemory(self):
-    if self.useDocker:
-      _logger.warning('FIXME: Can\'t detect out of memory when using Docker')
-      return None
-
-    if self.exitCode == 0:
-      return False
-
-    # Check the log to see if the Haskell runtime ran out of memory
-    stackOverflowR = re.compile(r'Stack space overflow: current size')
-    outOfMemoryR = re.compile(r'boogaloo: out of memory')
-
-    with open(self.logFile, 'r') as f:
-      for line in f:
-        sfMatch = stackOverflowR.match(line)
-        if sfMatch != None:
-          return True
-
-        oomMatch = outOfMemoryR.match(line)
-        if oomMatch != None:
-          return True
-
-    return False
-
 def get():
   return BoogalooAnalyser
