@@ -470,7 +470,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Now add the arguments
     finalCmdLine.extend(cmdLine)
 
-    _logger.debug('Running:\n{}\nwith env:{}'.format(
+    _logger.info('Running:\n{}\nwith env:{}'.format(
       pprint.pformat(finalCmdLine),
       pprint.pformat(env)))
 
