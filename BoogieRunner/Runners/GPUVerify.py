@@ -76,17 +76,6 @@ class GPUVerifyRunner(RunnerBaseClass):
 
     env['PATH'] = path
 
-    # THIS IS A HACK
-    # GPUVerify needs the local/group size to be passed
-    # We're passing an already processed bpl file
-    # so that information is already part of the Boogie
-    # program
-    # rather than trying to work out what was passed
-    # just pass arbitary global and local size and hope
-    # this doesn't break anything
-    cmdLine.append('--local_size=2')
-    cmdLine.append('--num_groups=2')
-
     cmdLine.extend(self.additionalArgs)
 
     # Add the boogie source file as last arg
