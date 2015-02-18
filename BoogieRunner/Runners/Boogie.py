@@ -1,6 +1,5 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 from . RunnerBase import RunnerBaseClass
-from .. ResultType import ResultType
 from .. Analysers.Boogie import BoogieAnalyser
 import logging
 import os
