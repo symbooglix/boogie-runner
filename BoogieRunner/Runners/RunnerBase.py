@@ -202,7 +202,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         self.memoryLimitPollTimePeriodInSeconds = 0
 
     except KeyError:
-      logging.info('"max_memory" not specified, assuming no tool memory limit')
+      _logger.info('"max_memory" not specified, assuming no tool memory limit')
       self.maxMemoryInMB = 0
 
     if self.maxMemoryInMB < 0:
@@ -211,7 +211,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     try:
       self.maxTimeInSeconds = rc['max_time']
     except KeyError:
-      logging.info('"max_time" not specified, assuming no tool timeout')
+      _logger.info('"max_time" not specified, assuming no tool timeout')
       self.maxTimeInSeconds = 0
 
     if self.maxTimeInSeconds < 0:
@@ -227,7 +227,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         self.entryPoint = self.findEntryPoint(entryPoint)
 
     except KeyError:
-      logging.info('"entry_point" not specified, assuming main is entry point')
+      _logger.info('"entry_point" not specified, assuming main is entry point')
       self.entryPoint = 'main'
 
     self.additionalArgs = [ ]
@@ -570,7 +570,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
           _logger.debug('Total number of children: {}'.format(childCount))
 
           if totalMemoryUsage > self.maxMemoryInMB:
-            logging.warning('Memory limit reached (recorded {} MiB). Killing tool'.format(totalMemoryUsage))
+            _logger.warning('Memory limit reached (recorded {} MiB). Killing tool'.format(totalMemoryUsage))
             self._memoryLimitHit = True
             self._terminateProcess(process)
             break
