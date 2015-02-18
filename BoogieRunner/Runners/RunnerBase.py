@@ -193,6 +193,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
             raise RunnerBaseException('"time_period" must be 1 or greater')
 
           assert isinstance(self.memoryLimitPollTimePeriodInSeconds, int)
+        elif self.useDocker:
+          # Don't use memory polling when using Docker
+          self.useMemoryLimitPolling = False
+          self.memoryLimitPollTimePeriodInSeconds = 0
         else:
           # Set sensible defaults
           self.useMemoryLimitPolling = True
