@@ -1,4 +1,4 @@
-// NO_BUGS_NO_TIMEOUT
+// FULLY_EXPLORED
 procedure main()
 {
     assert true;

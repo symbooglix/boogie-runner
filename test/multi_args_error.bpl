@@ -1,4 +1,4 @@
-// BUGS_NO_TIMEOUT
+// BUG_FOUND
 var g:int;
 var h:int;
 procedure main(a:int, b:int, c:int, d:[int]int)

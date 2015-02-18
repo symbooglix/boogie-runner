@@ -16,8 +16,10 @@ workDir = os.path.join(testDir, 'working_dir')
 yamlOutput = os.path.join(testDir, 'result.yml')
 # Hack
 sys.path.insert(0, repoDir)
-from BoogieRunner.ResultType import ResultType
 from BoogieRunner import ProgramListLoader
+# Another Hack
+sys.path.insert(0, os.path.join(repoDir, 'analysis'))
+from br_util import FinalResultType, classifyResult
 
 class BatchRunnerTool:
   def __init__(self, configFile):
@@ -135,7 +137,7 @@ def main(args):
 
       expectedResultStr = m.group(1)
 
-      expectedResultEnum = ResultType[expectedResultStr]
+      expectedResultEnum = FinalResultType[expectedResultStr]
 
       logging.info('Found test:{} - {}'.format(potentialTest, expectedResultEnum))
       testFiles[potentialTest] = expectedResultEnum
@@ -153,12 +155,12 @@ def main(args):
 
   for result in results:
     filename = os.path.basename(result['program'])
-    actualResult = ResultType(result['result'])
-    expectedResult = testFiles[filename]
+    actualClassification =  classifyResult(result)
+    expectedClassification = testFiles[filename]
 
-    if actualResult != expectedResult:
+    if actualClassification != expectedClassification:
       logging.error('Result mismatch for {}, expected {}, got {}'.format(
-        filename, expectedResult, actualResult))
+        filename, expectedClassification, actualClassification))
       return 1
 
   logging.info('SUCCESS!')

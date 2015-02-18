@@ -1,4 +1,4 @@
-// BUGS_NO_TIMEOUT
+// BUG_FOUND
 procedure main()
 {
         var counter:int;
