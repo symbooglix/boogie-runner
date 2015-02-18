@@ -204,6 +204,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     except KeyError:
       _logger.info('"max_memory" not specified, assuming no tool memory limit')
       self.maxMemoryInMB = 0
+      self.useMemoryLimitPolling = False
+      self.memoryLimitPollTimePeriodInSeconds = 0
 
     if self.maxMemoryInMB < 0:
       raise RunnerBaseException('"max_memory" must be > 0')
