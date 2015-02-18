@@ -19,7 +19,7 @@ class BoogalooAnalyser(AnalyserBaseClass):
     # scan for known keywords to determine if any bugs were found
     errors = 0
 
-    errorR = re.compile(r'Execution \d+:.+ failed', flags= re.MULTILINE | re.DOTALL)
+    errorR = re.compile(r'^Execution \d+:.+ failed', flags= re.MULTILINE | re.DOTALL)
     _logger.debug('Opening {}'.format(self.logFile))
     with open(self.logFile, 'r') as f:
       # Unfortunately boogaloo errors might spread over multiple lines
@@ -28,7 +28,7 @@ class BoogalooAnalyser(AnalyserBaseClass):
       # We presume each line has the line seperator on the end already
       # so we can use an empty string as the seperator.
       lines = ''.join(f.readlines())
-      matchE = errorR.match(lines)
+      matchE = errorR.search(lines)
       if matchE != None:
         errors += 1
 
