@@ -25,9 +25,11 @@ class GPUVerifyRunner(RunnerBaseClass):
     # Sanity checks
     # TODO
 
-    if self.maxTimeInSeconds > 0 and (
-       self.maxTimeInSeconds <= self.softTimeoutDiff):
-      raise GPUVerifyRunnerException('Need larger timeout')
+    self.softTimeout = self.maxTimeInSeconds
+    if self.maxTimeInSeconds > 0:
+      # We use GPUVerify's timeout function and enforce the
+      # requested timeout and enforce a hard timeout slightly later
+      self.maxTimeInSeconds = self.maxTimeInSeconds + self.softTimeoutDiff
 
     if not self.toolPath.endswith('.py'):
       raise GPUVerifyRunnerException(
@@ -61,12 +63,10 @@ class GPUVerifyRunner(RunnerBaseClass):
     # Run using python interpreter
     cmdLine = [ sys.executable, self.toolPath ]
 
-    # Set a soft timeout
-    softTimeout = self.maxTimeInSeconds - self.softTimeoutDiff
-    cmdLine.append('--timeout={}'.format(softTimeout))
-
+    cmdLine.append('--timeout={}'.format(self.softTimeout))
 
     # Note we ignore self.entryPoint
+    _logger.info('Ignoring entry point {}'.format(self.entryPoint))
 
     # GPUVerify needs PATH environment variable set
     env = {}
