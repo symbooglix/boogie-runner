@@ -21,6 +21,7 @@ except ImportError:
 def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
+  parser.add_argument("--check-expected-correct", dest="check_expected_correct", help='Check "expected_correct" key is consistent')
   parser.add_argument('yml_files', nargs='+')
   pargs = parser.parse_args(args)
 
@@ -48,6 +49,7 @@ def main(args):
   # Create sets of used files
   programsIn = [ ]
   resultsMissingFrom = []
+  programNameToListOfResultsMap = { }
   for index, rList in enumerate(results):
     assert len(programsIn) == index
     programsIn.append(set())
@@ -56,7 +58,16 @@ def main(args):
       if r['program'] in programsIn[index]:
         logging.error('{} has a duplicate program entry "{}"'.format(pargs.yml_files[index], r['program']))
         return 1
+      if pargs.check_expected_correct:
+        if not 'expected_correct' in r:
+          logging.error('The following result from file {} is missing "expected_correct":\n{}'.format(pargs.yml_files[index], r))
+          return 1
+
+      if not r['program'] in programNameToListOfResultsMap:
+        programNameToListOfResultsMap[r['program']] = [ ]
+
       programsIn[index].add(r['program'])
+      programNameToListOfResultsMap[r['program']].append(r)
 
   # Go through the different pairs (must do both orders)
   assert len(resultsMissingFrom) == len(results)
@@ -92,6 +103,23 @@ def main(args):
         print("{}".format(pprint.pformat(missing)))
         exitCode = 2
     index += 1
+
+  # Check "expected_correct" labels are consistent
+  if pargs.check_expected_correct:
+    if exitCode != 0:
+      logging.error('Not checking "expected_correct" consistency because the number of files is not consistent')
+    else:
+      for progName, listOfResults in programNameToListOfResultsMap.items():
+        expected = listOfResults[0]['expected_correct']
+        assert len(listOfResults) > 1
+        for index in range(1, len(listOfResults)):
+          if listOfResults[index]['expected_correct'] != expected:
+            logging.error('"expected_correct" labels are inconsistent for program "{}"'.format(progName))
+            exitCode = 3
+            break
+
+    if exitCode == 0:
+      logging.info('All "expected_correct" labels are consistent')
 
   return exitCode
 
