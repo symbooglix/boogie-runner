@@ -91,7 +91,10 @@ def main(args):
         programName, existingLabel))
 
     if pargs.ignore_existing_labels or not hasExistingLabel:
+      logging.info('Existing label is missing. Using correctness label of {}'
+        'for {}'.format(newLabel, programName))
       r['expected_correct'] = newLabel
+      labelChangeCount += 1
     else:
       assert hasExistingLabel
       # There is an existing label
