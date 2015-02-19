@@ -45,7 +45,6 @@ def validateMappingFile(mapping):
 
 
 def main(args):
-  logging.basicConfig(level=logging.DEBUG)
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('mapping_file', type=argparse.FileType('r'),
     help="mapping file to apply")
@@ -55,7 +54,12 @@ def main(args):
   parser.add_argument('--ignore-existing-labels', dest='ignore_existing_labels',
     default=False, action='store_true',
     help="Ignore existing correctness labels")
+  parser.add_argument("-l","--log-level",type=str, default="info",
+    dest="log_level", choices=['debug','info','warning','error'])
   pargs = parser.parse_args(args)
+
+  logLevel = getattr(logging, pargs.log_level.upper(),None)
+  logging.basicConfig(level=logLevel)
 
   if os.path.exists(pargs.output_result_yml):
     logging.error('Refusing to overwrite "{}"'.format(pargs.output_result_yml))
@@ -67,6 +71,8 @@ def main(args):
   logging.info('Loading input results YAML file')
   results = yaml.load(pargs.input_result_yml, Loader=Loader)
 
+  labelNoChangeCount = 0
+  labelChangeCount = 0
   for r in results:
     assert 'program' in r
     programName = r['program']
@@ -96,30 +102,41 @@ def main(args):
           # here is we may have existing labels and the mapping probably comes
           # from inferred labels. If nothing could be inferred then we should
           # use the existing labels because that is our best guess
-          logging.warning('Not using unknown correctness label from mapping'
+          logging.info('Not using unknown correctness label from mapping'
             ' file to overwrite the existing correctness "{}"'.format(
             existingLabel))
+          labelNoChangeCount += 1
         elif newLabel == existingLabel:
           logging.debug('Label from mapping file and existing match.')
           # No need to do anything
+          labelNoChangeCount += 1
         else:
           logging.warning('Mapping file label ({}) and existing label ({}) '
-            'do not match. Using label from mapping file'.format(
-            newLabel, existingLabel))
+            'do not match for file {}. Using label from mapping file'.format(
+            newLabel, existingLabel, programName))
           r['expected_correct'] = newLabel
+          labelChangeCount += 1
       else:
         assert existingLabel == None
         if newLabel != None:
           logging.warning('Existing label for {} is {}. Using mapping file'
             'label {}'.format(programName, existingLabel, newLabel))
           r['expected_correct'] = newLabel
+          labelChangeCount += 1
         else:
           assert newLabel == None
+          labelNoChangeCount += 1
+
+  assert len(results) == labelNoChangeCount + labelChangeCount
 
   # Output modified results
   with open(pargs.output_result_yml, 'w') as f:
     yamlString = yaml.dump(results, default_flow_style=False, Dumper=Dumper)
     f.write(yamlString)
+
+  print("# of unchanged labels: {}".format(labelNoChangeCount))
+  print("# of changed labels: {}".format(labelChangeCount))
+  print("# of labels: {}".format(len(results)))
   return 0
 
 if __name__ == '__main__':
