@@ -54,7 +54,7 @@ def main(args):
       expectedIncorrectCount += 1
 
     dictToWriteTo = labelledCorrect if expectedCorrect else labelledIncorrect
-    
+
     rType = classifyResult(r)
     l = dictToWriteTo[rType.name]
     assert isinstance(l, list)
@@ -67,17 +67,19 @@ def main(args):
 
   print("Total # of results: {}".format(len(results)))
   print("Results expected to be correct (total {})".format(expectedCorrectCount))
-  for label in sortedResultTypeNames:
-    l = labelledCorrect[label]
-    assert isinstance(l, list)
-    percentage = 100 * (float(len(l))/ expectedCorrectCount)
-    print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
+  if expectedCorrectCount > 0:
+    for label in sortedResultTypeNames:
+      l = labelledCorrect[label]
+      assert isinstance(l, list)
+      percentage = 100 * (float(len(l))/ expectedCorrectCount)
+      print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
   print("Results expected to be incorrect (total {})".format(expectedIncorrectCount))
-  for label in sortedResultTypeNames:
-    l = labelledIncorrect[label]
-    assert isinstance(l, list)
-    percentage = 100 * (float(len(l))/ expectedIncorrectCount)
-    print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
+  if expectedIncorrectCount > 0:
+    for label in sortedResultTypeNames:
+      l = labelledIncorrect[label]
+      assert isinstance(l, list)
+      percentage = 100 * (float(len(l))/ expectedIncorrectCount)
+      print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
 
   return 0
 
