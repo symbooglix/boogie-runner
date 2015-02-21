@@ -19,22 +19,27 @@ def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--uncommon", action='store_true')
+  parser.add_argument("-e", "--group-by-expected-correct", action='store_true', dest="group_by_expected_correct",
+    help="Don't group by expected result type and instead just put in single 'all' label")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
 
   logLevel = getattr(logging, pargs.log_level.upper(),None)
   logging.basicConfig(level=logLevel)
 
-  benchmarkLabels = ['correct', 'incorrect', 'unknown']
-  def labelFieldToString(expected_correct):
-    if expected_correct:
-      return 'correct'
-    elif expected_correct == False:
-      return 'incorrect'
-    elif expected_correct == None:
-      return 'unknown'
-    else:
-      raise Exception('"expected_correct" must be None or boolean')
+  if pargs.group_by_expected_correct:
+    benchmarkLabels = ['correct', 'incorrect', 'unknown']
+    def labelFieldToString(expected_correct):
+      if expected_correct:
+        return 'correct'
+      elif expected_correct == False:
+        return 'incorrect'
+      elif expected_correct == None:
+        return 'unknown'
+      else:
+        raise Exception('"expected_correct" must be None or boolean')
+  else:
+    benchmarkLabels = ['all']
 
   # Check that each yml file exists
   categorised = { }
@@ -49,7 +54,7 @@ def main(args):
     resultSetLabel = os.path.basename(f)
     resultSetLabels.append(resultSetLabel)
     if resultSetLabel in data:
-      logging.error('Can\'t use {} as label name because it is already used'.format(label))
+      logging.error('Can\'t use {} as label name because it is already used'.format(resultSetLabel))
       return 1
 
     data[resultSetLabel] = None # Will be filled with loaded YAML data
@@ -87,20 +92,22 @@ def main(args):
         logging.error('Key "bug_found" not in result')
         return 1
 
-      if not 'expected_correct' in r:
-        logging.error('Key "expected_correct" not in result')
-        return 1
+      if pargs.group_by_expected_correct:
+        if not 'expected_correct' in r:
+          logging.error('Key "expected_correct" not in result')
+          return 1
+        expectedCorrect = r['expected_correct']
+        assert expectedCorrect == None or isinstance(expectedCorrect, bool)
+        benchmarkLabel = labelFieldToString(expectedCorrect)
+      else:
+        benchmarkLabel = 'all'
 
-      expectedCorrect = r['expected_correct']
-      assert expectedCorrect == None or isinstance(expectedCorrect, bool)
-
-      
       rType = classifyResult(r)
-      l = categorised[resultSetLabel][labelFieldToString(expectedCorrect)][rType.name]['raw']
+      l = categorised[resultSetLabel][benchmarkLabel][rType.name]['raw']
       assert isinstance(l, list)
       l.append(r)
 
-      programSet = categorised[resultSetLabel][labelFieldToString(expectedCorrect)][rType.name]['program_set']
+      programSet = categorised[resultSetLabel][benchmarkLabel][rType.name]['program_set']
       assert isinstance(programSet, set)
       programName = r['program']
       if programName in programSet:
