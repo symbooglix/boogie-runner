@@ -1,7 +1,9 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 runner: Boogaloo
 runner_config:
-  mode: "test"
+  # FIXME: Runner functionality is dependent on using
+  # this mode, we should move this into the runner
+  mode: "exec"
   # This is the tool_path inside the container
   tool_path: "/home/boogaloo/.cabal/bin/boogaloo"
   docker:
@@ -15,4 +17,11 @@ runner_config:
     - "--loop-max=-1"
     - "--out=1" # Look for at most one fault
     - "--concretize=False" # Do not concretize, otherwise we can easily miss bugs
+    - "--per-path=1" # Only consider a path once
+    # FIXME: This should probably be moved into the runner.
+    # Don't show passing executions. We are only interested in the following cases
+    # - bug found
+    # - bound hit
+    # - program fully explored
+    - "--pass=False"
   entry_point: "main"

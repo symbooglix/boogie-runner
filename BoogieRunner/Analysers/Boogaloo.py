@@ -45,5 +45,29 @@ class BoogalooAnalyser(AnalyserBaseClass):
     else:
       return False
 
+  @property
+  def hitBound(self):
+    """
+      Note this only works when boogaloo is run in its "exec" mode.
+    """
+    if not os.path.exists(self.logFile):
+      _logger.error('log file is missing')
+      return None
+
+    boundR = re.compile(r'Cannot continue execution: iteration limit \d+ exceeded')
+    with open(self.logFile, 'r') as f:
+      for line in f:
+        matchE = boundR.match(line)
+        if matchE != None:
+          return True
+
+    return False
+
+
+  def getAnalysesDict(self):
+    results = super(BoogalooAnalyser, self).getAnalysesDict()
+    results['bound_hit'] = self.hitBound
+    return results
+
 def get():
   return BoogalooAnalyser

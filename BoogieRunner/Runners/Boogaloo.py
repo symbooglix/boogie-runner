@@ -48,6 +48,9 @@ class BoogalooRunner(RunnerBaseClass):
     # Put boogaloo into execute or test mode
     cmdLine.append(self.boogalooMode)
 
+    if self.boogalooMode != 'exec':
+      _logger.warning('Cannot detect if bound is hit if not using "exec" mode')
+
     cmdLine.extend(self.additionalArgs)
     cmdLine.append('--proc={}'.format(self.entryPoint))
 

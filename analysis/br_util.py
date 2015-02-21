@@ -24,6 +24,9 @@ def classifyResult(r):
     if 'recursion_bound_hit' in r and r['recursion_bound_hit'] == True:
       # Corral run hit recursion bound
       return FinalResultType.BOUND_HIT
+    elif 'bound_hit' in r and r['bound_hit'] == True:
+      # Other tool (e.g. boogaloo) hit bound
+      return FinalResultType.BOUND_HIT
     else:
       return FinalResultType.FULLY_EXPLORED
   elif r['bug_found'] == True:
