@@ -25,6 +25,17 @@ def main(args):
   logLevel = getattr(logging, pargs.log_level.upper(),None)
   logging.basicConfig(level=logLevel)
 
+  benchmarkLabels = ['correct', 'incorrect', 'unknown']
+  def labelFieldToString(expected_correct):
+    if expected_correct:
+      return 'correct'
+    elif expected_correct == False:
+      return 'incorrect'
+    elif expected_correct == None:
+      return 'unknown'
+    else:
+      raise Exception('"expected_correct" must be None or boolean')
+
   # Check that each yml file exists
   categorised = { }
   data = { }
@@ -44,11 +55,11 @@ def main(args):
     data[resultSetLabel] = None # Will be filled with loaded YAML data
 
     # Initialise data
-    categorised[resultSetLabel] = { 'correct': {}, 'incorrect': {} }
-    for name, _ in FinalResultType.__members__.items():
-      categorised[resultSetLabel]['correct'][name] = { 'raw':[], 'program_set': set() }
-      categorised[resultSetLabel]['incorrect'][name] = { 'raw':[], 'program_set': set() }
-
+    categorised[resultSetLabel] = {}
+    for benchmarkLabel in benchmarkLabels:
+      categorised[resultSetLabel][benchmarkLabel] = {}
+      for name, _ in FinalResultType.__members__.items():
+        categorised[resultSetLabel][benchmarkLabel][name] = { 'raw':[], 'program_set': set() }
 
   # Now load YAML
   length = 0
@@ -81,15 +92,15 @@ def main(args):
         return 1
 
       expectedCorrect = r['expected_correct']
-      assert expectedCorrect != None
+      assert expectedCorrect == None or isinstance(expectedCorrect, bool)
 
       
       rType = classifyResult(r)
-      l = categorised[resultSetLabel][ 'correct' if expectedCorrect else 'incorrect'][rType.name]['raw']
+      l = categorised[resultSetLabel][labelFieldToString(expectedCorrect)][rType.name]['raw']
       assert isinstance(l, list)
       l.append(r)
 
-      programSet = categorised[resultSetLabel][ 'correct' if expectedCorrect else 'incorrect'][rType.name]['program_set']
+      programSet = categorised[resultSetLabel][labelFieldToString(expectedCorrect)][rType.name]['program_set']
       assert isinstance(programSet, set)
       programName = r['program']
       if programName in programSet:
@@ -109,12 +120,15 @@ def main(args):
   intersection = {}
   # Initialise empty sets
   for name, _ in FinalResultType.__members__.items():
-    union[name] = { 'correct': set(), 'incorrect': set() }
-    intersection[name] = { 'correct': None, 'incorrect': None }
+    union[name] = { }
+    intersection[name] = { }
+    for benchmarkLabel in benchmarkLabels:
+      union[name][benchmarkLabel] = set()
+      intersection[name][benchmarkLabel] = None
 
   for name, _ in FinalResultType.__members__.items():
     for resultSetLabel in resultSetLabels:
-      for benchmarkLabel in ['correct', 'incorrect']:
+      for benchmarkLabel in benchmarkLabels:
         logging.debug('Computing union for {} for benchmark label {} for result set {}'.format(name, benchmarkLabel, resultSetLabel))
         unionSet = union[name][benchmarkLabel]
         union[name][benchmarkLabel] = unionSet.union( categorised[resultSetLabel][benchmarkLabel][name]['program_set'])
@@ -133,10 +147,10 @@ def main(args):
   uncommonResults = { }
   for name, _ in FinalResultType.__members__.items():
     uncommonResults[name] = { }
-    for benchmarkLabel in ['correct', 'incorrect']:
+    for benchmarkLabel in benchmarkLabels:
       uncommonResults[name][benchmarkLabel] = set()
 
-  for benchmarkLabel in ['correct', 'incorrect']:
+  for benchmarkLabel in benchmarkLabels:
     print("==={}===".format(benchmarkLabel))
     for name, _ in FinalResultType.__members__.items():
       # Get set sizes
@@ -166,7 +180,7 @@ def main(args):
       print("# of common results of type {}: {} out of {} ({:.2f}%)\n{}\n".format(name, intersectionSize, unionSize, percentage, superSetString))
 
   if pargs.uncommon:
-    for benchmarkLabel in ['correct', 'incorrect']:
+    for benchmarkLabel in benchmarkLabels:
       print("==={}===".format(benchmarkLabel))
       for name, _ in FinalResultType.__members__.items():
         print("Size of uncommon results for {} {}: {}".format(benchmarkLabel, name, len(uncommonResults[name][benchmarkLabel])))
