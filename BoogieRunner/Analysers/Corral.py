@@ -56,7 +56,7 @@ class CorralAnalyser(AnalyserBaseClass):
 
   def getAnalysesDict(self):
     results = super(CorralAnalyser, self).getAnalysesDict()
-    results['recursion_bound_hit'] = self.hitRecursionBound
+    results['bound_hit'] = self.hitRecursionBound
     return results
 
 def get():

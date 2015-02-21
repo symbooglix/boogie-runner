@@ -22,10 +22,10 @@ def classifyResult(r):
   if r['bug_found'] == False and r['timeout_hit'] == False and r['failed'] == False:
     # might be fully explored
     if 'recursion_bound_hit' in r and r['recursion_bound_hit'] == True:
-      # Corral run hit recursion bound
+      # Legacy: Corral run hit recursion bound
       return FinalResultType.BOUND_HIT
     elif 'bound_hit' in r and r['bound_hit'] == True:
-      # Other tool (e.g. boogaloo) hit bound
+      # Tool (e.g. boogaloo) hit bound
       return FinalResultType.BOUND_HIT
     else:
       return FinalResultType.FULLY_EXPLORED
