@@ -70,6 +70,7 @@ def entryPoint(args):
 
   # Compute list index to entry point name mapping
   entryPoints = [ ]
+  _logger.info('Getting program entry points...')
   for programPath in programList:
     if pargs.entry_point != None:
       entryPoints.append(pargs.entry_point)
@@ -80,6 +81,7 @@ def entryPoint(args):
       entryPoints.append(entryPointName)
 
   # Generate new programs
+  _logger.info('Generating new programs')
   os.mkdir(pargs.output_dir)
   with open(pargs.output_program_list, 'w') as f:
     for index, (programPath, entryPoint) in enumerate(zip(programList, entryPoints)):
@@ -104,4 +106,7 @@ def entryPoint(args):
   return 0
 
 if __name__ == '__main__':
-  sys.exit(entryPoint(sys.argv[1:]))
+  try:
+    sys.exit(entryPoint(sys.argv[1:]))
+  except KeyboardInterrupt:
+    sys.exit(2)
