@@ -40,7 +40,7 @@ def load(programListFileName, relativePathPrefix):
           raise ProgramListLoaderException(
             'File "{}" on line {} does not exist'.format(line, lineCounter))
 
-          path = line
+        path = line
       else:
         # Append the prefix to make path absolute
         path = os.path.join(relativePathPrefix, line)
@@ -58,6 +58,7 @@ def load(programListFileName, relativePathPrefix):
         raise ProgramListLoaderException(
           'Duplicate entry ("{}") on line {}'.format(path, lineCounter))
 
+      _logger.debug('Adding "{}" to set'.format(path))
       programSet.add(path)
 
   l = list(programSet)
