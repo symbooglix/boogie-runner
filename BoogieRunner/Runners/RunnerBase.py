@@ -10,6 +10,7 @@ import sys
 import time
 import traceback
 import threading
+from .. import EntryPointFinder
 
 _logger = logging.getLogger(__name__)
 
@@ -297,27 +298,13 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     if (not isinstance(attribute,str)) or len(attribute) == 0:
       raise RunnerBaseException('"use_bool_attribute" must be a non empty string')
 
-    entryPoint = None
-    # Scan the Boogie program source code for the boolean attribute we want to match
-    # The first procedure found with the attribute is returned
-    with open(self.program) as f:
-      lines = f.readlines()
-
-      attrRegex = r'(?:\s*\{:\w+\s*([0-9]+|"[^"]+?")?\}\s*)*\s*'
-      procNameRegex = r'(?P<proc>[a-zA-Z_$][a-zA-Z_$0-9]*)'
-      fullRegex = r'procedure\s*' + attrRegex + r'\{:' + attribute + r'\s*\}' + attrRegex + procNameRegex + r'\('
-      r = re.compile(fullRegex)
-
-      for line in [ l.rstrip() for l in lines]:
-        m = r.match(line)
-        #_logger.debug('Trying to match line \"{}\"'.format(line))
-        if m != None:
-          entryPoint = m.group('proc')
-          break
+    entryPoint = EntryPointFinder.findEntryPointWithBooleanAttribute(
+      attribute, self.program)
 
     if entryPoint == None:
       raise RunnerBaseException(
-        'Failed to find entry point in "{}" with attribute "{}"'.format(self.program, attribute))
+        'Failed to find entry point in "{}" with attribute "{}"'.format(self.program,
+        attribute))
 
     _logger.debug('Found entry point "{}" in "{}"'.format(entryPoint, self.program))
     return entryPoint
