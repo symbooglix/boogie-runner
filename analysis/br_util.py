@@ -39,3 +39,30 @@ def classifyResult(r):
   else:
     assert r['failed'] == True
     return FinalResultType.UNKNOWN
+
+# Correct less label mapping stuff
+
+class ValidateMappingFileException(Exception):
+  pass
+
+def validateMappingFile(mapping):
+  if not isinstance(mapping, dict):
+    raise ValidateMappingFileException("Top level datastructure must be"
+      " dictionary")
+
+  for key, value in mapping.items():
+    if not isinstance(key, str):
+      raise ValidateMappingFileException("Top level keys must be strings")
+
+    if not isinstance(value, dict):
+      raise ValidateMappingFileException("Top level key must map to dictionary")
+
+    if not 'expected_correct' in value:
+      raise ValidateMappingFileException("{}'s dict is missing"
+      "'expected_correct' key".format(key))
+
+    if not isinstance(value['expected_correct'], bool) and \
+    value['expected_correct'] != None:
+      raise ValidateMappingFileException("{}'s dict does not map"
+        "'expected_correct' map to bool".format(key))
+

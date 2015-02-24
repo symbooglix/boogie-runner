@@ -10,6 +10,7 @@ import os
 import pprint
 import sys
 import yaml
+from br_util import validateMappingFile
 
 try:
   # Try to use libyaml which is faster
@@ -17,32 +18,6 @@ try:
 except ImportError:
   # fall back on python implementation
   from yaml import Loader, Dumper
-
-class ValidateMappingFileException(Exception):
-  pass
-
-def validateMappingFile(mapping):
-  if not isinstance(mapping, dict):
-    raise ValidateMappingFileException("Top level datastructure must be"
-      " dictionary")
-
-  for key, value in mapping.items():
-    if not isinstance(key, str):
-      raise ValidateMappingFileException("Top level keys must be strings")
-
-    if not isinstance(value, dict):
-      raise ValidateMappingFileException("Top level key must map to dictionary")
-
-    if not 'expected_correct' in value:
-      raise ValidateMappingFileException("{}'s dict is missing"
-      "'expected_correct' key".format(key))
-
-    if not isinstance(value['expected_correct'], bool) and \
-    value['expected_correct'] != None:
-      raise ValidateMappingFileException("{}'s dict does not map"
-        "'expected_correct' map to bool".format(key))
-
-
 
 def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
