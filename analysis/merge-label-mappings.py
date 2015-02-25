@@ -66,19 +66,26 @@ def main(args):
     # There is an existing label
     if expectedCorrect == None:
       if fallbackExpectedCorrect == None:
-        logging.warning('Both fallback and trusted are none for {}'.format(
+        logging.info('Both fallback and trusted are none for {}'.format(
           programName))
         useTrustedLabelCount += 1
         fromInferred = True
       elif isinstance(fallbackExpectedCorrect, bool):
         finalExpectedCorrect = fallbackExpectedCorrect
-        logging.warning('Using fallback correctness of {} for "{}"'.format(
+        logging.info('Using fallback correctness of {} for "{}"'.format(
           fallbackExpectedCorrect, programName))
         useFallbackLabelCount += 1
         fromInferred = False
       else:
         raise Exception('Unreachable')
     else:
+      assert isinstance(expectedCorrect, bool)
+      if isinstance(fallbackExpectedCorrect, bool) and \
+         not expectedCorrect == fallbackExpectedCorrect:
+        logging.warning('There is conflict between fallback and trusted for "{}".'
+        'Trusted: {}, Fallback: {}'.format(programName, expectedCorrect,
+          fallbackExpectedCorrect))
+
       useTrustedLabelCount += 1
       finalExpectedCorrect = expectedCorrect
       fromInferred = True
