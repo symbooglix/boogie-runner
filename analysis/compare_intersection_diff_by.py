@@ -5,7 +5,7 @@ import os
 import logging
 import sys
 import yaml
-from br_util import FinalResultType, classifyResult
+from br_util import FinalResultType, classifyResult, validateMappingFile
 
 try:
   # Try to use libyaml which is faster
@@ -19,15 +19,19 @@ def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--uncommon", action='store_true')
-  parser.add_argument("-e", "--group-by-expected-correct", action='store_true', dest="group_by_expected_correct",
-    help="Don't group by expected result type and instead just put in single 'all' label")
+  parser.add_argument("-e", "--label-mapping", default=None, type=argparse.FileType('r'), dest="label_mapping",
+    help="Group by expected result type from a mapping file")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
 
   logLevel = getattr(logging, pargs.log_level.upper(),None)
   logging.basicConfig(level=logLevel)
 
-  if pargs.group_by_expected_correct:
+  correctnessMapping = None
+  if pargs.label_mapping != None:
+    logging.info('Loading correctness mapping file')
+    correctnessMapping = yaml.load(pargs.label_mapping, Loader=Loader)
+    validateMappingFile(correctnessMapping)
     benchmarkLabels = ['correct', 'incorrect', 'unknown']
     def labelFieldToString(expected_correct):
       if expected_correct:
@@ -83,7 +87,7 @@ def main(args):
     if len(rList) != length:
       logging.error('There is a length mismatch for {}, expected {} entries but was'.format(name, length, len(rList)))
       return 1
-    
+
   programToRawResultMap = { }
   # Put results into buckets based on labels
   for resultSetLabel in resultSetLabels:
@@ -92,11 +96,8 @@ def main(args):
         logging.error('Key "bug_found" not in result')
         return 1
 
-      if pargs.group_by_expected_correct:
-        if not 'expected_correct' in r:
-          logging.error('Key "expected_correct" not in result')
-          return 1
-        expectedCorrect = r['expected_correct']
+      if pargs.label_mapping != None:
+        expectedCorrect = correctnessMapping[ r['program'] ]['expected_correct']
         assert expectedCorrect == None or isinstance(expectedCorrect, bool)
         benchmarkLabel = labelFieldToString(expectedCorrect)
       else:
