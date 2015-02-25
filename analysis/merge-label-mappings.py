@@ -97,8 +97,10 @@ def main(args):
     yamlString = yaml.dump(newMapping, default_flow_style=False, Dumper=Dumper)
     f.write(yamlString)
 
-  print("# of trusted labels used: {}".format(useTrustedLabelCount))
-  print("# of fallback labels used: {}".format(useFallbackLabelCount))
+  print("# of trusted labels used: {} ({:.2f}%)".format(
+    useTrustedLabelCount, 100*float(useTrustedLabelCount)/len(trustedMapping)))
+  print("# of fallback labels used: {} ({:.2f}%)".format(
+    useFallbackLabelCount, 100*float(useFallbackLabelCount)/len(trustedMapping)))
   print("# of labels: {}".format(len(trustedMapping)))
   return 0
 
