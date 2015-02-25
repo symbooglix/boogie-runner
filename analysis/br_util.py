@@ -64,5 +64,5 @@ def validateMappingFile(mapping):
     if not isinstance(value['expected_correct'], bool) and \
     value['expected_correct'] != None:
       raise ValidateMappingFileException("{}'s dict does not map"
-        "'expected_correct' map to bool".format(key))
+        "'expected_correct' map to bool or None".format(key))
 
