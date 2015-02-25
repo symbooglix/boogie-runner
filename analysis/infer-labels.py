@@ -12,7 +12,7 @@ import os
 import pprint
 import sys
 import yaml
-from br_util import FinalResultType, classifyResult
+from br_util import FinalResultType, classifyResult, validateMappingFile
 
 try:
   # Try to use libyaml which is faster
@@ -203,6 +203,7 @@ def main(args):
         f.write(yamlText)
 
   # Output mapping file
+  validateMappingFile(fileToCorrectnessLabel)
   with open(pargs.mapping_file, 'w') as f:
     f.write('# Inferred correctness mapping\n')
     yamlText = yaml.dump(fileToCorrectnessLabel,

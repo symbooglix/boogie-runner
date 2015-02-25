@@ -66,3 +66,22 @@ def validateMappingFile(mapping):
       raise ValidateMappingFileException("{}'s dict does not map"
         "'expected_correct' map to bool or None".format(key))
 
+class MergeCorrectnessLabelException(Exception):
+  pass
+
+def mergeCorrectnessLabel(resultList, correctnessMapping):
+  assert isinstance(resultList, list)
+  assert isinstance(correctnessMapping, dict)
+
+  for r in resultList:
+    assert isinstance(r, dict)
+    assert 'program' in r
+    correctnessLabel = None
+    programName = r['program']
+    try:
+      correctnessLabel = correctnessMapping[programName]['expected_correct']
+      r['expected_correct'] = correctnessLabel
+    except KeyError:
+      raise MergeCorrectnessLabelException('"expected_correct" missing from result with program name "{}"'.format(programName))
+
+  return resultList
