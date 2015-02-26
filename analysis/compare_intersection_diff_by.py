@@ -216,7 +216,10 @@ def displayResultSet(setName, data, resultSetLabels, benchmarkLabels, programToR
 
           for resultSetLabel in resultSetLabels:
             rawResult = programToRawResultMap[program][resultSetLabel]
-            print("{} : {} ({})".format(resultSetLabel, classifyResult(rawResult), rawResult['working_directory']))
+            print("{} : {} ({}) ({} secs)".format(resultSetLabel,
+                                                  classifyResult(rawResult),
+                                                  rawResult['working_directory'],
+                                                  rawResult['total_time']))
 
           print("")
 
