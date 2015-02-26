@@ -165,9 +165,9 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         raise RunnerBaseException('tool_path set to "{}", but it does not exist'.format(self.toolPath))
 
     try:
-      self.maxMemoryInMB = rc['max_memory']
+      self.maxMemoryInMiB = rc['max_memory']
 
-      if self.maxMemoryInMB > 0:
+      if self.maxMemoryInMiB > 0:
         if 'memory_limit_enforcement' in rc:
 
           if self.useDocker:
@@ -207,11 +207,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     except KeyError:
       _logger.info('"max_memory" not specified, assuming no tool memory limit')
-      self.maxMemoryInMB = 0
+      self.maxMemoryInMiB = 0
       self.useMemoryLimitPolling = False
       self.memoryLimitPollTimePeriodInSeconds = 0
 
-    if self.maxMemoryInMB < 0:
+    if self.maxMemoryInMiB < 0:
       raise RunnerBaseException('"max_memory" must be > 0')
 
     try:
@@ -428,9 +428,9 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # Setup memory limits
 
     # Setup environment to enforce memory limit if using docker
-    if self.maxMemoryInMB > 0 and self.useDocker:
-      finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMB))
-      _logger.info('Enforcing memory limit ({} MiB) using Docker'.format(self.maxMemoryInMB))
+    if self.maxMemoryInMiB > 0 and self.useDocker:
+      finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMiB))
+      _logger.info('Enforcing memory limit ({} MiB) using Docker'.format(self.maxMemoryInMiB))
 
     if self.useDocker:
       finalCmdLine.append('--net=none') # No network access should be needed
@@ -460,7 +460,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
                                 env=env)
 
         if self.useMemoryLimitPolling:
-          _logger.info('Enforcing memory limit ({} MiB) using polling time period of {} seconds'.format(self.maxMemoryInMB, self.memoryLimitPollTimePeriodInSeconds))
+          _logger.info('Enforcing memory limit ({} MiB) using polling time period of {} seconds'.format(self.maxMemoryInMiB, self.memoryLimitPollTimePeriodInSeconds))
           self._memoryLimitPolling(process)
 
         _logger.info('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
@@ -501,7 +501,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     return exitCode
 
-  def _getProcessMemoryUsageInMB(self, process):
+  def _getProcessMemoryUsageInMiB(self, process):
     # use Virtual memory size rather than resident set
     return process.memory_info()[1] / (2**20)
 
@@ -529,13 +529,13 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         while process.is_running():
           time.sleep(self.memoryLimitPollTimePeriodInSeconds)
           totalMemoryUsage = 0
-          totalMemoryUsage += self._getProcessMemoryUsageInMB(process)
+          totalMemoryUsage += self._getProcessMemoryUsageInMiB(process)
 
           # The process might of forked so add the memory usage of its children too
           childCount = 0
           try:
             for childProc in process.children(recursive=True):
-              totalMemoryUsage += self._getProcessMemoryUsageInMB(childProc)
+              totalMemoryUsage += self._getProcessMemoryUsageInMiB(childProc)
               childCount += 1
           except psutil.NoSuchProcess:
             _logger.warning('Child process disappeared whilst examining it\'s memory use')
@@ -543,7 +543,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
           _logger.debug('Total memory usage in MiB:{}'.format(totalMemoryUsage))
           _logger.debug('Total number of children: {}'.format(childCount))
 
-          if totalMemoryUsage > self.maxMemoryInMB:
+          if totalMemoryUsage > self.maxMemoryInMiB:
             _logger.warning('Memory limit reached (recorded {} MiB). Killing tool'.format(totalMemoryUsage))
             self._memoryLimitHit = True
             self._terminateProcess(process)
