@@ -19,6 +19,7 @@ def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--uncommon", action='store_true')
+  parser.add_argument("-s", "--proper-supersets", dest='proper_supersets', action='store_true', help='show information about results in supersets')
   parser.add_argument("-e", "--label-mapping", default=None, type=argparse.FileType('r'), dest="label_mapping",
     help="Group by expected result type from a mapping file")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
@@ -153,10 +154,13 @@ def main(args):
 
   # Show computed information
   uncommonResults = { }
+  properSuperSetResults = { }
   for name, _ in FinalResultType.__members__.items():
     uncommonResults[name] = { }
+    properSuperSetResults[name] = { }
     for benchmarkLabel in benchmarkLabels:
       uncommonResults[name][benchmarkLabel] = set()
+      properSuperSetResults[name][benchmarkLabel] = set()
 
   for benchmarkLabel in benchmarkLabels:
     print("==={}===".format(benchmarkLabel))
@@ -182,27 +186,39 @@ def main(args):
         # No result set is a super set of the unioned benchmarks which implies
         # there are uncommon results. Compute this and store it
         uncommonResults[name][benchmarkLabel] = union[name][benchmarkLabel].difference( intersection[name][benchmarkLabel])
+      elif len(superSetResultSet) < len(resultSetLabels):
+        # There is at least one proper superset
+        properSuperSetResults[name][benchmarkLabel] = union[name][benchmarkLabel].difference( intersection[name][benchmarkLabel])
 
       superSetString = "Result sets that are super sets of the unioned benchmarks {}".format(superSetResultSet)
 
       print("# of common results of type {}: {} out of {} ({:.2f}%)\n{}\n".format(name, intersectionSize, unionSize, percentage, superSetString))
 
   if pargs.uncommon:
-    for benchmarkLabel in benchmarkLabels:
-      print("==={}===".format(benchmarkLabel))
-      for name, _ in FinalResultType.__members__.items():
-        print("Size of uncommon results for {} {}: {}".format(benchmarkLabel, name, len(uncommonResults[name][benchmarkLabel])))
-        if name == 'BUG_FOUND' or name == 'FULLY_EXPLORED':
-          for program in uncommonResults[name][benchmarkLabel]:
-            print("{}".format(program))
+    displayResultSet("uncommon results", uncommonResults, resultSetLabels, benchmarkLabels, programToRawResultMap)
 
-            for resultSetLabel in resultSetLabels:
-              rawResult = programToRawResultMap[program][resultSetLabel]
-              print("{} : {} ({})".format(resultSetLabel, classifyResult(rawResult), rawResult['working_directory']))
-
-            print("")
+  if pargs.proper_supersets:
+    displayResultSet("superset results", properSuperSetResults, resultSetLabels, benchmarkLabels, programToRawResultMap)
 
   return 0
+
+def displayResultSet(setName, data, resultSetLabels, benchmarkLabels, programToRawResultMap):
+  assert isinstance(setName, str)
+  assert isinstance(benchmarkLabels, list)
+
+  for benchmarkLabel in benchmarkLabels:
+    print("==={}===".format(benchmarkLabel))
+    for name, _ in FinalResultType.__members__.items():
+      print("Size of {} for {} {}: {}".format(setName, benchmarkLabel, name, len(data[name][benchmarkLabel])))
+      if name == 'BUG_FOUND' or name == 'FULLY_EXPLORED':
+        for program in data[name][benchmarkLabel]:
+          print("{}".format(program))
+
+          for resultSetLabel in resultSetLabels:
+            rawResult = programToRawResultMap[program][resultSetLabel]
+            print("{} : {} ({})".format(resultSetLabel, classifyResult(rawResult), rawResult['working_directory']))
+
+          print("")
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
