@@ -11,11 +11,26 @@ from  BoogieRunner import ConfigLoader
 from  BoogieRunner import RunnerFactory
 import traceback
 import yaml
+import signal
 import sys
 
 _logger = None
+futureToRunner = None
+
+def handleInterrupt(signum, frame):
+  logging.info('Received signal {}'.format(signum))
+  if futureToRunner != None:
+    cancel(futureToRunner)
+
+def cancel(futureToRunner):
+  _logger.warning('Cancelling futures')
+  for future in futureToRunner.keys():
+    future.cancel()
+    # FIXME: We should also kill the runners too
+    # but there isn't an API for this yet.
 
 def entryPoint(args):
+  global _logger, futureToRunner
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for program_list")
@@ -147,6 +162,12 @@ def entryPoint(args):
         report.append(errorLog)
         exitCode = 1
   else:
+
+    # FIXME: Make windows compatible
+    # Catch signals so we can clean up
+    signal.signal(signal.SIGINT, handleInterrupt)
+    signal.signal(signal.SIGTERM, handleInterrupt)
+
     _logger.info('Running jobs in parallel')
     import concurrent.futures
     try:
@@ -156,12 +177,18 @@ def entryPoint(args):
           r = futureToRunner[future]
           _logger.debug('{} runner finished'.format(r.programPathArgument))
 
-          if future.exception():
-            e = future.exception()
+          excep = None
+          try:
+            if future.exception():
+              excep = future.exception()
+          except concurrent.futures.CancelledError as e:
+            excep = e
+
+          if excep != None:
             # Attempt to log the error report
             errorLog = {}
             errorLog['program'] = r.program
-            errorLog['error'] = "\n".join(traceback.format_exception(type(e), e, None))
+            errorLog['error'] = "\n".join(traceback.format_exception(type(excep), excep, None))
             _logger.error('{} runner hit exception:\n{}'.format(r.programPathArgument, errorLog['error']))
             report.append(errorLog)
           else:
@@ -170,6 +197,10 @@ def entryPoint(args):
       # The executor should of been cleaned terminated.
       # We'll then write what we can to the output YAML file
       _logger.error('Keyboard interrupt')
+    finally:
+      # Stop catching signals and just use default handlers
+      signal.signal(signal.SIGINT, signal.SIG_DFL)
+      signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
   # Write result to YAML file
   _logger.info('Writing output to {}'.format(yamlOutputFile))
