@@ -33,6 +33,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self._timeoutHit = False
     self._memoryLimitHit = None
     self.exitCode = None
+    self._process = None
 
     if not os.path.isabs(boogieProgram):
       raise RunnerBaseException(
@@ -396,6 +397,43 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # FIXME: We should make this settable from the config
     return '/mnt/'
 
+  def kill(self):
+    """
+    Subclasses need to override this if their
+    run() method doesn't use runTool()
+    """
+    self._kill(pause=True)
+
+  def _kill(self, pause):
+    _logger.info('Trying to kill {}'.format(self.name))
+    if self._process != None:
+      try:
+        if self._process.is_running():
+          self._terminateProcess(self._process, pause)
+      except psutil.NoSuchProcess:
+        pass
+
+      if self.useDocker:
+        # The container will carry on running so we need to kill it
+        _logger.info('Trying to kill container {}'.format(self.dockerContainerName))
+        process = psutil.Popen(['docker', 'kill', self.dockerContainerName])
+        process.wait()
+
+        # We also may need to manually remove the container
+        _logger.info('Trying to remove container {}'.format(self.dockerContainerName))
+        process = psutil.Popen(['docker', 'rm', self.dockerContainerName])
+        process.wait()
+
+    if self._copyProgramToWorkingDirectory:
+      toDelete=os.path.join(self.workingDirectory, os.path.basename(self.program))
+      try:
+        _logger.info('Removing copy of input program at "{}"'.format(toDelete))
+        os.remove(toDelete)
+      except Exception as e:
+        _logger.error('Failed to delete copy of program at "{}"'.format(toDelete))
+        _logger.debug(traceback.format_exc())
+        pass
+
   def runTool(self, cmdLine, isDotNet, envExtra = {}):
     finalCmdLine = []
     self._memoryLimitHit = False
@@ -448,56 +486,32 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     # Run the tool
     exitCode = None
-    process = None
+    self._process = None
     startTime = time.perf_counter()
     with open(self.logFile, 'w') as f:
       try:
         _logger.info('writing to log file {}'.format(self.logFile))
-        process = psutil.Popen(finalCmdLine,
-                                cwd=self.workingDirectory,
-                                stdout=f,
-                                stderr=f,
-                                env=env)
+        self._process = psutil.Popen(finalCmdLine,
+                                     cwd=self.workingDirectory,
+                                     stdout=f,
+                                     stderr=f,
+                                     env=env)
 
         if self.useMemoryLimitPolling:
           _logger.info('Enforcing memory limit ({} MiB) using polling time period of {} seconds'.format(self.maxMemoryInMiB, self.memoryLimitPollTimePeriodInSeconds))
-          self._memoryLimitPolling(process)
+          self._memoryLimitPolling(self._process)
 
         _logger.info('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
-        exitCode = process.wait(timeout=self.maxTimeInSeconds)
-      except (psutil.TimeoutExpired, KeyboardInterrupt) as e:
+        exitCode = self._process.wait(timeout=self.maxTimeInSeconds)
+      except (psutil.TimeoutExpired) as e:
         self._timeoutHit = True
-        self._terminateProcess(process)
-
-        endTime = time.perf_counter()
-        self.time = endTime - startTime
-
-        if self.useDocker:
-          # The container will carry on running so we need to kill it
-          _logger.info('Trying to kill container {}'.format(self.dockerContainerName))
-          process = psutil.Popen(['docker', 'kill', self.dockerContainerName])
-          process.wait()
-
-          # We also may need to manually remove the container
-          _logger.info('Trying to remove container {}'.format(self.dockerContainerName))
-          process = psutil.Popen(['docker', 'rm', self.dockerContainerName])
-          process.wait()
-
+        # Note the code in the finally block will sort out clean up
         raise e
       finally:
+        self._kill(pause=False)
         endTime = time.perf_counter()
         self.time = endTime - startTime
         self.exitCode = exitCode
-
-        if self._copyProgramToWorkingDirectory:
-          toDelete=os.path.join(self.workingDirectory, os.path.basename(self.program))
-          try:
-            _logger.info('Removing copy of input program at "{}"'.format(toDelete))
-            os.remove(toDelete)
-          except Exception as e:
-            _logger.error('Failed to delete copy of program at "{}"'.format(toDelete))
-            _logger.debug(traceback.format_exc())
-            pass
 
     return exitCode
 
@@ -505,11 +519,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # use Virtual memory size rather than resident set
     return process.memory_info()[1] / (2**20)
 
-  def _terminateProcess(self, process):
+  def _terminateProcess(self, process, pause):
     # Gently terminate
     _logger.info('Trying to terminate PID:{}'.format(process.pid))
     process.terminate()
-    time.sleep(1)
+    if pause:
+      time.sleep(1)
     # Now aggresively kill
     _logger.info('Trying to kill PID:{}'.format(process.pid))
     process.kill()

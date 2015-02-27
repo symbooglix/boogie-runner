@@ -24,10 +24,9 @@ def handleInterrupt(signum, frame):
 
 def cancel(futureToRunner):
   _logger.warning('Cancelling futures')
-  for future in futureToRunner.keys():
+  for future, runner in futureToRunner.items():
     future.cancel()
-    # FIXME: We should also kill the runners too
-    # but there isn't an API for this yet.
+    runner.kill()
 
 def entryPoint(args):
   global _logger, futureToRunner
@@ -150,6 +149,9 @@ def entryPoint(args):
         report.append(r.getResults())
       except KeyboardInterrupt:
         _logger.error('Keyboard interrupt')
+        # This is slightly redundant because the runner
+        # currently kills itself if KeyboardInterrupt is thrown
+        r.kill()
         break
       except:
         _logger.error("Error handling:{}".format(r.program))
