@@ -202,7 +202,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         else:
           # Set sensible defaults
           self.useMemoryLimitPolling = True
-          self.memoryLimitPollTimePeriodInSeconds = 5.0
+          self.memoryLimitPollTimePeriodInSeconds = 2.0
       else:
         self.useMemoryLimitPolling = False
         self.memoryLimitPollTimePeriodInSeconds = 0
