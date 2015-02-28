@@ -563,8 +563,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       poll the total memory usage of the tool that is being run.
       If it goes over the limit will kill it
     """
-    _logger.info('Launching memory limit polling thread for PID {} with polling time period of {} seconds'.format(
-      process.pid, self.memoryLimitPollTimePeriodInSeconds))
     assert self.memoryLimitPollTimePeriodInSeconds > 0
 
     # Other parts of the runner can can set on this to prevent this thread
@@ -573,7 +571,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self._eventObj.clear()
 
     def threadBody():
-      _logger.info('Starting poller for thread for PID:{}'.format(process.pid))
+      _logger.info('Launching memory limit polling thread for PID {} with polling time period of {} seconds'.format(
+        process.pid, self.memoryLimitPollTimePeriodInSeconds))
       try:
         while process.is_running() and not process.status() == psutil.STATUS_ZOMBIE:
           self._eventObj.wait(self.memoryLimitPollTimePeriodInSeconds)
