@@ -548,12 +548,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
           # The process might of forked so add the memory usage of its children too
           childCount = 0
-          try:
-            for childProc in process.children(recursive=True):
+          for childProc in process.children(recursive=True):
+            try:
               totalMemoryUsage += self._getProcessMemoryUsageInMiB(childProc)
               childCount += 1
-          except psutil.NoSuchProcess:
-            _logger.warning('Child process disappeared whilst examining it\'s memory use')
+            except psutil.NoSuchProcess:
+              _logger.warning('Child process disappeared whilst examining it\'s memory use')
 
           _logger.debug('Total memory usage in MiB:{}'.format(totalMemoryUsage))
           _logger.debug('Total number of children: {}'.format(childCount))
