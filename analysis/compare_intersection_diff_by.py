@@ -56,7 +56,7 @@ def main(args):
       return 1
 
     # Compute result set label
-    resultSetLabel = os.path.basename(f)
+    resultSetLabel = f
     resultSetLabels.append(resultSetLabel)
     if resultSetLabel in data:
       logging.error('Can\'t use {} as label name because it is already used'.format(resultSetLabel))
@@ -79,7 +79,7 @@ def main(args):
       results = yaml.load(openFile, Loader=Loader)
     logging.info('Loading complete')
     assert isinstance(results, list)
-    resultSetLabel = os.path.basename(f)
+    resultSetLabel = f
     data[resultSetLabel] = results
     length = len(results)
 
