@@ -24,8 +24,13 @@ def handleInterrupt(signum, frame):
 
 def cancel(futureToRunner):
   _logger.warning('Cancelling futures')
-  for future, runner in futureToRunner.items():
+  # Cancel all futures first. If we tried
+  # to kill the runner at the same time then
+  # other futures would start which we don't want
+  for future in futureToRunner.keys():
     future.cancel()
+  # Then we can kill the runners if required
+  for runner in futureToRunner.values():
     runner.kill()
 
 def entryPoint(args):

@@ -397,14 +397,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # FIXME: We should make this settable from the config
     return '/mnt/'
 
-  def kill(self):
+  def kill(self, pause=False):
     """
     Subclasses need to override this if their
     run() method doesn't use runTool()
     """
-    self._kill(pause=True)
-
-  def _kill(self, pause):
     _logger.debug('Trying to kill {}'.format(self.name))
     if self._process != None:
       try:
@@ -508,7 +505,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         # Note the code in the finally block will sort out clean up
         raise e
       finally:
-        self._kill(pause=False)
+        self.kill(pause=False)
         endTime = time.perf_counter()
         self.time = endTime - startTime
         self.exitCode = exitCode
