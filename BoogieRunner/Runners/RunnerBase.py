@@ -497,7 +497,6 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
                                      env=env)
 
         if self.useMemoryLimitPolling:
-          _logger.info('Enforcing memory limit ({} MiB) using polling time period of {} seconds'.format(self.maxMemoryInMiB, self.memoryLimitPollTimePeriodInSeconds))
           pollThread = self._memoryLimitPolling(self._process)
 
         _logger.info('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
