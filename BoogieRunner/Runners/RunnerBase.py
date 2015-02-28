@@ -601,6 +601,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       except psutil.NoSuchProcess:
         _logger.warning('Main process no longer available')
 
-    thread = threading.Thread(target=threadBody, name='memory_poller', daemon=True)
+    newThreadName = 'memory_poller-{}'.format(process.pid)
+    thread = threading.Thread(target=threadBody, name=newThreadName, daemon=True)
     thread.start()
     return thread
