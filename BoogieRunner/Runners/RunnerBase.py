@@ -405,7 +405,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self._kill(pause=True)
 
   def _kill(self, pause):
-    _logger.info('Trying to kill {}'.format(self.name))
+    _logger.debug('Trying to kill {}'.format(self.name))
     if self._process != None:
       try:
         if self._process.is_running():
