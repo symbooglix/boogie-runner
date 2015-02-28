@@ -201,7 +201,9 @@ def entryPoint(args):
             errorLog = {}
             errorLog['program'] = r.program
             errorLog['error'] = "\n".join(traceback.format_exception(type(excep), excep, None))
-            _logger.error('{} runner hit exception:\n{}'.format(r.programPathArgument, errorLog['error']))
+            # Only emit messages about exceptions that aren't to do with cancellation
+            if not isinstance(excep, concurrent.futures.CancelledError):
+              _logger.error('{} runner hit exception:\n{}'.format(r.programPathArgument, errorLog['error']))
             report.append(errorLog)
           else:
             report.append(r.getResults())
