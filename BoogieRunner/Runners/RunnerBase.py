@@ -535,11 +535,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       poll the total memory usage of the tool that is being run.
       If it goes over the limit will kill it
     """
-    _logger.debug('Launching memory limit polling thread with polling time period of {} seconds'.format(self.memoryLimitPollTimePeriodInSeconds))
+    _logger.info('Launching memory limit polling thread for PID {} with polling time period of {} seconds'.format(
+      process.pid, self.memoryLimitPollTimePeriodInSeconds))
     assert self.memoryLimitPollTimePeriodInSeconds > 0
 
     def threadBody():
-      _logger.info('Starting thread')
+      _logger.info('Starting poller for thread for PID:{}'.format(process.pid))
       try:
         while process.is_running():
           time.sleep(self.memoryLimitPollTimePeriodInSeconds)
