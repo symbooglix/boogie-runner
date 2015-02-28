@@ -176,6 +176,7 @@ def entryPoint(args):
     signal.signal(signal.SIGTERM, handleInterrupt)
 
     _logger.info('Running jobs in parallel')
+    completedFutureCounter=0
     import concurrent.futures
     try:
       with concurrent.futures.ThreadPoolExecutor(max_workers=pargs.jobs) as executor:
@@ -183,6 +184,10 @@ def entryPoint(args):
         for future in concurrent.futures.as_completed(futureToRunner):
           r = futureToRunner[future]
           _logger.debug('{} runner finished'.format(r.programPathArgument))
+
+          if future.done() and not future.cancelled():
+            completedFutureCounter += 1
+            _logger.info('Completed {}/{} ({:.1f}%)'.format(completedFutureCounter, len(runners), 100*(float(completedFutureCounter)/len(runners))))
 
           excep = None
           try:
