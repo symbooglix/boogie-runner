@@ -561,7 +561,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
           if totalMemoryUsage > self.maxMemoryInMiB:
             _logger.warning('Memory limit reached (recorded {} MiB). Killing tool'.format(totalMemoryUsage))
             self._memoryLimitHit = True
-            self._terminateProcess(process)
+            self._terminateProcess(process, pause=False)
             break
       except psutil.NoSuchProcess:
         _logger.warning('Main process no longer available')
