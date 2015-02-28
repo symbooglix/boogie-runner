@@ -522,12 +522,28 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def _terminateProcess(self, process, pause):
     # Gently terminate
     _logger.info('Trying to terminate PID:{}'.format(process.pid))
+    children = process.children(recursive=True)
     process.terminate()
+    for child in children:
+      try:
+        _logger.info('Trying to terminate child process PID:{}'.format(child.pid))
+        child.terminate()
+      except psutil.NoSuchProcess:
+        pass
+
     if pause:
       time.sleep(1)
+
     # Now aggresively kill
     _logger.info('Trying to kill PID:{}'.format(process.pid))
+    children = process.children(recursive=True)
     process.kill()
+    for child in children:
+      try:
+        _logger.info('Trying to kill child process PID:{}'.format(child.pid))
+        child.kill()
+      except psutil.NoSuchProcess:
+        pass
 
   def _memoryLimitPolling(self, process):
     """
