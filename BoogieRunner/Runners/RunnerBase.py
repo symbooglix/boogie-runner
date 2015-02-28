@@ -533,12 +533,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
   def _terminateProcess(self, process, pause):
     # Gently terminate
-    _logger.info('Trying to terminate PID:{}'.format(process.pid))
+    _logger.debug('Trying to terminate PID:{}'.format(process.pid))
     children = process.children(recursive=True)
     process.terminate()
     for child in children:
       try:
-        _logger.info('Trying to terminate child process PID:{}'.format(child.pid))
+        _logger.debug('Trying to terminate child process PID:{}'.format(child.pid))
         child.terminate()
       except psutil.NoSuchProcess:
         pass
@@ -592,7 +592,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
           _logger.debug('Total number of children: {}'.format(childCount))
 
           if totalMemoryUsage > self.maxMemoryInMiB:
-            _logger.warning('Memory limit reached (recorded {} MiB). Killing tool'.format(totalMemoryUsage))
+            _logger.warning('Memory limit reached (recorded {} MiB). Killing tool with PID {}'.format(totalMemoryUsage, process.pid))
             self._memoryLimitHit = True
             self._terminateProcess(process, pause=False)
             break
