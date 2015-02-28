@@ -14,4 +14,4 @@ runner_config:
   memory_limit_enforcement:
     enforcer: "poll"
     # Poll every 5 seconds
-    time_period: 5
+    time_period: 5.0

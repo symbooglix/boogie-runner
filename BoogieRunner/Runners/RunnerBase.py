@@ -34,6 +34,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self._memoryLimitHit = None
     self.exitCode = None
     self._process = None
+    self._eventObj = None
 
     if not os.path.isabs(boogieProgram):
       raise RunnerBaseException(
@@ -190,10 +191,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
             raise RunnerBaseException('"time_period" key expected in "memory_limit_enforcement" dictionary')
           self.memoryLimitPollTimePeriodInSeconds = mleDict['time_period']
 
-          if self.memoryLimitPollTimePeriodInSeconds < 1:
-            raise RunnerBaseException('"time_period" must be 1 or greater')
+          if self.memoryLimitPollTimePeriodInSeconds < 0.1:
+            raise RunnerBaseException('"time_period" must be 0.1 or greater')
 
-          assert isinstance(self.memoryLimitPollTimePeriodInSeconds, int)
+          assert isinstance(self.memoryLimitPollTimePeriodInSeconds, float)
         elif self.useDocker:
           # Don't use memory polling when using Docker
           self.useMemoryLimitPolling = False
@@ -201,7 +202,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         else:
           # Set sensible defaults
           self.useMemoryLimitPolling = True
-          self.memoryLimitPollTimePeriodInSeconds = 5
+          self.memoryLimitPollTimePeriodInSeconds = 5.0
       else:
         self.useMemoryLimitPolling = False
         self.memoryLimitPollTimePeriodInSeconds = 0
@@ -485,6 +486,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     exitCode = None
     self._process = None
     startTime = time.perf_counter()
+    pollThread = None
     with open(self.logFile, 'w') as f:
       try:
         _logger.info('writing to log file {}'.format(self.logFile))
@@ -496,7 +498,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         if self.useMemoryLimitPolling:
           _logger.info('Enforcing memory limit ({} MiB) using polling time period of {} seconds'.format(self.maxMemoryInMiB, self.memoryLimitPollTimePeriodInSeconds))
-          self._memoryLimitPolling(self._process)
+          pollThread = self._memoryLimitPolling(self._process)
 
         _logger.info('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
         exitCode = self._process.wait(timeout=self.maxTimeInSeconds)
@@ -506,6 +508,20 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         raise e
       finally:
         self.kill(pause=False)
+
+        # This is a sanity check to make sure that the memory polling thread exits
+        # before this method exits
+        if pollThread != None:
+          if self._eventObj != None:
+            self._eventObj.set() # Wake up polling thread if it's blocked on eventObj
+          _logger.debug('Joining memory polling thread START')
+          try:
+            pollThread.join()
+            _logger.debug('Joining memory polling thread FINISHED')
+          except RuntimeError:
+            _logger.error('RuntimeError waiting for memory polling thread to terminate')
+        self._process = None
+
         endTime = time.perf_counter()
         self.time = endTime - startTime
         self.exitCode = exitCode
@@ -552,11 +568,16 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       process.pid, self.memoryLimitPollTimePeriodInSeconds))
     assert self.memoryLimitPollTimePeriodInSeconds > 0
 
+    # Other parts of the runner can can set on this to prevent this thread
+    # from waiting on this Event object.
+    self._eventObj = threading.Event()
+    self._eventObj.clear()
+
     def threadBody():
       _logger.info('Starting poller for thread for PID:{}'.format(process.pid))
       try:
-        while process.is_running():
-          time.sleep(self.memoryLimitPollTimePeriodInSeconds)
+        while process.is_running() and not process.status() == psutil.STATUS_ZOMBIE:
+          self._eventObj.wait(self.memoryLimitPollTimePeriodInSeconds)
           totalMemoryUsage = 0
           totalMemoryUsage += self._getProcessMemoryUsageInMiB(process)
 
