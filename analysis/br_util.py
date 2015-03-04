@@ -10,7 +10,8 @@ class FinalResultType(Enum):
   BOUND_HIT = 1
   BUG_FOUND = 2
   TIMED_OUT = 3
-  UNKNOWN = 4
+  OUT_OF_MEMORY = 4
+  UNKNOWN = 5
 
 
 def classifyResult(r):
@@ -36,6 +37,11 @@ def classifyResult(r):
   elif r['timeout_hit'] == True and (r['failed'] == False or r['failed'] == None):
     assert r['failed'] != None
     return FinalResultType.TIMED_OUT
+  elif r['out_of_memory'] == True:
+    # FIXME: When out_of_memory occurs failed might be set to true which is
+    # confusing
+    assert r['failed'] != None
+    return FinalResultType.OUT_OF_MEMORY
   else:
     assert r['failed'] == True
     return FinalResultType.UNKNOWN

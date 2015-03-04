@@ -32,36 +32,23 @@ def main(args):
     return 1
 
   # Count
-  fullExplore = [ ]
-  bugFound = [ ]
-  timedOut = [ ]
-  hitBound = [ ]
-  unknown = [ ]
+  rTypeToResultMap = {}
+  for rType in FinalResultType:
+    rTypeToResultMap[rType] = []
+
   for r in results:
     rType = classifyResult(r)
     logging.debug('Classified {} as {}'.format(r['program'], rType))
-    if rType == FinalResultType.FULLY_EXPLORED:
-      fullExplore.append(r)
-    elif rType == FinalResultType.BOUND_HIT:
-      hitBound.append(r)
-    elif rType == FinalResultType.BUG_FOUND:
-      bugFound.append(r)
-    elif rType == FinalResultType.TIMED_OUT:
-      timedOut.append(r)
-    else:
-      unknown.append(r)
+    rTypeToResultMap[rType].append(r)
 
   print("Total: {}".format(len(results)))
-  print("# of fully explored: {} ({:.2f}%)".format(len(fullExplore),
-    100*float(len(fullExplore))/len(results)))
-  print("# of bound hit: {} ({:.2f}%)".format(len(hitBound),
-    100*float(len(hitBound))/len(results)))
-  print("# of bug found: {} ({:.2f}%)".format(len(bugFound),
-    100*float(len(bugFound))/len(results)))
-  print("# of timeout: {} ({:2f}%)".format(len(timedOut),
-    100*float(len(timedOut))/len(results)))
-  print("# of unknown (crash/memout): {} ({:2f}%)".format(len(unknown),
-    100*float(len(unknown))/len(results)))
+  for rType in FinalResultType:
+    name = rType.name
+    resultList = rTypeToResultMap[rType]
+    print("# of {}: {} ({:.2f}%)".format(name, len(resultList),
+      100*float(len(resultList))/len(results)))
+
+  return 0
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
