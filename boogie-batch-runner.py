@@ -4,6 +4,7 @@
     Script to run a Boogie tool over a set of boogie programs
 """
 import argparse
+import datetime
 import logging
 import os
 from  BoogieRunner import ProgramListLoader
@@ -146,6 +147,9 @@ def entryPoint(args):
     _logger.info('Not running runners')
     return exitCode
 
+  startTime = datetime.datetime.now()
+  _logger.info('Starting {}'.format(startTime.isoformat(' ')))
+
   if pargs.jobs == 1:
     _logger.info('Running jobs sequentially')
     for r in runners:
@@ -223,6 +227,9 @@ def entryPoint(args):
     f.write('# BoogieRunner report using runner {}\n'.format(config['runner']))
     f.write(result)
 
+  endTime = datetime.datetime.now()
+  _logger.info('Finished {}'.format(endTime.isoformat(' ')))
+  _logger.info('Total run time: {}'.format(endTime - startTime))
   return exitCode
 
 if __name__ == '__main__':
