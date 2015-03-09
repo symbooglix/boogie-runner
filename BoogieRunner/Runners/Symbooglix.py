@@ -41,12 +41,23 @@ class SymbooglixRunner(RunnerBaseClass):
   def GetNewAnalyser(self):
     return SymbooglixAnalyser(self.exitCode, self.logFile, self.useDocker, self.hitHardTimeout)
 
+  # FIXME: This belongs in the analyser
+  # but would require that it be aware of the soft-timeout
   @property
   def timeoutWasHit(self):
-    if not self.hitHardTimeout:
-      return self.exitCode == 3 or self.exitCode == 4
-    else:
+    if self.hitHardTimeout:
       return True
+
+    if self.exitCode == 3 or self.exitCode == 4:
+      # NO_ERRORS_TIMEOUT,
+      # ERRORS_TIMEOUT,
+      return True
+
+    # Check if the soft timeout was hit
+    if self.time > self.softTimeout:
+      return True
+
+    return False
 
   def getResults(self):
     results = super(SymbooglixRunner, self).getResults()
