@@ -127,10 +127,12 @@ def main(args):
     annotationLabels.append(programName)
 
   # Finally do plotting
+  assert len(xData) == len(yData) == len(annotationLabels)
   extend = 100
   tickFreq = 100
   logging.info('# of mismatches: {}'.format(mismatchCount))
   logging.info('# of result pairs clamped: {}'.format(clampCount))
+  logging.info('# of points plotted: {}'.format(len(xData)))
   fig, ax = plt.subplots()
   splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
   ax.set_xlabel(resultListNames[0])
@@ -144,7 +146,7 @@ def main(args):
 
 
   # Add annotations that become visible when clicked
-  DataPointReporter(splot, xData, yData, annotationLabels)
+  DataPointReporter(splot, xData, yData, annotationLabels, programToResultSetsMap)
 
   # Identity line
   ax.plot([ 0 , pargs.max_time + extend], [0, pargs.max_time + extend], linewidth=1.0, color='black')
@@ -159,10 +161,11 @@ def main(args):
   return 0
 
 class DataPointReporter:
-  def __init__(self, scatter, xData, yData, annotationLabels):
+  def __init__(self, scatter, xData, yData, annotationLabels, programToResultSetsMap):
     self.scatter = scatter
     self.cid = scatter.figure.canvas.mpl_connect('pick_event', self)
     self.annotationLabels = annotationLabels
+    self.programToResultSetsMap = programToResultSetsMap
     # Add annotations, by hide them by default
     self.annotationObjects = [ ]
     self.lastClickedAnnotationObj = None
@@ -174,7 +177,10 @@ class DataPointReporter:
       self.annotationObjects.append(annotation)
 
   def __call__(self, event):
-    print(self.annotationLabels[event.ind[0]])
+    programName = self.annotationLabels[event.ind[0]]
+    logging.info('{}'.format(programName))
+    for resultListName, rawResultData in self.programToResultSetsMap[programName].items():
+      logging.info('{}: {}\n{}'.format(resultListName, classifyResult(rawResultData), pprint.pformat(rawResultData)))
 
     theAnnotation = self.annotationObjects[event.ind[0]]
     if self.lastClickedAnnotationObj != None:
