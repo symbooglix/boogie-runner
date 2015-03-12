@@ -18,6 +18,9 @@ except ImportError:
 
 
 def main(args):
+  resultTypes = [ r.name for r in list(FinalResultType)] # Get list of ResultTypes as strings
+  defaultTypes = [ r.name for r in list(FinalResultType) if r in [FinalResultType.FULLY_EXPLORED, FinalResultType.BUG_FOUND]]
+
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-v", "--verbose", action='store_true', help='Show detailed information about mismatch')
@@ -25,6 +28,7 @@ def main(args):
   parser.add_argument('max_time', type=int, help='Maximum time in seconds, results timings will be clamped to this value')
   parser.add_argument('--ipython', action='store_true')
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
+  parser.add_argument('-r', '--result-type', nargs='+', dest='result_type', choices=resultTypes, default=defaultTypes, help='Filter by FinalResultType')
   pargs = parser.parse_args(args)
   print(pargs)
 
@@ -33,6 +37,11 @@ def main(args):
 
   if len(pargs.result_ymls) != 2:
     logger.error('Need two YAML files')
+
+  # Create set of allowed result types
+  allowedResultTypes = set()
+  for rType in pargs.result_type:
+    allowedResultTypes.add(FinalResultType[rType])
 
   # Check that each yml file exists
   data = { }
@@ -106,7 +115,13 @@ def main(args):
         logging.warning('{}: {}'.format(resultListName, classifyResult(resultListNameToRawResultMap[resultListName])))
       if pargs.verbose:
         logging.warning('\n{}'.format(pprint.pformat(resultListNameToRawResultMap)))
-      logging.warning('')
+      logging.warning('Disregarding result\n')
+      continue
+
+    if not firstType in allowedResultTypes:
+      logging.warning('Disregarding {} due to result type being {}'.format(
+        resultListNames[0],
+        firstType))
       continue
 
     # Clamp timings
@@ -132,7 +147,7 @@ def main(args):
   tickFreq = 100
   logging.info('# of mismatches: {}'.format(mismatchCount))
   logging.info('# of result pairs clamped: {}'.format(clampCount))
-  logging.info('# of points plotted: {}'.format(len(xData)))
+  logging.info('# of points plotted: {} out of {}'.format(len(xData), len(programToResultSetsMap)))
   fig, ax = plt.subplots()
   splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
   ax.set_xlabel(resultListNames[0])
