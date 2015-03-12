@@ -29,6 +29,7 @@ def main(args):
   parser.add_argument('--ipython', action='store_true')
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
   parser.add_argument('-r', '--result-type', nargs='+', dest='result_type', choices=resultTypes, default=defaultTypes, help='Filter by FinalResultType')
+  parser.add_argument('-c', '--only-allow-consistent', dest='only_allow_consistent',action='store_true', default=False)
   pargs = parser.parse_args(args)
   print(pargs)
 
@@ -101,27 +102,29 @@ def main(args):
       logging.error(pprint.pformat(resultListNameToRawResultMap))
       return 1
 
-    # For this program check that classifications are consistent
-    # we take the first programList name as the expected
     firstResult = resultListNameToRawResultMap[resultListNames[0]]
     secondResult = resultListNameToRawResultMap[resultListNames[1]]
     firstType = classifyResult(firstResult)
     secondType = classifyResult(secondResult)
 
-    if firstType != secondType:
-      mismatchCount += 1
-      logging.warning('Found mismatch for program {}:'.format(programName))
-      for resultListName in resultListNames:
-        logging.warning('{}: {}'.format(resultListName, classifyResult(resultListNameToRawResultMap[resultListName])))
-      if pargs.verbose:
-        logging.warning('\n{}'.format(pprint.pformat(resultListNameToRawResultMap)))
-      logging.warning('Disregarding result\n')
-      continue
+    if pargs.only_allow_consistent:
+      # For this program check that classifications are consistent
+      # we take the first programList name as the expected
+      if firstType != secondType:
+        mismatchCount += 1
+        logging.warning('Found mismatch for program {}:'.format(programName))
+        for resultListName in resultListNames:
+          logging.warning('{}: {}'.format(resultListName, classifyResult(resultListNameToRawResultMap[resultListName])))
+        if pargs.verbose:
+          logging.warning('\n{}'.format(pprint.pformat(resultListNameToRawResultMap)))
+        logging.warning('Disregarding result\n')
+        continue
 
-    if not firstType in allowedResultTypes:
-      logging.warning('Disregarding {} due to result type being {}'.format(
+    if not firstType in allowedResultTypes and not secondType in allowedResultTypes:
+      logging.warning('Disregarding {} due to result type being {} and {}'.format(
         resultListNames[0],
-        firstType))
+        firstType,
+        secondType))
       continue
 
     # Clamp timings
