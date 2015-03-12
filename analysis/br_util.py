@@ -91,3 +91,86 @@ def mergeCorrectnessLabel(resultList, correctnessMapping):
       raise MergeCorrectnessLabelException('"expected_correct" missing from result with program name "{}"'.format(programName))
 
   return resultList
+
+class PickBestResultException(Exception):
+  pass
+
+def _returnFastest(results, resultListNamesToConsider):
+  assert isinstance(results, dict)
+  assert isinstance(resultListNamesToConsider, set)
+  resultsToConsider = {k:v for k,v in results.items() if k in resultListNamesToConsider}
+  assert len(resultsToConsider) > 0
+  bestResultPair = min(resultsToConsider.items(), key=lambda pair: pair[1]['total_time'])
+  return bestResultPair[0]
+
+def pickBestResult(results):
+  """
+    results: Should be a dictionary mapping the result list name to
+    the raw result for a particular boogie program.
+
+    Returns: the result list name (the key for the ``results`` dictionary)
+    that is considered the best if it exists.
+
+    It throws an exception if there is a bad result mismatch or a best result
+    could not be found
+  """
+  assert isinstance(results, dict)
+  assert len(results) > 1
+  # Get the FinalResultType for each result
+  resultTypeToResultListName = { }
+  for rType in FinalResultType:
+    resultTypeToResultListName[rType] = set()
+
+  for resultListName, rawResult in results.items():
+    resultType = classifyResult(rawResult)
+    resultTypeToResultListName[resultType].add(resultListName)
+
+  #        FULLY_EXPLORED     BUG_FOUND
+  #                    \       /
+  #                    BOUND_HIT
+  #                        |
+  #                    TIMED_OUT
+  #                        |
+  #                  OUT_OF_MEMORY
+  #                        |
+  #                     UNKNOWN
+  # Traverse our partial order starting from the best and picking
+  # the first thing we find.
+  # If there is more than one result of a resultType (e.g. two results
+  # that are marked as fully explored) we pick the result with the shortest
+  # execution time.
+  #
+  # It is a partial order because FULLY_EXPLORED and BUG_FOUND cannot be ordered
+  #
+  # FIXME: I'm not sure if TIMED_OUT and OUT_OF_MEMORY should be ordered in the
+  # way they are here.
+  
+  if len(resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]) > 0 and \
+      len(resultTypeToResultListName[FinalResultType.BUG_FOUND]) > 0:
+    raise PickBestResultException("Conflicting results FULLY_EXPLORED and BUG_FOUND")
+
+  fullyExploredListNames = resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]
+  if len(fullyExploredListNames) > 0:
+    return _returnFastest(results, fullyExploredListNames)
+
+  bugFoundListNames = resultTypeToResultListName[FinalResultType.BUG_FOUND]
+  if len(bugFoundListNames) > 0:
+    return _returnFastest(results, bugFoundListNames)
+
+  boundHitListNames = resultTypeToResultListName[FinalResultType.BOUND_HIT]
+  if len(boundHitListNames) > 0:
+    return _returnFastest(results, boundHitListNames)
+
+  timeoutListNames = resultTypeToResultListName[FinalResultType.TIMED_OUT]
+  if len(timeoutListNames) > 0:
+    return _returnFastest(results, timeoutListNames)
+
+  outOfMemoryListNames = resultTypeToResultListName[FinalResultType.OUT_OF_MEMORY]
+  if len(outOfMemoryListNames) > 0:
+    return _returnFastest(results, outOfMemoryListNames)
+
+  unknownListNames = resultTypeToResultListName[FinalResultType.UNKNOWN]
+  if len(unknownListNames) > 0:
+    return _returnFastest(results, unknownListNames)
+
+  raise PickBestResultException("Couldn't pick a best result")
