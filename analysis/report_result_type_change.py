@@ -22,7 +22,6 @@ def main(args):
   parser.add_argument("-v", "--verbose", action='store_true', help='Show detailed information about mismatch')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
-  print(pargs)
 
   logLevel = getattr(logging, pargs.log_level.upper(),None)
   logging.basicConfig(level=logLevel)
