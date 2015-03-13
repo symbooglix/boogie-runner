@@ -28,7 +28,9 @@ def main(args):
   parser.add_argument('max_time', type=int, help='Maximum time in seconds, results timings will be clamped to this value')
   parser.add_argument('--ipython', action='store_true')
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
-  parser.add_argument('-r', '--result-type', nargs='+', dest='result_type', choices=resultTypes, default=defaultTypes, help='Filter by FinalResultType')
+  parser.add_argument('-r', '--result-types-to-plot', nargs='+', dest='result_types_to_plot',
+    choices=resultTypes, default=defaultTypes,
+    help='Result types to plot (at least one of the pair must be of this type)')
   parser.add_argument('-c', '--only-allow-consistent', dest='only_allow_consistent',action='store_true', default=False)
   pargs = parser.parse_args(args)
   print(pargs)
@@ -41,7 +43,7 @@ def main(args):
 
   # Create set of allowed result types
   allowedResultTypes = set()
-  for rType in pargs.result_type:
+  for rType in pargs.result_types_to_plot:
     allowedResultTypes.add(FinalResultType[rType])
 
   # Check that each yml file exists
@@ -90,7 +92,8 @@ def main(args):
         programToResultSetsMap[programName] = { resultListName:r }
 
   # Check there are the same number of results for each program
-  mismatchCount = 0
+  allowConsistentMismatchCount = 0
+  disregardedResultTypeCount = 0
   clampCount = 0
   xData = [ ]
   yData = [ ]
@@ -111,7 +114,7 @@ def main(args):
       # For this program check that classifications are consistent
       # we take the first programList name as the expected
       if firstType != secondType:
-        mismatchCount += 1
+        allowConsistentMismatchCount += 1
         logging.warning('Found mismatch for program {}:'.format(programName))
         for resultListName in resultListNames:
           logging.warning('{}: {}'.format(resultListName, classifyResult(resultListNameToRawResultMap[resultListName])))
@@ -121,7 +124,9 @@ def main(args):
         continue
 
     if not firstType in allowedResultTypes and not secondType in allowedResultTypes:
-      logging.warning('Disregarding {} due to result type being {} and {}'.format(
+      disregardedResultTypeCount += 1
+      logging.warning('Disregarding {} in {} due to neither result types ({} and {}) not being one of the allow result types'.format(
+        programName,
         resultListNames[0],
         firstType,
         secondType))
@@ -148,8 +153,10 @@ def main(args):
   assert len(xData) == len(yData) == len(annotationLabels)
   extend = 100
   tickFreq = 100
-  logging.info('# of mismatches: {}'.format(mismatchCount))
+  if pargs.only_allow_consistent:
+    logging.info('# of mismatches when only allowing consistent results: {}'.format(allowConsistentMismatchCount))
   logging.info('# of result pairs clamped: {}'.format(clampCount))
+  logging.info('# of disregarded results due to disallowed result type: {}'.format(disregardedResultTypeCount))
   logging.info('# of points plotted: {} out of {}'.format(len(xData), len(programToResultSetsMap)))
   fig, ax = plt.subplots()
   splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
