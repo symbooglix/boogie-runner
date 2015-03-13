@@ -97,6 +97,8 @@ def main(args):
 
   # Check there are the same number of results for each program
   mismatchCount = 0
+  thresholdExceededCount = 0
+  noStandardDevCount = 0
   for programName, resultListNameToRawResultMap  in programToResultSetsMap.items():
     if len(resultListNameToRawResultMap) != len(resultListNames):
       logging.error('For program {} there we only {} result lists but expected {}'.format(
@@ -119,22 +121,26 @@ def main(args):
 
     # Perform a check on the size of the standard deviation
     if combinedResult['total_time_stddev'] == None:
+      noStandardDevCount += 1
       logging.warning('stddev was None which means only result could be used')
       logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
       logging.warning(pprint.pformat(combinedResult))
-      logging.warning('')
+      logging.warning('\n')
     elif combinedResult['total_time_stddev'] > pargs.stddev_threshold:
       if not (pargs.stddev_ignore_timeouts and
       combinedResultClassification == FinalResultType.TIMED_OUT):
+        thresholdExceededCount +=1
         logging.warning('Detected combined result with a stddev over threshold')
         logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
         logging.warning(pprint.pformat(combinedResult))
-        logging.warning('')
+        logging.warning('\n')
 
     combinedResultsList.append(combinedResult)
 
-  logging.info('Writing combined results to {}'.format(pargs.output))
   logging.info('# of results:{}'.format(len(combinedResultsList)))
+  logging.info('# of stddev thresold exceeded:{}'.format(thresholdExceededCount))
+  logging.info('# of stddev not available:{}'.format(noStandardDevCount))
+  logging.info('Writing combined results to {}'.format(pargs.output))
   with open(pargs.output, 'w') as f:
     yamlString = yaml.dump(combinedResultsList, Dumper=Dumper,
         default_flow_style=False)
