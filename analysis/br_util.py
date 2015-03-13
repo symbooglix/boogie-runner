@@ -92,24 +92,56 @@ def mergeCorrectnessLabel(resultList, correctnessMapping):
 
   return resultList
 
-class PickBestResultException(Exception):
+class CombineBestResultsException(Exception):
   pass
 
-def _returnFastest(results, resultListNamesToConsider):
+def _combineResults(results, resultListNamesToConsider):
   assert isinstance(results, dict)
   assert isinstance(resultListNamesToConsider, set)
-  resultsToConsider = {k:v for k,v in results.items() if k in resultListNamesToConsider}
+  resultsToConsider = [(k,v) for k,v in results.items() if k in resultListNamesToConsider]
   assert len(resultsToConsider) > 0
-  bestResultPair = min(resultsToConsider.items(), key=lambda pair: pair[1]['total_time'])
-  return bestResultPair[0]
 
-def pickBestResult(results):
+  # Sanity check
+  resultsType = classifyResult(resultsToConsider[0][1])
+  if not all(map(lambda pair: classifyResult(pair[1]) == resultsType, resultsToConsider)):
+    raise CombineBestResultsException('All results should be classified the same')
+
+  times = list(map(lambda pair: pair[1]['total_time'], resultsToConsider))
+  import statistics
+  arithmeticMean = statistics.mean(times)
+  if len(times) > 1:
+    # Unbiased estimate of the population standard deviation
+    # (i.e. Use's Bessel's correction)
+    stdDev = statistics.stdev(times)
+  else:
+    # Not defined if we only have one measurement
+    stdDev = None
+
+  # Create a result which represents the mean. We can copy over all the fields
+  # of the first result but modify the time
+  combinedResult = resultsToConsider[0][1].copy()
+  assert isinstance(combinedResult, dict)
+  combinedResult['total_time'] = arithmeticMean
+  combinedResult['total_time_stddev'] = stdDev
+  combinedResult['original_times'] = { }
+  # Record the original times that were used for computation of the mean time
+  # and stddev
+  for resultListName, rawResult in resultsToConsider:
+    combinedResult['original_times'][resultListName] = rawResult['total_time']
+
+  resultListNames = list(map(lambda pair: pair[0], resultsToConsider))
+  return (resultListNames, combinedResult)
+
+def combineBestResults(results):
   """
     results: Should be a dictionary mapping the result list name to
     the raw result for a particular boogie program.
 
-    Returns: the result list name (the key for the ``results`` dictionary)
-    that is considered the best if it exists.
+    Returns: the result a tuple (names, cResult) where names is a list of
+    result lists what were used to generated cResult. cResult is a combined
+    result where the execution time is the arithmetic mean of the execution
+    times of the results and a 'total_time_stddev' field is added which is
+    the standard deviation of the times (may be zero).
 
     It throws an exception if there is a bad result mismatch or a best result
     could not be found
@@ -137,40 +169,40 @@ def pickBestResult(results):
   # Traverse our partial order starting from the best and picking
   # the first thing we find.
   # If there is more than one result of a resultType (e.g. two results
-  # that are marked as fully explored) we pick the result with the shortest
-  # execution time.
+  # that are marked as fully explored) we pick compute the arithmetic mean
+  # and standard deviation
   #
   # It is a partial order because FULLY_EXPLORED and BUG_FOUND cannot be ordered
   #
   # FIXME: I'm not sure if TIMED_OUT and OUT_OF_MEMORY should be ordered in the
   # way they are here.
-  
+
   if len(resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]) > 0 and \
       len(resultTypeToResultListName[FinalResultType.BUG_FOUND]) > 0:
     raise PickBestResultException("Conflicting results FULLY_EXPLORED and BUG_FOUND")
 
   fullyExploredListNames = resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]
   if len(fullyExploredListNames) > 0:
-    return _returnFastest(results, fullyExploredListNames)
+    return _combineResults(results, fullyExploredListNames)
 
   bugFoundListNames = resultTypeToResultListName[FinalResultType.BUG_FOUND]
   if len(bugFoundListNames) > 0:
-    return _returnFastest(results, bugFoundListNames)
+    return _combineResults(results, bugFoundListNames)
 
   boundHitListNames = resultTypeToResultListName[FinalResultType.BOUND_HIT]
   if len(boundHitListNames) > 0:
-    return _returnFastest(results, boundHitListNames)
+    return _combineResults(results, boundHitListNames)
 
   timeoutListNames = resultTypeToResultListName[FinalResultType.TIMED_OUT]
   if len(timeoutListNames) > 0:
-    return _returnFastest(results, timeoutListNames)
+    return _combineResults(results, timeoutListNames)
 
   outOfMemoryListNames = resultTypeToResultListName[FinalResultType.OUT_OF_MEMORY]
   if len(outOfMemoryListNames) > 0:
-    return _returnFastest(results, outOfMemoryListNames)
+    return _combineResults(results, outOfMemoryListNames)
 
   unknownListNames = resultTypeToResultListName[FinalResultType.UNKNOWN]
   if len(unknownListNames) > 0:
-    return _returnFastest(results, unknownListNames)
+    return _combineResults(results, unknownListNames)
 
   raise PickBestResultException("Couldn't pick a best result")

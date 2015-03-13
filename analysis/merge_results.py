@@ -3,9 +3,9 @@
 """
 This script takes two or more result files which
 are each intended to be a run on the same benchmark
-suite of the same tool and then picks the "best"
-result for each benchmark (determined by the
-``pickBestResult`` function)
+suite of the same tool and then combines the
+results for each benchmark (determined by the
+``combineBestResults`` function)
 """
 import argparse
 import logging
@@ -14,7 +14,7 @@ import pprint
 import sys
 import traceback
 import yaml
-from br_util import FinalResultType, classifyResult, validateMappingFile, pickBestResult, PickBestResultException
+from br_util import FinalResultType, classifyResult, validateMappingFile, combineBestResults, CombineBestResultsException
 
 try:
   # Try to use libyaml which is faster
@@ -78,7 +78,7 @@ def main(args):
       return 1
 
   programToResultSetsMap = { }
-  bestResultList = [ ]
+  combinedResultsList = [ ]
   for resultListName in resultListNames:
     for r in data[resultListName]:
       programName = r['program']
@@ -97,27 +97,27 @@ def main(args):
       logging.error(pprint.pformat(resultListNameToRawResultMap))
       return 1
 
-    # Now determine which result out of result lists is the "best" for
-    # this particular ``programName``
+    # Compute the combined results
     try:
-      bestResultName = pickBestResult(resultListNameToRawResultMap)
-    except PickBestResultException as e:
+      resultListsUsed, combinedResult = combineBestResults(resultListNameToRawResultMap)
+    except CombineBestResultsException as e:
       logging.error('Error for program: {}'.format(programName))
       logging.error(traceback.format_exc())
       return 1
-    bestResult = resultListNameToRawResultMap[bestResultName]
-    bestResult['from_result'] = bestResultName
-    bestResultClassification = classifyResult(bestResult)
-    logging.debug('For {} picked {} [{}]'.format(programName,
-      bestResultName,
-      bestResultClassification))
-    logging.debug(pprint.pformat(bestResult))
-    bestResultList.append(bestResult)
+    combinedResultClassification = classifyResult(combinedResult)
+    logging.debug('Combined result for {} is {}. Used {}'.format(programName,
+      combinedResultClassification,
+      pprint.pformat(resultListsUsed)))
+    logging.debug(pprint.pformat(combinedResult))
 
-  logging.info('Writing best results to {}'.format(pargs.output))
-  logging.info('# of results:{}'.format(len(bestResultList)))
+    # TODO: Perform a check on the relative size of the standard deviation
+
+    combinedResultsList.append(combinedResult)
+
+  logging.info('Writing combined results to {}'.format(pargs.output))
+  logging.info('# of results:{}'.format(len(combinedResultsList)))
   with open(pargs.output, 'w') as f:
-    yamlString = yaml.dump(bestResultList, Dumper=Dumper,
+    yamlString = yaml.dump(combinedResultsList, Dumper=Dumper,
         default_flow_style=False)
     f.write(yamlString)
   return 0
