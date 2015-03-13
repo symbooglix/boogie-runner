@@ -28,6 +28,13 @@ def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-v", "--verbose", action='store_true', help='Show detailed information about mismatch')
+  parser.add_argument("--stddev-threshold", dest='stddev_threshold',
+    type=float, default=float("inf"),
+    help="Emit warning about merged results with a total_time standard deviation of greater than "
+    "the specified threshold")
+  parser.add_argument("-i", "--stddev-ignore-timeouts", dest="stddev_ignore_timeouts",
+    action='store_true', default=False, help="If set when warning about stddev threshold being "
+    " exceeded suppress that warning if the merged result is a timeout")
   parser.add_argument("-o", "--output", required=True, help='Output result YAML file')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
@@ -110,7 +117,19 @@ def main(args):
       pprint.pformat(resultListsUsed)))
     logging.debug(pprint.pformat(combinedResult))
 
-    # TODO: Perform a check on the relative size of the standard deviation
+    # Perform a check on the size of the standard deviation
+    if combinedResult['total_time_stddev'] == None:
+      logging.warning('stddev was None which means only result could be used')
+      logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
+      logging.warning(pprint.pformat(combinedResult))
+      logging.warning('')
+    elif combinedResult['total_time_stddev'] > pargs.stddev_threshold:
+      if not (pargs.stddev_ignore_timeouts and
+      combinedResultClassification == FinalResultType.TIMED_OUT):
+        logging.warning('Detected combined result with a stddev over threshold')
+        logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
+        logging.warning(pprint.pformat(combinedResult))
+        logging.warning('')
 
     combinedResultsList.append(combinedResult)
 
