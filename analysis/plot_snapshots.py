@@ -96,6 +96,7 @@ def main(args):
 
   # Check there are the same number of results for each program
   clampCount = 0
+  skipCount = 0
 
   snapshotToTotalTimeMap = { }
   for resultListName in resultListNames:
@@ -108,6 +109,19 @@ def main(args):
         programName, len(resultListNameToRawResultMap), len(resultListNames)))
       logging.error(pprint.pformat(resultListNameToRawResultMap))
       return 1
+
+    skipProgram = False
+    for resultListName in resultListNames:
+      result = resultListNameToRawResultMap[resultListName]
+      rType = classifyResult(result)
+      if not rType in allowedResultTypes:
+        logging.warning('Skipping {}, disallowed result type {}'.format(programName, rType))
+        skipProgram = True
+        skipCount += 1
+        break
+
+    if skipProgram:
+      continue
 
     # Clamp results if they are of a particular type
     didClamp = False
@@ -122,18 +136,20 @@ def main(args):
         result['total_time'] = pargs.max_time
         result['clamped_due_to_result_type'] = True
         didClamp = True
-
-    if didClamp:
-      clampCount += 1
         
-    # Add to the total times
-    for resultListName in resultListNames:
+      # Add to the total times
       currentTotal = snapshotToTotalTimeMap[resultListName]
       assert currentTotal >= 0.0
       currentTotal += resultListNameToRawResultMap[resultListName]['total_time']
       snapshotToTotalTimeMap[resultListName] = currentTotal
 
+    if didClamp:
+      clampCount += 1
 
+
+  logging.info('Total # of programs (given as input): {}'.format(length))
+  logging.info('# of skipped programs: {}'.format(skipCount))
+  logging.info('# of clamped programs: {}'.format(clampCount))
   # TODO: This is work in progress
   # we need some way of estimating the error in these numbers. Remember Walter
   # Lewein "a measurement without uncertainty is meaningless!"
