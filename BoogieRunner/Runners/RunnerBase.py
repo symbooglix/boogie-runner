@@ -398,7 +398,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # FIXME: We should make this settable from the config
     return '/mnt/'
 
-  def kill(self, pause=False):
+  def kill(self, pause=0.0):
     """
     Subclasses need to override this if their
     run() method doesn't use runTool()
@@ -506,7 +506,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         # Note the code in the finally block will sort out clean up
         raise e
       finally:
-        self.kill(pause=False)
+        self.kill()
 
         # This is a sanity check to make sure that the memory polling thread exits
         # before this method exits
@@ -532,6 +532,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     return process.memory_info()[1] / (2**20)
 
   def _terminateProcess(self, process, pause):
+    assert isinstance(pause, float)
+    assert pause >= 0.0
     # Gently terminate
     _logger.debug('Trying to terminate PID:{}'.format(process.pid))
     children = process.children(recursive=True)
@@ -543,8 +545,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       except psutil.NoSuchProcess:
         pass
 
-    if pause:
-      time.sleep(1)
+    # If requested give the process time to clean up after itself
+    # if it is still running
+    if self._processIsRunning(process) and pause > 0.0:
+      time.sleep(pause)
 
     # Now aggresively kill
     _logger.info('Trying to kill PID:{}'.format(process.pid))
@@ -556,6 +560,9 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         child.kill()
       except psutil.NoSuchProcess:
         pass
+
+  def _processIsRunning(self, process):
+    return process.is_running() and not process.status() == psutil.STATUS_ZOMBIE
 
   def _memoryLimitPolling(self, process):
     """
@@ -574,7 +581,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       _logger.info('Launching memory limit polling thread for PID {} with polling time period of {} seconds'.format(
         process.pid, self.memoryLimitPollTimePeriodInSeconds))
       try:
-        while process.is_running() and not process.status() == psutil.STATUS_ZOMBIE:
+        while self._processIsRunning(process):
           self._eventObj.wait(self.memoryLimitPollTimePeriodInSeconds)
           totalMemoryUsage = 0
           totalMemoryUsage += self._getProcessMemoryUsageInMiB(process)
@@ -594,7 +601,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
           if totalMemoryUsage > self.maxMemoryInMiB:
             _logger.warning('Memory limit reached (recorded {} MiB). Killing tool with PID {}'.format(totalMemoryUsage, process.pid))
             self._memoryLimitHit = True
-            self._terminateProcess(process, pause=False)
+            # Give the tool a chance to clean up after itself before aggressively killing it
+            self._terminateProcess(process, pause=1.0)
             break
       except psutil.NoSuchProcess:
         _logger.warning('Main process no longer available')
