@@ -25,6 +25,8 @@ except ImportError:
 
 
 def main(args):
+  resultTypes = [ r.name for r in list(FinalResultType)] # Get list of ResultTypes as strings
+
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-v", "--verbose", action='store_true', help='Show detailed information about mismatch')
@@ -32,9 +34,11 @@ def main(args):
     type=float, default=float("inf"),
     help="Emit warning about merged results with a total_time standard deviation of greater than "
     "the specified threshold")
-  parser.add_argument("-i", "--stddev-ignore-timeouts", dest="stddev_ignore_timeouts",
-    action='store_true', default=False, help="If set when warning about stddev threshold being "
-    " exceeded suppress that warning if the merged result is a timeout")
+  parser.add_argument("-i", "--stddev-ignore-types", dest="stddev_ignore_types",
+    nargs='+', default=[], help="If set when warning about stddev threshold being "
+    " exceeded suppress that warning if the merged result is one of the speicifed types."
+    " Default is to not to supress any types",
+    choices=resultTypes)
   parser.add_argument("-o", "--output", required=True, help='Output result YAML file')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
@@ -48,6 +52,11 @@ def main(args):
   if os.path.exists(pargs.output):
     logging.error('Refusing to overwrite {}'.format(pargs.output))
     return 1
+
+  # Create set of allowed result types
+  resultTypesWithExceedStdDevToIgnore = set()
+  for rType in pargs.stddev_ignore_types:
+    resultTypesWithExceedStdDevToIgnore.add(FinalResultType[rType])
 
   # Check that each yml file exists
   data = { }
@@ -127,8 +136,7 @@ def main(args):
       logging.warning(pprint.pformat(combinedResult))
       logging.warning('\n')
     elif combinedResult['total_time_stddev'] > pargs.stddev_threshold:
-      if not (pargs.stddev_ignore_timeouts and
-      combinedResultClassification == FinalResultType.TIMED_OUT):
+      if not combinedResultClassification in resultTypesWithExceedStdDevToIgnore:
         thresholdExceededCount +=1
         logging.warning('Detected combined result with a stddev over threshold')
         logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
