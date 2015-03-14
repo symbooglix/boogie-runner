@@ -108,6 +108,7 @@ def main(args):
   mismatchCount = 0
   thresholdExceededCount = 0
   noStandardDevCount = 0
+  largestStdDev = 0
   for programName, resultListNameToRawResultMap  in programToResultSetsMap.items():
     if len(resultListNameToRawResultMap) != len(resultListNames):
       logging.error('For program {} there we only {} result lists but expected {}'.format(
@@ -138,6 +139,8 @@ def main(args):
     elif combinedResult['total_time_stddev'] > pargs.stddev_threshold:
       if not combinedResultClassification in resultTypesWithExceedStdDevToIgnore:
         thresholdExceededCount +=1
+        if combinedResult['total_time_stddev'] > largestStdDev:
+          largestStdDev = combinedResult['total_time_stddev']
         logging.warning('Detected combined result with a stddev over threshold')
         logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
         logging.warning(pprint.pformat(combinedResult))
@@ -148,6 +151,7 @@ def main(args):
   logging.info('# of results:{}'.format(len(combinedResultsList)))
   logging.info('# of stddev thresold exceeded:{}'.format(thresholdExceededCount))
   logging.info('# of stddev not available:{}'.format(noStandardDevCount))
+  logging.info('Largest reported stddev: {}'.format((largestStdDev)))
   logging.info('Writing combined results to {}'.format(pargs.output))
   with open(pargs.output, 'w') as f:
     yamlString = yaml.dump(combinedResultsList, Dumper=Dumper,
