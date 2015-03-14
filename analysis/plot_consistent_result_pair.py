@@ -28,10 +28,14 @@ def main(args):
   parser.add_argument('max_time', type=int, help='Maximum time in seconds, results timings will be clamped to this value')
   parser.add_argument('--ipython', action='store_true')
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
-  parser.add_argument('-r', '--result-types-to-plot', nargs='+', dest='result_types_to_plot',
-    choices=resultTypes, default=defaultTypes,
-    help='Result types to plot (at least one of the pair must be of this type)')
   parser.add_argument('-c', '--only-allow-consistent', dest='only_allow_consistent',action='store_true', default=False)
+
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument('-r', '--result-types-to-plot', nargs='+', dest='result_types_to_plot',
+    choices=resultTypes, default=defaultTypes,
+    help='Result types to plot (at least one of the pair must be of this type). Default: %(default)s')
+  group.add_argument('--all', default=False, action='store_true', help='Plot all result types')
+
   pargs = parser.parse_args(args)
   print(pargs)
 
@@ -42,9 +46,13 @@ def main(args):
     logger.error('Need two YAML files')
 
   # Create set of allowed result types
-  allowedResultTypes = set()
-  for rType in pargs.result_types_to_plot:
-    allowedResultTypes.add(FinalResultType[rType])
+  if pargs.all:
+    allowedResultTypes = set(FinalResultType)
+  else:
+    allowedResultTypes = set()
+    for rType in pargs.result_types_to_plot:
+      allowedResultTypes.add(FinalResultType[rType])
+  logging.info('Plotting points of type {}'.format(allowedResultTypes))
 
   # Check that each yml file exists
   data = { }
