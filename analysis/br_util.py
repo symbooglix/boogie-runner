@@ -179,7 +179,7 @@ def combineBestResults(results):
 
   if len(resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]) > 0 and \
       len(resultTypeToResultListName[FinalResultType.BUG_FOUND]) > 0:
-    raise PickBestResultException("Conflicting results FULLY_EXPLORED and BUG_FOUND")
+    raise CombineBestResultsException("Conflicting results FULLY_EXPLORED and BUG_FOUND")
 
   fullyExploredListNames = resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]
   if len(fullyExploredListNames) > 0:
