@@ -27,7 +27,7 @@ def main(args):
   logging.basicConfig(level=logLevel)
 
   if len(pargs.result_ymls) < 2:
-    logger.error('Need to at least 2 YAML files')
+    logging.error('Need to at least 2 YAML files')
 
   # Check that each yml file exists
   data = { }
