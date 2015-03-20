@@ -21,6 +21,8 @@ def main(args):
   resultTypes = [ r.name for r in list(FinalResultType)] # Get list of ResultTypes as strings
   defaultTypes = [ r.name for r in list(FinalResultType) if r in [FinalResultType.FULLY_EXPLORED, FinalResultType.BUG_FOUND]]
 
+  failureTypes = { FinalResultType.UNKNOWN, FinalResultType.TIMED_OUT, FinalResultType.OUT_OF_MEMORY }
+
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-v", "--verbose", action='store_true', help='Show detailed information about mismatch')
@@ -29,6 +31,7 @@ def main(args):
   parser.add_argument('--ipython', action='store_true')
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
   parser.add_argument('-c', '--only-allow-consistent', dest='only_allow_consistent',action='store_true', default=False)
+  parser.add_argument('--give-analysis-failure-max-time', dest='give_analysis_failure_max_time', default=False, action='store_true')
 
   group = parser.add_mutually_exclusive_group()
   group.add_argument('-r', '--result-types-to-plot', nargs='+', dest='result_types_to_plot',
@@ -103,6 +106,7 @@ def main(args):
   allowConsistentMismatchCount = 0
   disregardedResultTypeCount = 0
   clampCount = 0
+  failedAnalysisGivenMaxTimeCount = 0
   xData = [ ]
   yData = [ ]
   annotationLabels = [ ]
@@ -151,6 +155,19 @@ def main(args):
 
     if didClamp:
       clampCount += 1
+
+    didGiveFailedAnalysisMaxTime = False
+    if pargs.give_analysis_failure_max_time:
+      for resultListName in resultListNames:
+        r = resultListNameToRawResultMap[resultListName]
+        rType = classifyResult(r)
+        if rType in failureTypes:
+          r['total_time'] = pargs.max_time
+          didGiveFailedAnalysisMaxTime = True
+
+    if didGiveFailedAnalysisMaxTime:
+      failedAnalysisGivenMaxTimeCount += 1
+
         
     # Add data point for plotting
     xData.append(firstResult['total_time'])
@@ -166,6 +183,7 @@ def main(args):
   logging.info('# of result pairs clamped: {}'.format(clampCount))
   logging.info('# of disregarded results due to disallowed result type: {}'.format(disregardedResultTypeCount))
   logging.info('# of points plotted: {} out of {}'.format(len(xData), len(programToResultSetsMap)))
+  logging.info('# of points where the result was a failed analysis and where given the max time: {}'.format(failedAnalysisGivenMaxTimeCount))
   fig, ax = plt.subplots()
   splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
   ax.set_xlabel(resultListNames[0])
