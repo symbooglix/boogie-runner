@@ -59,6 +59,7 @@ def main(args):
   newMapping = { }
   useTrustedLabelCount = 0
   useFallbackLabelCount = 0
+  trustedFallbackMismatchCount = 0
   for programName, expectedCorrect in [ (k, v['expected_correct']) for (k,v) in trustedMapping.items() ]:
     fallbackExpectedCorrect = fallbackMapping[programName]['expected_correct']
     finalExpectedCorrect = None
@@ -85,6 +86,7 @@ def main(args):
         logging.warning('There is conflict between fallback and trusted for "{}".'
         'Trusted: {}, Fallback: {}'.format(programName, expectedCorrect,
           fallbackExpectedCorrect))
+        trustedFallbackMismatchCount += 1
 
       useTrustedLabelCount += 1
       finalExpectedCorrect = expectedCorrect
@@ -108,6 +110,9 @@ def main(args):
     useTrustedLabelCount, 100*float(useTrustedLabelCount)/len(trustedMapping)))
   print("# of fallback labels used: {} ({:.2f}%)".format(
     useFallbackLabelCount, 100*float(useFallbackLabelCount)/len(trustedMapping)))
+  print("# of mistmatches between trusted (when not unknown) and fall back"
+        ": {} ({:.2f}%)".format(trustedFallbackMismatchCount,
+        100*float(trustedFallbackMismatchCount)/len(trustedMapping)))
   print("# of labels: {}".format(len(trustedMapping)))
   return 0
 
