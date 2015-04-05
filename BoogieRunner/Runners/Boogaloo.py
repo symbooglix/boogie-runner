@@ -52,6 +52,9 @@ class BoogalooRunner(RunnerBaseClass):
       _logger.warning('Cannot detect if bound is hit if not using "exec" mode')
 
     cmdLine.extend(self.additionalArgs)
+    if self.entryPoint == None:
+      raise BoogalooRunnerException('entry point not specified')
+
     cmdLine.append('--proc={}'.format(self.entryPoint))
 
     # Add the boogie source file as last arg

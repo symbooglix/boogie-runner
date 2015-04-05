@@ -4,4 +4,3 @@ runner_config:
   tool_path: "~/dev/boogie/Binaries/Boogie.exe"
   max_memory: 4096
   max_time: 5
-  entry_point: "main"

@@ -29,6 +29,10 @@ class CorralRunner(RunnerBaseClass):
     # We assume that Corral has no default timeout.
     # Looking at Corral's code "/timeLimit:" seems to be
     # zero by default despite what the usage message says
+
+    if self.entryPoint == None:
+      raise CorralRunnerException("entry point not specified")
+
     cmdLine = [self.toolPath,
                self.programPathArgument,
                "/main:{}".format(self.entryPoint)

@@ -26,9 +26,13 @@ class BoogieRunner(RunnerBaseClass):
     return BoogieAnalyser(self.exitCode, self.logFile, self.useDocker)
 
   def run(self):
-    cmdLine = [self.toolPath,
-               "/proc:{}".format(self.entryPoint),
-              ]
+    cmdLine = [self.toolPath]
+
+    if self.entryPoint == None:
+      _logger.info('Entry point not specified. Boogie will try to verify all procedures')
+    else:
+      cmdLine.append("/proc:{}".format(self.entryPoint))
+
     cmdLine.extend(self.additionalArgs)
     cmdLine.append(self.programPathArgument)
 

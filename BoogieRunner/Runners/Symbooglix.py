@@ -74,6 +74,8 @@ class SymbooglixRunner(RunnerBaseClass):
     self.outputDir = os.path.join(self.workingDirectory, "sbx")
     cmdLine.append('--output-dir={}'.format(self.outputDir))
 
+    if self.entryPoint == None:
+      raise SymbooglixRunnerException("entry point not specified")
     # Set implementation to enter
     cmdLine.append('--entry-points={}'.format(self.entryPoint))
 

@@ -235,8 +235,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         self.entryPoint = self.findEntryPoint(entryPoint)
 
     except KeyError:
-      _logger.info('"entry_point" not specified, assuming main is entry point')
-      self.entryPoint = 'main'
+      _logger.warning('"entry_point" not specified, it is implementation defined what this runner will do')
+      self.entryPoint = None
 
     self.additionalArgs = [ ]
     if 'additional_args' in rc:
