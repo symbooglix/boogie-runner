@@ -41,7 +41,7 @@ class BoogieAnalyser(AnalyserBaseClass):
   @property
   def failed(self):
     if self.exitCode == None:
-      return True # Timeout is not a failure
+      return False # Timeout is not a failure
 
     if self.exitCode != 0:
       return True
