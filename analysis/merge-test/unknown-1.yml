@@ -1,0 +1,12 @@
+- bound_hit: false
+  bug_found: false
+  exit_code: 255
+  failed: true
+  hit_hard_timeout: false
+  out_of_memory: false
+  program: /home/dsl11/dev/symbooglix/sbb/sv-comp/array-examples/sorting_bubblesort_false-unreach-call_ground.i_.bpl
+  sbx_dir: /home/dsl11/dev/symbooglix/sbx-opt2/snapshot-1/0/svcomp_wd/workdir-1/sbx
+  speculative_paths_nb: false
+  timeout_hit: false
+  total_time: 20.985538028005976
+  working_directory: /home/dsl11/dev/symbooglix/sbx-opt2/snapshot-1/0/svcomp_wd/workdir-1

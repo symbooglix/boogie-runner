@@ -92,21 +92,38 @@ def mergeCorrectnessLabel(resultList, correctnessMapping):
 
   return resultList
 
-class CombineBestResultsException(Exception):
+class CombineResultsException(Exception):
   pass
 
-def _combineResults(results, resultListNamesToConsider):
-  assert isinstance(results, dict)
-  assert isinstance(resultListNamesToConsider, set)
-  resultsToConsider = [(k,v) for k,v in results.items() if k in resultListNamesToConsider]
-  assert len(resultsToConsider) > 0
+class ComputeTimesException(Exception):
+  pass
 
-  # Sanity check
-  resultsType = classifyResult(resultsToConsider[0][1])
-  if not all(map(lambda pair: classifyResult(pair[1]) == resultsType, resultsToConsider)):
-    raise CombineBestResultsException('All results should be classified the same')
+def _computeTimes(resultList, maxTime, resultTypesToGiveMaxTime):
+  """
+    resultList: list of raw results
+    maxTime: the maximumTime to give result that are of a type in resultTypesToGiveMaxTime
+    resultTypesToGiveMaxTime: a set of FinalResultTypes to treat as having executed for
+    ``maxTime``.
 
-  times = list(map(lambda pair: pair[1]['total_time'], resultsToConsider))
+    returns a tuple (meanTime, stdDev)
+
+    where meanTime is the arithmetic mean and stdDev is the estimation of the population
+    standard deviation (Bessel corrected).
+  """
+  assert isinstance(resultList, list)
+  assert isinstance(maxTime, float)
+  assert isinstance(resultTypesToGiveMaxTime, set)
+  assert maxTime > 0.0
+  times = []
+  for r in resultList:
+    totalTime = r['total_time']
+    resultType = classifyResult(r)
+    if resultType in resultTypesToGiveMaxTime:
+      totalTime = maxTime
+    assert totalTime > 0.0
+    times.append(totalTime)
+
+  assert len(resultList) == len(times)
   import statistics
   arithmeticMean = statistics.mean(times)
   if len(times) > 1:
@@ -115,33 +132,21 @@ def _combineResults(results, resultListNamesToConsider):
     stdDev = statistics.stdev(times)
   else:
     # Not defined if we only have one measurement
-    stdDev = None
+    raise ComputeTimesException("Can't compute stddev from a single result")
 
-  # Create a result which represents the mean. We can copy over all the fields
-  # of the first result but modify the time
-  combinedResult = resultsToConsider[0][1].copy()
-  assert isinstance(combinedResult, dict)
-  combinedResult['total_time'] = arithmeticMean
-  combinedResult['total_time_stddev'] = stdDev
-  combinedResult['original_times'] = { }
-  # Record the original times that were used for computation of the mean time
-  # and stddev
-  for resultListName, rawResult in resultsToConsider:
-    combinedResult['original_times'][resultListName] = rawResult['total_time']
+  return (arithmeticMean, stdDev)
 
-  resultListNames = list(map(lambda pair: pair[0], resultsToConsider))
-  return (resultListNames, combinedResult)
-
-def combineBestResults(results):
+def combineResults(results, maxTime):
   """
     results: Should be a dictionary mapping the result list name to
     the raw result for a particular boogie program.
 
-    Returns: the result a tuple (names, cResult) where names is a list of
-    result lists what were used to generated cResult. cResult is a combined
-    result where the execution time is the arithmetic mean of the execution
-    times of the results and a 'total_time_stddev' field is added which is
-    the standard deviation of the times (may be zero).
+    maxTime: float. The time to use for results of type ``resultTypesToGiveMaxTime``.
+
+    Returns: cResult which is the combined result where the execution time is
+    the arithmetic mean of the execution times of the results and a
+    'total_time_stddev' field is added which is the standard deviation of the
+    times (may be zero).
 
     It throws an exception if there is a bad result mismatch or a best result
     could not be found
@@ -149,60 +154,79 @@ def combineBestResults(results):
   assert isinstance(results, dict)
   assert len(results) > 1
   # Get the FinalResultType for each result
-  resultTypeToResultListName = { }
+  resultTypeToListOfResults = { }
   for rType in FinalResultType:
-    resultTypeToResultListName[rType] = set()
+    resultTypeToListOfResults[rType] = [ ]
 
   for resultListName, rawResult in results.items():
     resultType = classifyResult(rawResult)
-    resultTypeToResultListName[resultType].add(resultListName)
+    resultTypeToListOfResults[resultType].append(rawResult)
 
-  #        FULLY_EXPLORED     BUG_FOUND
+  #        FULLY_EXPLORED     BUG_FOUND (conflict)
   #                    \       /
   #                    BOUND_HIT
-  #                        |
-  #                    TIMED_OUT
-  #                        |
-  #                  OUT_OF_MEMORY
-  #                        |
-  #                     UNKNOWN
-  # Traverse our partial order starting from the best and picking
-  # the first thing we find.
-  # If there is more than one result of a resultType (e.g. two results
-  # that are marked as fully explored) we pick compute the arithmetic mean
-  # and standard deviation
+  #                    /   |   \
+  #                   /    |    \
+  #                  /     |     \
+  #      OUT_OF_MEMORY TIMED_OUT UNKNOWN  (no conflict, take most common)
+  #
+  # Traverse the above partial order starting from the top.
+  # We try to pick a best result type (i.e. FULLY_EXPLORED, BUG_FOUND or BOUND_HIT) if it exists
+  # otherwise we pick the most common. This is giving a tool the "benefit of the doubt".
+  #
+  # For handling total_time all results are used to compute an arithmetic mean
+  # standard deviation but for results of a type OUT_OF_MEMORY, TIMED_OUT or
+  # UNKNOWN, their times are adjusted so that their times are maxTime.
   #
   # It is a partial order because FULLY_EXPLORED and BUG_FOUND cannot be ordered
+  # and neither can OUT_OF_MEMORY, TIMED_OUT or UNKNOWN
   #
-  # FIXME: I'm not sure if TIMED_OUT and OUT_OF_MEMORY should be ordered in the
-  # way they are here.
+  # It is important this is a list because the order is important
+  bestTypesOrdered = [FinalResultType.FULLY_EXPLORED,
+                      FinalResultType.BUG_FOUND,
+                      FinalResultType.BOUND_HIT]
+  noBestTypes = set(FinalResultType).difference(set(bestTypesOrdered))
+  copiedResult = None
 
-  if len(resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]) > 0 and \
-      len(resultTypeToResultListName[FinalResultType.BUG_FOUND]) > 0:
-    raise CombineBestResultsException("Conflicting results FULLY_EXPLORED and BUG_FOUND")
+  if len(resultTypeToListOfResults[FinalResultType.FULLY_EXPLORED]) > 0 and \
+      len(resultTypeToListOfResults[FinalResultType.BUG_FOUND]) > 0:
+    raise CombineResultsException("Conflicting results FULLY_EXPLORED and BUG_FOUND")
 
-  fullyExploredListNames = resultTypeToResultListName[FinalResultType.FULLY_EXPLORED]
-  if len(fullyExploredListNames) > 0:
-    return _combineResults(results, fullyExploredListNames)
+  # Try to pick the best
+  for rType in bestTypesOrdered:
+    if len(resultTypeToListOfResults[rType]) > 0:
+      resultToCopy = resultTypeToListOfResults[rType][0]
+      assert isinstance(resultToCopy, dict)
+      copiedResult = resultToCopy.copy()
+      break
 
-  bugFoundListNames = resultTypeToResultListName[FinalResultType.BUG_FOUND]
-  if len(bugFoundListNames) > 0:
-    return _combineResults(results, bugFoundListNames)
+  if copiedResult == None:
+    # We couldn't pick a best so pick the most common out of the remaing
+    # result types. If there is a tie the choice is arbitary
+    assert all(map(lambda rType: len(resultTypeToListOfResults[rType]) == 0, bestTypesOrdered))
+    largestList = [ ]
+    for rType in noBestTypes:
+      if len(resultTypeToListOfResults[rType]) > len(largestList):
+        largestList = resultTypeToListOfResults[rType]
 
-  boundHitListNames = resultTypeToResultListName[FinalResultType.BOUND_HIT]
-  if len(boundHitListNames) > 0:
-    return _combineResults(results, boundHitListNames)
+    assert len(largestList) > 0
+    resultToCopy = largestList[0]
+    assert isinstance(resultToCopy, dict)
+    copiedResult = resultToCopy.copy()
 
-  timeoutListNames = resultTypeToResultListName[FinalResultType.TIMED_OUT]
-  if len(timeoutListNames) > 0:
-    return _combineResults(results, timeoutListNames)
+  # Compute the total_time and stddev.
+  listOfAllResults = []
+  for r in results.values():
+    assert isinstance(r, dict)
+    listOfAllResults.append(r)
+  assert isinstance(listOfAllResults, list)
+  assert len(listOfAllResults) > 0
+  meanTime, stdDev = _computeTimes(listOfAllResults, maxTime, noBestTypes)
+  assert isinstance(meanTime, float)
+  assert isinstance(stdDev, float)
+  copiedResult['total_time'] = meanTime
+  copiedResult['total_time_stddev'] = stdDev
+  copiedResult['original_results'] = listOfAllResults
 
-  outOfMemoryListNames = resultTypeToResultListName[FinalResultType.OUT_OF_MEMORY]
-  if len(outOfMemoryListNames) > 0:
-    return _combineResults(results, outOfMemoryListNames)
+  return copiedResult
 
-  unknownListNames = resultTypeToResultListName[FinalResultType.UNKNOWN]
-  if len(unknownListNames) > 0:
-    return _combineResults(results, unknownListNames)
-
-  raise PickBestResultException("Couldn't pick a best result")

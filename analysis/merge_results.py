@@ -14,7 +14,7 @@ import pprint
 import sys
 import traceback
 import yaml
-from br_util import FinalResultType, classifyResult, validateMappingFile, combineBestResults, CombineBestResultsException
+from br_util import FinalResultType, classifyResult, validateMappingFile, combineResults, CombineResultsException, ComputeTimesException
 
 try:
   # Try to use libyaml which is faster
@@ -40,6 +40,7 @@ def main(args):
     " Default is to not to supress any types",
     choices=resultTypes)
   parser.add_argument("-o", "--output", required=True, help='Output result YAML file')
+  parser.add_argument("max_time", type=float, help='max time to give benchmarks')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
 
@@ -51,6 +52,10 @@ def main(args):
 
   if os.path.exists(pargs.output):
     logging.error('Refusing to overwrite {}'.format(pargs.output))
+    return 1
+
+  if pargs.max_time <= 0.0:
+    logging.error('max_time must be greater than zero')
     return 1
 
   # Create set of allowed result types
@@ -118,25 +123,18 @@ def main(args):
 
     # Compute the combined results
     try:
-      resultListsUsed, combinedResult = combineBestResults(resultListNameToRawResultMap)
-    except CombineBestResultsException as e:
+      combinedResult = combineResults(resultListNameToRawResultMap, pargs.max_time)
+    except (CombineResultsException, ComputeTimesException) as e:
       logging.error('Error for program: {}'.format(programName))
       logging.error(traceback.format_exc())
       return 1
     combinedResultClassification = classifyResult(combinedResult)
-    logging.debug('Combined result for {} is {}. Used {}'.format(programName,
-      combinedResultClassification,
-      pprint.pformat(resultListsUsed)))
+    logging.debug('Combined result for {} is {}.'.format(programName,
+      combinedResultClassification))
     logging.debug(pprint.pformat(combinedResult))
 
     # Perform a check on the size of the standard deviation
-    if combinedResult['total_time_stddev'] == None:
-      noStandardDevCount += 1
-      logging.warning('stddev was None which means only result could be used')
-      logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
-      logging.warning(pprint.pformat(combinedResult))
-      logging.warning('\n')
-    elif combinedResult['total_time_stddev'] > pargs.stddev_threshold:
+    if combinedResult['total_time_stddev'] > pargs.stddev_threshold:
       if not combinedResultClassification in resultTypesWithExceedStdDevToIgnore:
         thresholdExceededCount +=1
         if combinedResult['total_time_stddev'] > largestStdDev:
