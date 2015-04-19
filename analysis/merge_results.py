@@ -30,10 +30,14 @@ def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-v", "--verbose", action='store_true', help='Show detailed information about mismatch')
-  parser.add_argument("--stddev-threshold", dest='stddev_threshold',
+  parser.add_argument("--stddev-abs-threshold", dest='stddev_abs_threshold',
     type=float, default=float("inf"),
-    help="Emit warning about merged results with a total_time standard deviation of greater than "
-    "the specified threshold")
+    help="Emit warning about merged results with a absolute stddev greater than "
+    "the specified threshold. Default %(default)s")
+  parser.add_argument("--stddev-rel-threshold", dest='stddev_rel_threshold',
+    type=float, default=float("inf"),
+    help="Emit warning about merged results with a relative stddev greater than "
+    "the specified threshold. Default %(default)s")
   parser.add_argument("-i", "--stddev-ignore-types", dest="stddev_ignore_types",
     nargs='+', default=[], help="If set when warning about stddev threshold being "
     " exceeded suppress that warning if the merged result is one of the speicifed types."
@@ -136,7 +140,9 @@ def main(args):
       largestStdDev = combinedResult['total_time_stddev']
 
     # Perform a check on the size of the standard deviation
-    if combinedResult['total_time_stddev'] > pargs.stddev_threshold:
+    relStdDev = combinedResult['total_time_stddev'] / combinedResult['total_time']
+    if (relStdDev > pargs.stddev_rel_threshold or
+        combinedResult['total_time_stddev'] > pargs.stddev_abs_threshold):
       if not combinedResultClassification in resultTypesWithExceedStdDevToIgnore:
         thresholdExceededCount +=1
         logging.warning('Detected combined result with a stddev over threshold')
