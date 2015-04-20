@@ -9,6 +9,7 @@ results for each benchmark (determined by the
 """
 import argparse
 import logging
+import math
 import os
 import pprint
 import sys
@@ -140,9 +141,23 @@ def main(args):
       largestStdDev = combinedResult['total_time_stddev']
 
     # Perform a check on the size of the standard deviation
+    thresholdExceeded = False
     relStdDev = combinedResult['total_time_stddev'] / combinedResult['total_time']
-    if (relStdDev > pargs.stddev_rel_threshold or
+    if (math.isinf(pargs.stddev_rel_threshold) and
         combinedResult['total_time_stddev'] > pargs.stddev_abs_threshold):
+      # Only relative threshold specified
+      thresholdExceeded = True
+    elif (math.isinf(pargs.stddev_abs_threshold) and
+        relStdDev > pargs.stddev_rel_threshold):
+      # Only absolute threshold specified
+      thresholdExceeded = True
+    elif ((not (math.isinf(pargs.stddev_rel_threshold) or math.isinf(pargs.stddev_abs_threshold)))
+          and combinedResult['total_time_stddev'] > pargs.stddev_abs_threshold and
+          relStdDev > pargs.stddev_rel_threshold):
+      # Use both relative and absolute thresholds
+      thresholdExceeded = True
+
+    if thresholdExceeded:
       if not combinedResultClassification in resultTypesWithExceedStdDevToIgnore:
         thresholdExceededCount +=1
         logging.warning('Detected combined result with a stddev over threshold')
