@@ -45,6 +45,7 @@ def main(args):
     " Default is to not to supress any types",
     choices=resultTypes)
   parser.add_argument("-o", "--output", required=True, help='Output result YAML file')
+  parser.add_argument("--results-above-threshold", dest='results_above_threshold', default=None, type=str, help='File to write results that are above threshold. By default no file is written.')
   parser.add_argument("max_time", type=float, help='max time to give benchmarks')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
@@ -57,6 +58,10 @@ def main(args):
 
   if os.path.exists(pargs.output):
     logging.error('Refusing to overwrite {}'.format(pargs.output))
+    return 1
+
+  if pargs.results_above_threshold != None and os.path.exists(pargs.results_above_threshold):
+    logging.error('Refusing to overwrite {}'.format(pargs.results_above_threshold))
     return 1
 
   if pargs.max_time <= 0.0:
@@ -105,6 +110,7 @@ def main(args):
 
   programToResultSetsMap = { }
   combinedResultsList = [ ]
+  resultsAboveStdDevThreshold = []
   for resultListName in resultListNames:
     for r in data[resultListName]:
       programName = r['program']
@@ -159,23 +165,31 @@ def main(args):
 
     if thresholdExceeded:
       if not combinedResultClassification in resultTypesWithExceedStdDevToIgnore:
-        thresholdExceededCount +=1
         logging.warning('Detected combined result with a stddev over threshold')
         logging.warning('{} classified as {}'.format(programName, combinedResultClassification))
         logging.warning(pprint.pformat(combinedResult))
         logging.warning('\n')
+        resultsAboveStdDevThreshold.append(combinedResult)
+
 
     combinedResultsList.append(combinedResult)
 
   logging.info('# of results:{}'.format(len(combinedResultsList)))
   logging.info('# of stddev thresold exceeded:{} ({:.2f}%)'.format(
-    thresholdExceededCount, 100*(float(thresholdExceededCount))/len(combinedResultsList)))
+    len(resultsAboveStdDevThreshold), 100*(float(len(resultsAboveStdDevThreshold)))/len(combinedResultsList)))
   logging.info('Largest reported stddev: {}'.format((largestStdDev)))
   logging.info('Writing combined results to {}'.format(pargs.output))
   with open(pargs.output, 'w') as f:
     yamlString = yaml.dump(combinedResultsList, Dumper=Dumper,
         default_flow_style=False)
     f.write(yamlString)
+
+  if len(resultsAboveStdDevThreshold) > 0 and pargs.results_above_threshold != None:
+    logging.info('Writing results over stddev threshold to {}'.format(pargs.results_above_threshold))
+    with open(pargs.results_above_threshold, 'w') as f:
+      yamlString = yaml.dump(resultsAboveStdDevThreshold, Dumper=Dumper,
+          default_flow_style=False)
+      f.write(yamlString)
   return 0
 
 if __name__ == '__main__':
