@@ -168,7 +168,8 @@ def main(args):
     combinedResultsList.append(combinedResult)
 
   logging.info('# of results:{}'.format(len(combinedResultsList)))
-  logging.info('# of stddev thresold exceeded:{}'.format(thresholdExceededCount))
+  logging.info('# of stddev thresold exceeded:{} ({:.2f}%)'.format(
+    thresholdExceededCount, 100*(float(thresholdExceededCount))/len(combinedResultsList)))
   logging.info('Largest reported stddev: {}'.format((largestStdDev)))
   logging.info('Writing combined results to {}'.format(pargs.output))
   with open(pargs.output, 'w') as f:
