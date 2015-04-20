@@ -2,7 +2,11 @@
 """
 Utility functions for analysis tools
 """
+import logging
 from enum import Enum, unique
+import pprint
+
+_logger = logging.getLogger(__name__)
 
 @unique
 class FinalResultType(Enum):
@@ -103,7 +107,7 @@ def _computeTimes(resultList, maxTime, resultTypesToGiveMaxTime):
     resultList: list of raw results
     maxTime: the maximumTime to give result that are of a type in resultTypesToGiveMaxTime
     resultTypesToGiveMaxTime: a set of FinalResultTypes to treat as having executed for
-    ``maxTime``.
+    ``maxTime``. It is also the maximum time allowed for any result.
 
     returns a tuple (meanTime, stdDev)
 
@@ -119,6 +123,9 @@ def _computeTimes(resultList, maxTime, resultTypesToGiveMaxTime):
     totalTime = r['total_time']
     resultType = classifyResult(r)
     if resultType in resultTypesToGiveMaxTime:
+      totalTime = maxTime
+    elif totalTime > maxTime:
+      _logger.warning('Clamping time on result:\n{}'.format(pprint.pformat(r)))
       totalTime = maxTime
     assert totalTime > 0.0
     times.append(totalTime)
@@ -142,6 +149,7 @@ def combineResults(results, maxTime):
     the raw result for a particular boogie program.
 
     maxTime: float. The time to use for results of type ``resultTypesToGiveMaxTime``.
+             All times are also clamped to this value.
 
     Returns: cResult which is the combined result where the execution time is
     the arithmetic mean of the execution times of the results and a
