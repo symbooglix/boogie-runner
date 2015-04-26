@@ -76,11 +76,14 @@ def main(args):
     ' FULLY_EXPLORED and BUG_FOUND results are trusted')
   parser.add_argument('--write-disagreement-info', dest='disagreement_file',
     default=None, help='Write information on disagreement to YAML file')
+  parser.add_argument("-l","--log-level",type=str, default="info",
+    dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument('mapping_file', default=None,
     help='output file for mapping')
   pargs = parser.parse_args(args)
 
-  logging.basicConfig(level=logging.DEBUG)
+  logLevel = getattr(logging, pargs.log_level.upper(),None)
+  logging.basicConfig(level=logLevel)
 
   if os.path.exists(pargs.mapping_file):
     logging.error('Refusing to overwrite {}'.format(pargs.mapping_file))
@@ -188,6 +191,8 @@ def main(args):
   countNotInferred = (len(programNames) - countInferredCorrect) - countInferredIncorrect
   logging.info('# of programs not inferred:{} ({:.2f}%)'.format(
     countNotInferred, 100*float(countNotInferred)/len(programNames)))
+  logging.info('There were {} programs where results'
+    ' disagree'.format(len(programsWithDisagreement)))
 
   if len(programsWithDisagreement) > 0:
     logging.warning('There were {} programs where results'
