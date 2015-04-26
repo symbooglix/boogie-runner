@@ -18,11 +18,15 @@ except ImportError:
 def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
-  parser.add_argument("--uncommon", action='store_true')
   parser.add_argument("-s", "--proper-supersets", dest='proper_supersets', action='store_true', help='show information about results in supersets')
   parser.add_argument("-e", "--label-mapping", default=None, type=argparse.FileType('r'), dest="label_mapping",
     help="Group by expected result type from a mapping file")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
+
+  extraOutputGroup = parser.add_mutually_exclusive_group()
+  extraOutputGroup.add_argument("--uncommon", action='store_true')
+  extraOutputGroup.add_argument("--common", action='store_true')
+
   pargs = parser.parse_args(args)
 
   logLevel = getattr(logging, pargs.log_level.upper(),None)
@@ -199,6 +203,9 @@ def main(args):
 
   if pargs.proper_supersets:
     displayResultSet("superset results", properSuperSetResults, resultSetLabels, benchmarkLabels, programToRawResultMap)
+
+  if pargs.common:
+    displayResultSet("common results", intersection, resultSetLabels, benchmarkLabels, programToRawResultMap)
 
   return 0
 
