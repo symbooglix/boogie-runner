@@ -205,7 +205,9 @@ def combineResults(results, maxTime):
   # Try to pick the best
   for rType in bestTypesOrdered:
     if len(resultTypeToListOfResults[rType]) > 0:
-      resultToCopy = resultTypeToListOfResults[rType][0]
+      # Make sure that we deterministically pick the result. The choice of min is arbitary we just need something
+      # that is deterministic. Note we are assuming that the working_directory field is unique for each result set
+      resultToCopy = min(resultTypeToListOfResults[rType], key=lambda listElement: listElement['working_directory'])
       assert isinstance(resultToCopy, dict)
       copiedResult = resultToCopy.copy()
       break
@@ -220,7 +222,9 @@ def combineResults(results, maxTime):
         largestList = resultTypeToListOfResults[rType]
 
     assert len(largestList) > 0
-    resultToCopy = largestList[0]
+      # Make sure that we deterministically pick the result. The choice of min is arbitary we just need something
+      # that is deterministic. Note we are assuming that the working_directory field is unique for each result set
+    resultToCopy = min(largestList, key=lambda listElement: listElement['working_directory'])
     assert isinstance(resultToCopy, dict)
     copiedResult = resultToCopy.copy()
 
