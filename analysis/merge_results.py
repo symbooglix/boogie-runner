@@ -121,11 +121,14 @@ def main(args):
       except KeyError:
         programToResultSetsMap[programName] = { resultListName:r }
 
-  # Check there are the same number of results for each program
   mismatchCount = 0
   thresholdExceededCount = 0
   largestStdDev = 0.0
-  for programName, resultListNameToRawResultMap  in programToResultSetsMap.items():
+
+  # Make sure we iterate in a deterministic way
+  sortedProgramToResultSetsMap = list(programToResultSetsMap.items())
+  sortedProgramToResultSetsMap.sort(key=lambda pair: pair[0])
+  for programName, resultListNameToRawResultMap  in sortedProgramToResultSetsMap:
     if len(resultListNameToRawResultMap) != len(resultListNames):
       logging.error('For program {} there we only {} result lists but expected {}'.format(
         programName, len(resultListNameToRawResultMap), len(resultListNames)))
@@ -174,10 +177,6 @@ def main(args):
 
 
     combinedResultsList.append(combinedResult)
-
-  # To make output file deterministic sort the lists by program name
-  combinedResultsList.sort(key=lambda r: r['program'])
-  resultsAboveStdDevThreshold.sort(key=lambda r: r['program'])
 
   logging.info('# of results:{}'.format(len(combinedResultsList)))
   logging.info('# of stddev thresold exceeded:{} ({:.2f}%)'.format(
