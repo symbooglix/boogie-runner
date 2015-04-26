@@ -35,6 +35,8 @@ def classifyResult(r):
     else:
       return FinalResultType.FULLY_EXPLORED
   elif r['bug_found'] == True:
+    if r['failed'] == True:
+      _logger.error(pprint.pformat(r))
     assert r['failed'] != True
     assert r['timeout_hit'] != True
     return FinalResultType.BUG_FOUND
