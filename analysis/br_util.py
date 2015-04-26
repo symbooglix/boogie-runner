@@ -226,7 +226,10 @@ def combineResults(results, maxTime):
 
   # Compute the total_time and stddev.
   listOfAllResults = []
-  for r in results.values():
+  sortedResultItems = list(results.items())
+  sortedResultItems.sort(key= lambda k: k[0]) # Make sure the order is deterministic by sorting by the result list filename
+  for resultListName,r in sortedResultItems:
+    assert isinstance(resultListName, str)
     assert isinstance(r, dict)
     listOfAllResults.append(r)
   assert isinstance(listOfAllResults, list)
