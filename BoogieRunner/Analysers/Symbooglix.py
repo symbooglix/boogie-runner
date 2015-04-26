@@ -33,10 +33,12 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     if self.hitHardTimeout:
       return False # Timeout is not a failure
 
-    # We do not consider 9 or 10 exit codes as failure
     # NO_ERRORS_NO_TIMEOUT_BUT_FOUND_SPECULATIVE_PATHS : 9
     # NO_ERRORS_NO_TIMEOUT_BUT_HIT_BOUND : 10
-    if self.exitCode == 9 or self.exitCode == 10:
+    if self.exitCode ==9:
+      # We don't want to hit speculative paths
+      return True
+    if self.exitCode == 10:
       return False
 
     # All exit codes above 4 indicate something went badly wrong
@@ -44,10 +46,7 @@ class SymbooglixAnalyser(AnalyserBaseClass):
 
   @property
   def hitBound(self):
-    # Finding a speculative path isn't quite the same as hitting
-    # a bound but it certainly isn't fullying exploring the program
-    # or finding a bug
-    return self.exitCode == 10 or self.foundSpeculativePathsAndNoBug
+    return self.exitCode == 10
 
   @property
   def foundSpeculativePathsAndNoBug(self):
