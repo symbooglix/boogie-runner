@@ -44,6 +44,7 @@ def main(args):
     " exceeded suppress that warning if the merged result is one of the speicifed types."
     " Default is to not to supress any types",
     choices=resultTypes)
+  parser.add_argument("--ignore-overwrite", action="store_true", dest="ignore_overwrite", default=False, help="Ignore files being overwritten")
   parser.add_argument("-o", "--output", required=True, help='Output result YAML file')
   parser.add_argument("--results-above-threshold", dest='results_above_threshold', default=None, type=str, help='File to write results that are above threshold. By default no file is written.')
   parser.add_argument("max_time", type=float, help='max time to give benchmarks')
@@ -56,11 +57,11 @@ def main(args):
   if len(pargs.result_ymls) < 2:
     logger.error('Need to at least 2 YAML files')
 
-  if os.path.exists(pargs.output):
+  if (not pargs.ignore_overwrite) and os.path.exists(pargs.output):
     logging.error('Refusing to overwrite {}'.format(pargs.output))
     return 1
 
-  if pargs.results_above_threshold != None and os.path.exists(pargs.results_above_threshold):
+  if (not pargs.ignore_overwrite) and pargs.results_above_threshold != None and os.path.exists(pargs.results_above_threshold):
     logging.error('Refusing to overwrite {}'.format(pargs.results_above_threshold))
     return 1
 
