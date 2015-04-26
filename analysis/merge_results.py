@@ -175,6 +175,10 @@ def main(args):
 
     combinedResultsList.append(combinedResult)
 
+  # To make output file deterministic sort the lists by program name
+  combinedResultsList.sort(key=lambda r: r['program'])
+  resultsAboveStdDevThreshold.sort(key=lambda r: r['program'])
+
   logging.info('# of results:{}'.format(len(combinedResultsList)))
   logging.info('# of stddev thresold exceeded:{} ({:.2f}%)'.format(
     len(resultsAboveStdDevThreshold), 100*(float(len(resultsAboveStdDevThreshold)))/len(combinedResultsList)))
