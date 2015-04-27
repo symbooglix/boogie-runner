@@ -33,15 +33,6 @@ def main(args):
 
   assert isinstance(results, list)
 
-  labelledCorrect = { }
-  labelledIncorrect = { }
-  labelledUnknown = { }
-  for name, _ in FinalResultType.__members__.items():
-    labelledCorrect[name] = [ ]
-    labelledIncorrect[name] = [ ]
-    labelledUnknown[name] = [ ]
-
-
   # Put results into buckets
   expectedCorrectCount = 0
   expectedIncorrectCount = 0
@@ -86,16 +77,28 @@ def main(args):
 
   return 0
 
-def groupByResultTypeThenLabel(results, correctnessMapping):
-  validateMappingFile(correctnessMapping)
+def groupByResultTypeThenLabel(results, correctnessMapping, keyIsEnum=False):
+  if correctnessMapping != None:
+    validateMappingFile(correctnessMapping)
 
   labelledCorrect = { }
   labelledIncorrect = { }
   labelledUnknown = { }
-  for name, _ in FinalResultType.__members__.items():
-    labelledCorrect[name] = [ ]
-    labelledIncorrect[name] = [ ]
-    labelledUnknown[name] = [ ]
+  labelledAll = { } # only used if there is no correctness mapping
+  if keyIsEnum:
+    # use the enum as the key
+    for name in FinalResultType:
+      labelledCorrect[name] = [ ]
+      labelledIncorrect[name] = [ ]
+      labelledUnknown[name] = [ ]
+      labelledAll[name] = [ ]
+  else:
+    # Use the string as the key
+    for name, _ in FinalResultType.__members__.items():
+      labelledCorrect[name] = [ ]
+      labelledIncorrect[name] = [ ]
+      labelledUnknown[name] = [ ]
+      labelledAll[name] = [ ]
 
 
   # Put results into buckets
@@ -104,22 +107,28 @@ def groupByResultTypeThenLabel(results, correctnessMapping):
       logging.error('Key "bug_found" not in result')
       return 1
 
-    expectedCorrect = correctnessMapping[ r['program'] ]['expected_correct']
-    if expectedCorrect == True:
-      dictToWriteTo = labelledCorrect
-    elif expectedCorrect == False:
-      dictToWriteTo = labelledIncorrect
-    elif expectedUnknownCount == None:
-      dictToWriteTo = labelledUnknown
+    if correctnessMapping != None:
+      expectedCorrect = correctnessMapping[ r['program'] ]['expected_correct']
+      if expectedCorrect == True:
+        dictToWriteTo = labelledCorrect
+      elif expectedCorrect == False:
+        dictToWriteTo = labelledIncorrect
+      elif expectedCorrect == None:
+        dictToWriteTo = labelledUnknown
+      else:
+        raise Exception('Unreachable')
     else:
-      raise Exception('Unreachable')
+      dictToWriteTo = labelledAll
 
     rType = classifyResult(r)
-    l = dictToWriteTo[rType.name]
+    l = dictToWriteTo[rType if keyIsEnum else rType.name]
     assert isinstance(l, list)
     l.append(r)
 
-  return (labelledCorrect, labelledIncorrect, labelledUnknown)
+  if correctnessMapping != None:
+    return (labelledCorrect, labelledIncorrect, labelledUnknown)
+  else:
+    return labelledAll
 
 
 if __name__ == '__main__':
