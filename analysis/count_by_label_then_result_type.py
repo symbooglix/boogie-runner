@@ -46,28 +46,15 @@ def main(args):
   expectedCorrectCount = 0
   expectedIncorrectCount = 0
   expectedUnknownCount = 0
-  for r in results:
-    if not 'bug_found' in r:
-      logging.error('Key "bug_found" not in result')
-      return 1
+  labelledCorrect, labelledIncorrect, labelledUnknown = groupByResultTypeThenLabel(results, correctnessMapping)
+  assert isinstance(labelledCorrect, dict) and isinstance(labelledIncorrect, dict) and isinstance(labelledUnknown, dict)
 
-    expectedCorrect = correctnessMapping[ r['program'] ]['expected_correct']
-    if expectedCorrect == True:
-      expectedCorrectCount += 1
-      dictToWriteTo = labelledCorrect
-    elif expectedCorrect == False:
-      expectedIncorrectCount += 1
-      dictToWriteTo = labelledIncorrect
-    elif expectedUnknownCount == None:
-      expectedUnknownCount += 1
-      dictToWriteTo = labelledUnknown
-    else:
-      raise Exception('Unreachable')
-
-    rType = classifyResult(r)
-    l = dictToWriteTo[rType.name]
-    assert isinstance(l, list)
-    l.append(r)
+  for l in labelledCorrect.values():
+    expectedCorrectCount += len(l)
+  for l in labelledIncorrect.values():
+    expectedIncorrectCount += len(l)
+  for l in labelledUnknown.values():
+    expectedUnknownCount += len(l)
 
   # Output information
 
@@ -98,6 +85,42 @@ def main(args):
       print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
 
   return 0
+
+def groupByResultTypeThenLabel(results, correctnessMapping):
+  validateMappingFile(correctnessMapping)
+
+  labelledCorrect = { }
+  labelledIncorrect = { }
+  labelledUnknown = { }
+  for name, _ in FinalResultType.__members__.items():
+    labelledCorrect[name] = [ ]
+    labelledIncorrect[name] = [ ]
+    labelledUnknown[name] = [ ]
+
+
+  # Put results into buckets
+  for r in results:
+    if not 'bug_found' in r:
+      logging.error('Key "bug_found" not in result')
+      return 1
+
+    expectedCorrect = correctnessMapping[ r['program'] ]['expected_correct']
+    if expectedCorrect == True:
+      dictToWriteTo = labelledCorrect
+    elif expectedCorrect == False:
+      dictToWriteTo = labelledIncorrect
+    elif expectedUnknownCount == None:
+      dictToWriteTo = labelledUnknown
+    else:
+      raise Exception('Unreachable')
+
+    rType = classifyResult(r)
+    l = dictToWriteTo[rType.name]
+    assert isinstance(l, list)
+    l.append(r)
+
+  return (labelledCorrect, labelledIncorrect, labelledUnknown)
+
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
