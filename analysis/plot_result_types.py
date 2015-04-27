@@ -24,9 +24,13 @@ def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument('-m', '--label-mapping-file', type=argparse.FileType('r'), default=None, dest='label_mapping_file')
-  parser.add_argument('--ipython', action='store_true')
   parser.add_argument('label_type', type=str, choices=labelTypes, help='The label type.')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
+
+  actionGroup = parser.add_mutually_exclusive_group()
+  actionGroup.add_argument('--ipython', action='store_true')
+  actionGroup.add_argument('--pdf', help='Write graph to PDF')
+
   pargs = parser.parse_args(args)
 
   logLevel = getattr(logging, pargs.log_level.upper(),None)
@@ -34,6 +38,14 @@ def main(args):
 
   if len(pargs.result_ymls) < 2:
     logging.error('Need at least two YAML files')
+
+  if pargs.pdf != None:
+    if not pargs.pdf.endswith('.pdf'):
+      logging.error('--pdf argument must end with .pdf')
+      return 1
+    if os.path.exists(pargs.pdf):
+      logging.error('Refusing to overwrite {}'.format(pargs.pdf))
+      return 1
 
   # Load mapping file if necessary
   if pargs.label_type != 'all':
@@ -188,9 +200,18 @@ def main(args):
              loc='upper left')
 
   if pargs.ipython:
+    # Useful interfactive console
+    header="""Useful commands:
+    fig.show() - Shows figure
+    fig.canvas.draw() - Redraws figure (useful if you changed something)
+    fig.savefig('something.pdf') - Save the figure
+    """
     from IPython import embed
-    embed()
-    # Call fig.show() to see the figure
+    embed(header=header)
+  elif pargs.pdf != None:
+    fig.show()
+    logging.info('Writing PDF to {}'.format(pargs.pdf))
+    fig.savefig(pargs.pdf)
   else:
     plt.show()
   return 0
