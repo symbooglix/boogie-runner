@@ -19,11 +19,12 @@ except ImportError:
 
 
 def main(args):
-  labelTypes = ['all', 'correct', 'incorrect', 'unknown']
+  labelTypes = ['all', 'correct', 'incorrect', 'unknown', 'stacked']
 
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument('-m', '--label-mapping-file', type=argparse.FileType('r'), default=None, dest='label_mapping_file')
+  parser.add_argument('--ipython', action='store_true')
   parser.add_argument('label_type', type=str, choices=labelTypes, help='The label type.')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
@@ -129,18 +130,20 @@ def main(args):
   assert len(unknownCounts) == len(resultListNames)
   import numpy
   indicies = numpy.arange(len(resultListNames))
-  width=0.2
+  width=0.25
 
   # Find the maximum bar height so we can calculate the yticks
   maxY = max(correctCounts + incorrectCounts + boundHitCounts + unknownCounts)
   assert maxY >= 0
 
   fig, ax = plt.subplots()
+  fig.set_figwidth(3.25)
+  fig.set_figheight(2)
   # Ewww. Inches
   logging.info('Figure size is:{}'.format(fig.get_size_inches()))
-  correctBars = ax.bar(indicies, correctCounts, width, color='g')
-  incorrectBars = ax.bar(indicies + width, incorrectCounts, width, color='r')
-  boundHitBars = ax.bar(indicies + 2*width, boundHitCounts, width, color='b')
+  correctBars = ax.bar(indicies, correctCounts, width, color='g', hatch='\\')
+  incorrectBars = ax.bar(indicies + width, incorrectCounts, width, color='r', hatch='/')
+  boundHitBars = ax.bar(indicies + 2*width, boundHitCounts, width, color='b', hatch='x')
   unknownBars = ax.bar(indicies + 3*width, unknownCounts, width, color='y')
 
   titleString=None
@@ -155,25 +158,41 @@ def main(args):
   ax.set_ylabel('Benchmark count')
   #step = 25
   #ax.set_yticks(numpy.arange(0, maxY +1, step))
-  ax.set_xticks(numpy.arange(len(resultListNames)) + 0.5)
+
+  ax.set_xticks(numpy.arange(len(resultListNames)) + 0.5, minor=True)
+  # Sort out the xlabels
+  import textwrap
   suffix='merged.yml'
+  maxLabelWidth=10
   # -1 is for slash in <thing>/<suffix>
-  ax.set_xticklabels(list(
-    map(lambda s: s[0:-len(suffix) -1] if s.endswith(suffix) else s,
+  xLabels = list(map(lambda s: textwrap.fill(s,maxLabelWidth),
+      map(lambda s: s[0:-len(suffix) -1] if s.endswith(suffix) else s,
     resultListNames)))
+  ax.set_xticklabels(xLabels, minor=True)
+
+  # Use major labels to divide the tools
+  ax.set_xticks(numpy.arange(1, len(resultListNames)), minor=False)
+  ax.set_xticklabels([ '' for _ in resultListNames ], minor=False)
+  ax.xaxis.set_tick_params(which='major', width=3, direction='out')
 
   # attach some text labels
   for barPlot in [correctBars, incorrectBars, boundHitBars, unknownBars]:
     for rect in barPlot:
       height = rect.get_height()
-      ax.text(rect.get_x()+rect.get_width()/2., 1.05*height, '%d'%int(height),
+      ax.text(rect.get_x()+rect.get_width()/2., 1.02*height, '%d'%int(height),
                 ha='center', va='bottom')
 
   # Add legend
   ax.legend( (correctBars, incorrectBars, boundHitBars, unknownBars),
-             ('Correct', 'Incorrect', 'Bound hit', 'Unknown') )
+             ('Correct', 'Incorrect', 'Bound hit', 'Unknown'),
+             loc='upper left')
 
-  plt.show()
+  if pargs.ipython:
+    from IPython import embed
+    embed()
+    # Call fig.show() to see the figure
+  else:
+    plt.show()
   return 0
 
 if __name__ == '__main__':
