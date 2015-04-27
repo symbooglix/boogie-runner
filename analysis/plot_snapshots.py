@@ -99,8 +99,10 @@ def main(args):
   skipCount = 0
 
   snapshotToTotalTimeMap = { }
+  snapshotTotalStddevMap = { }
   for resultListName in resultListNames:
     snapshotToTotalTimeMap[resultListName] = 0.0
+    snapshotTotalStddevMap[resultListName] = 0.0
 
   # Accumulate the total "effective" runtime of a snapshot
   for programName, resultListNameToRawResultMap  in programToResultSetsMap.items():
@@ -139,9 +141,13 @@ def main(args):
         
       # Add to the total times
       currentTotal = snapshotToTotalTimeMap[resultListName]
+      currentTotalStddev = snapshotTotalStddevMap[resultListName]
       assert currentTotal >= 0.0
+      assert currentTotalStddev >= 0.0
       currentTotal += resultListNameToRawResultMap[resultListName]['total_time']
+      currentTotalStddev += resultListNameToRawResultMap[resultListName]['total_time_stddev']
       snapshotToTotalTimeMap[resultListName] = currentTotal
+      snapshotTotalStddevMap[resultListName] = currentTotalStddev
 
     if didClamp:
       clampCount += 1
@@ -154,8 +160,39 @@ def main(args):
   # we need some way of estimating the error in these numbers. Remember Walter
   # Lewein "a measurement without uncertainty is meaningless!"
   print(pprint.pformat(snapshotToTotalTimeMap))
+  print(pprint.pformat(snapshotTotalStddevMap))
   # Arithmetic mean
   print(pprint.pformat({k: v/length for k,v in snapshotToTotalTimeMap.items()}))
+
+  # Finally do plotting
+  # First need make data index by integer rather than file name. We use the indexing
+  # from resultListNames
+  assert isinstance(resultListNames, list)
+  listTotalTime = [ ]
+  listTotalStddev = [ ]
+  for index, resultList in enumerate(resultListNames):
+    listTotalTime.append(snapshotToTotalTimeMap[resultList])
+    listTotalStddev.append(snapshotTotalStddevMap[resultList])
+
+
+  fig, ax = plt.subplots()
+  indicies = list(map(lambda x: float(x), range(0,len(resultListNames))))
+  width = 0.5
+  bplot = ax.bar(indicies, listTotalTime, width, color='r',yerr=listTotalStddev)
+  ax.set_xlabel('Snapshot')
+  ax.set_ylabel('Total time (s)')
+  ax.set_xticks(range(0, len(resultListNames)))
+  ax.set_xticklabels(resultListNames)
+
+  # attach some text labels
+  for rect in bplot:
+    height = rect.get_height()
+    ax.text(rect.get_x()+rect.get_width()/2., 1.05*height, '%d'%int(height),
+              ha='center', va='bottom')
+
+  plt.show()
+
+
   return 0
 
 if __name__ == '__main__':
