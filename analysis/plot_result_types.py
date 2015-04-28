@@ -197,7 +197,7 @@ def main(args):
   # Add legend
   ax.legend( (correctBars, incorrectBars, boundHitBars, unknownBars),
              ('Correct', 'Incorrect', 'Bound hit', 'Unknown'),
-             loc='upper left')
+             loc='upper right')
 
   if pargs.ipython:
     # Useful interfactive console

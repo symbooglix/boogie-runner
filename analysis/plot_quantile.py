@@ -297,11 +297,10 @@ def main(args):
   # Shrink current axis by 20%
   box = ax.get_position()
   ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.legend(tuple(curves), tuple(legendNames),
+  fig.legend(tuple(curves), tuple(legendNames),
     loc='upper right',
-    bbox_to_anchor=(1.42, 0.5),
-    fontsize='xx-small',
-    framealpha=0.0)
+    bbox_to_anchor=(1.01, 1),
+    fontsize='x-small')
 
   # Adjust y-axis so it is a log plot everywhere except [0,1] which is linear
   ax.set_yscale('symlog', linthreshx=(0,1))
