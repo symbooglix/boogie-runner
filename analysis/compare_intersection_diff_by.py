@@ -2,6 +2,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 import argparse
 import os
+import pprint
 import logging
 import sys
 import yaml
@@ -22,6 +23,7 @@ def main(args):
   parser.add_argument("-e", "--label-mapping", default=None, type=argparse.FileType('r'), dest="label_mapping",
     help="Group by expected result type from a mapping file")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
+  parser.add_argument('--rank-intersection', dest='rank_intersection', action='store_true', default=False)
 
   extraOutputGroup = parser.add_mutually_exclusive_group()
   extraOutputGroup.add_argument("--uncommon", action='store_true')
@@ -207,6 +209,9 @@ def main(args):
   if pargs.common:
     displayResultSet("common results", intersection, resultSetLabels, benchmarkLabels, programToRawResultMap)
 
+  if pargs.rank_intersection:
+    rankIntersection(intersection, resultSetLabels, benchmarkLabels, programToRawResultMap)
+
   return 0
 
 def displayResultSet(setName, data, resultSetLabels, benchmarkLabels, programToRawResultMap):
@@ -229,6 +234,56 @@ def displayResultSet(setName, data, resultSetLabels, benchmarkLabels, programToR
                                                   rawResult['total_time']))
 
           print("")
+
+def rankIntersection(intersection, resultSetLabels, benchmarkLabels, programToRawResultMap):
+  """
+    For result intersection rank results by execution time
+  """
+  print("Ranked results that intersect by execution time:")
+  for benchmarkLabel in benchmarkLabels:
+    print("==={}===".format(benchmarkLabel))
+    for rType in list(FinalResultType):
+      if rType != FinalResultType.FULLY_EXPLORED and rType != FinalResultType.BUG_FOUND and rType != FinalResultType.BOUND_HIT:
+        # Skip types we don't want to be ranked
+        continue
+      print("===={}====".format(rType.name))
+      sortedResults=[]
+      for program in intersection[rType.name][benchmarkLabel]:
+        # Gather the resultSets
+        resultsForProgram= []
+        for resultSetLabel in resultSetLabels:
+          r = programToRawResultMap[program][resultSetLabel]
+          # Hack the result set name into the result so we know where it came from
+          assert not 'result_set' in r
+          r['result_set'] = resultSetLabel
+          resultsForProgram.append(r)
+        # Reverse sort the results by execution time
+        resultsForProgram.sort(key=lambda element: element['total_time'], reverse=True)
+        sortedResults.append(resultsForProgram)
+
+      # Now we've collected the results for each program reverse sort them by execution time
+      sortedResults.sort(key=lambda l: l[0]['total_time'], reverse=True)
+
+      # Now loop over the resultSetLabel (i.e. the files) printing when a tool came first
+      winCount = {}
+      for resultSetLabel in resultSetLabels:
+        winCount[resultSetLabel] = 0
+        print("====={} won=====".format(resultSetLabel))
+        for results in sortedResults:
+          if results[-1]['result_set'] != resultSetLabel: # The last element in the list was the fastest (i.e. smallest time)
+            continue
+          winCount[resultSetLabel] += 1
+          print("program: {}".format(results[0]['program']))
+          for r in results:
+            if 'total_time_stddev' in r:
+              print("{} ({} +/- {} secs)".format(r['result_set'], r['total_time'], r['total_time_stddev']))
+            else:
+              print("{} ({} secs)".format(r['result_set'], r['total_time']))
+          print("")
+      
+      print("**Win summary**")
+      for resultSetLabel in resultSetLabels:
+        print("{} : {} wins".format(resultSetLabel, winCount[resultSetLabel]))
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
