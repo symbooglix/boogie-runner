@@ -313,8 +313,9 @@ def main(args):
     bbox_to_anchor=(1.01, 1),
     fontsize='x-small')
 
-  # Adjust y-axis so it is a log plot everywhere except [0,1] which is linear
-  ax.set_yscale('symlog', linthreshx=(0,1))
+  # Adjust y-axis so it is a log plot everywhere except [-1,1] which is linear
+  ax.set_yscale('symlog', linthreshy=1.0, linscaley=0.1)
+  ax.grid()
 
 
   # Use major labels to divide the tools
