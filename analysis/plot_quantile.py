@@ -96,7 +96,7 @@ class ScoredResultList:
 
   @property
   def numOfPositiveResults(self):
-    return len(self._positiveResult)
+    return len(self._positiveResults)
 
   @property
   def zeroResults(self):
@@ -222,12 +222,23 @@ def main(args):
     resultListNameToRunTime[resultListName] = runTimes = [ ]
 
     # Add results and compute score
+    unknownBenchmarkCount=0
     for r in data[resultListName]:
       try:
         srl.addResult(r)
       except ComputeScoreException as e:
+        unknownBenchmarkCount +=1
         programName = r['program']
-        logging.error('Failed to compute score for "{}": {}'.format(programName, e))
+        logging.debug('Failed to compute score for "{}": {}'.format(programName, e))
+
+    # Report information about how benchmarks were used
+    logging.info('{}: {} +ve , {} zero, {} -ve out of {} ({} unknown correctness)'.format(
+                resultListName,
+                srl.numOfPositiveResults,
+                srl.numOfZeroResults,
+                srl.numOfNegativeResults,
+                len(data[resultListName]),
+                unknownBenchmarkCount))
 
     positiveResults = srl.positiveResults
     # Add dummy point
