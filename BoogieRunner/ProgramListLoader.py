@@ -8,7 +8,7 @@ class ProgramListLoaderException(Exception):
 
 _logger = logging.getLogger(__name__)
 
-def load(programListFileName, relativePathPrefix):
+def load(programListFileName, relativePathPrefix, existCheck=True):
   _logger.debug('Loading program list from "{}"'.format(programListFileName))
   _logger.debug('Using relative path prefix "{}"'.format(relativePathPrefix))
 
@@ -36,7 +36,7 @@ def load(programListFileName, relativePathPrefix):
 
       path = None
       if os.path.isabs(line):
-        if not os.path.exists(line):
+        if existCheck and not os.path.exists(line):
           raise ProgramListLoaderException(
             'File "{}" on line {} does not exist'.format(line, lineCounter))
 
@@ -50,7 +50,7 @@ def load(programListFileName, relativePathPrefix):
           raise ProgramListLoaderException(
             'Joined paths ("{}") are not absolute'.format(path))
 
-        if not os.path.exists(path):
+        if existCheck and not os.path.exists(path):
           raise ProgramListLoaderException(
             'Joined paths ("{}") does not exist on line'.format(path, lineCounter))
       
