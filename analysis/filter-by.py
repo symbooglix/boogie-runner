@@ -26,12 +26,10 @@ def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('result_yml', type=argparse.FileType('r'), help='File to open, if \'-\' then use stdin')
     parser.add_argument('-r', '--result-type', dest='result_type', choices=resultTypes, default=None, help='Filter by FinalResultType')
-    parser.add_argument('-c', '--correctness-label', dest='correctness_label', choices=['true', 'false'], default=None,
-                        help='Filter by "expected_correct" label')
     parser.add_argument('-n', '--not-matching', action='store_true', dest='not_matching', help='Change behaviour to output results that are not of type \'result_type\'')
     pargs = parser.parse_args(args)
 
-    if pargs.result_type == None and pargs.correctness_label == None:
+    if pargs.result_type == None:
         logging.error('No filter specified')
         return 1
 
@@ -41,9 +39,6 @@ def main(args):
         matchResulType = FinalResultType[pargs.result_type]
         filters.append( lambda r: classifyResult(r) == matchResulType)
 
-    if pargs.correctness_label != None:
-        matchCorrect = True if pargs.correctness_label == 'true' else False
-        filters.append( lambda r: r['expected_correct'] == matchCorrect )
 
     def combinedFilters(result):
         for f in filters:
