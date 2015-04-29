@@ -35,6 +35,7 @@ def main(args):
   parser.add_argument('--ipython', action='store_true')
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
   parser.add_argument('-r', '--result-type', nargs='+', dest='result_type', choices=resultTypes, default=defaultTypes, help='Filter by FinalResultType')
+  parser.add_argument('--at-least-one-useful', dest='at_least_one_useful', action='store_true', default=False, help='Only show a benchmark if at least one result Set produced a useful answer')
   pargs = parser.parse_args(args)
   print(pargs)
 
@@ -94,9 +95,24 @@ def main(args):
       except KeyError:
         programToResultSetsMap[programName] = { resultListName:r }
 
-  # Check there are the same number of results for each program
   clampCount = 0
   skipCount = 0
+
+  if pargs.at_least_one_useful:
+    # Remove programs where no result set gave a useful answer
+    usefulResultTypes = { FinalResultType.FULLY_EXPLORED, FinalResultType.BUG_FOUND }
+    progsToRemove = [ ]
+    for programName, resultListNameToRawResultMap  in programToResultSetsMap.items():
+      useful = any(map(lambda pair: classifyResult(pair[1]) in usefulResultTypes,
+                   resultListNameToRawResultMap.items()))
+      if not useful:
+        progsToRemove.append(programName)
+
+    for programName in progsToRemove:
+      skipCount += 1
+      logging.debug('Remove program "{}" where no useful results were given'.format(programName))
+      programToResultSetsMap.pop(programName)
+
 
   snapshotToTotalTimeMap = { }
   snapshotTotalStddevMap = { }
