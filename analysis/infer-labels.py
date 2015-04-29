@@ -78,6 +78,8 @@ def main(args):
     default=None, help='Write information on disagreement to YAML file')
   parser.add_argument("-l","--log-level",type=str, default="info",
     dest="log_level", choices=['debug','info','warning','error'])
+  parser.add_argument('--ignore-overwrite', dest='ignore_overwrite',
+    default=False, action='store_true')
   parser.add_argument('mapping_file', default=None,
     help='output file for mapping')
   pargs = parser.parse_args(args)
@@ -85,11 +87,11 @@ def main(args):
   logLevel = getattr(logging, pargs.log_level.upper(),None)
   logging.basicConfig(level=logLevel)
 
-  if os.path.exists(pargs.mapping_file):
+  if (not pargs.ignore_overwrite) and os.path.exists(pargs.mapping_file):
     logging.error('Refusing to overwrite {}'.format(pargs.mapping_file))
     return 1
 
-  if pargs.disagreement_file != None:
+  if (not pargs.ignore_overwrite) and pargs.disagreement_file != None:
     if os.path.exists(pargs.disagreement_file):
       logging.error('Refusing to overwrite {}'.format(pargs.disagreement_file))
       return 1
