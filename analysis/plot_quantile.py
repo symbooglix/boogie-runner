@@ -149,6 +149,7 @@ class ScoredResultList:
 def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
+  parser.add_argument("--points", action='store_true')
   parser.add_argument('label_mapping_file', type=argparse.FileType('r'))
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
 
@@ -295,7 +296,7 @@ def main(args):
   for resultListName in resultListNames:
     x = resultListNameToAccumScore[resultListName]
     y = resultListNameToRunTime[resultListName]
-    p = ax.plot(x,y)
+    p = ax.plot(x,y, '-o' if pargs.points else '-')
     curves.append(p[0])
     legendNames.append(resultListName)
   # Add legend
