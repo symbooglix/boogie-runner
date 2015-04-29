@@ -259,8 +259,8 @@ def main(args):
     accum = 0
     # Add other points
     for (score, r) in positiveResults:
-      assert score >= largestSeenTime
-      largestSeenTime = score
+      assert r['total_time'] >= largestSeenTime
+      largestSeenTime = r['total_time']
       accum += score
       accumScores.append(accum)
       runTimes.append(r['total_time'])
