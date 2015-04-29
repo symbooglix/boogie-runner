@@ -149,13 +149,16 @@ class ScoredResultList:
 def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
-  parser.add_argument("--points", action='store_true')
   parser.add_argument('label_mapping_file', type=argparse.FileType('r'))
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
   actionGroup.add_argument('--pdf', help='Write graph to PDF')
+
+  plotGroup = parser.add_mutually_exclusive_group()
+  plotGroup.add_argument("--points", action='store_true')
+  plotGroup.add_argument("--error-bars", action='store_true', dest='error_bars')
 
   pargs = parser.parse_args(args)
 
@@ -215,12 +218,14 @@ def main(args):
   resultListNameToScoredResultList = {}
   resultListNameToAccumScore = {}
   resultListNameToRunTime = {}
+  resultListNameToRunTimeStdDev = {}
   # Create data structures
   for resultListName in resultListNames:
     srl = ScoredResultList(resultListName, correctnessMapping)
     resultListNameToScoredResultList[resultListName] = srl
     resultListNameToAccumScore[resultListName] = accumScores = [ ]
     resultListNameToRunTime[resultListName] = runTimes = [ ]
+    resultListNameToRunTimeStdDev[resultListName] = runTimeStdDevs = []
 
     # Add results and compute score
     unknownBenchmarkCount=0
@@ -255,6 +260,7 @@ def main(args):
     assert dummyTime >= 0.0
     accumScores.append(0)
     runTimes.append(dummyTime)
+    runTimeStdDevs.append(0.0) # Dummy point has no y errors
 
     largestSeenTime = dummyTime # used for an assert
     accum = 0
@@ -265,6 +271,7 @@ def main(args):
       accum += score
       accumScores.append(accum)
       runTimes.append(r['total_time'])
+      runTimeStdDevs.append(r['total_time_stddev'])
 
     assert len(accumScores) == len(runTimes)
     # offset all points along the x-axis (accumalative score)
@@ -296,7 +303,11 @@ def main(args):
   for resultListName in resultListNames:
     x = resultListNameToAccumScore[resultListName]
     y = resultListNameToRunTime[resultListName]
-    p = ax.plot(x,y, '-o' if pargs.points else '-')
+    yErrors = resultListNameToRunTimeStdDev[resultListName]
+    if pargs.error_bars:
+      p = ax.errorbar(x,y,yerr=yErrors)
+    else:
+      p = ax.plot(x,y, '-o' if pargs.points else '-')
     curves.append(p[0])
     legendNames.append(resultListName)
   # Add legend
@@ -312,7 +323,7 @@ def main(args):
   fig.legend(tuple(curves), tuple(legendNames),
     loc='upper right',
     bbox_to_anchor=(1.01, 1),
-    fontsize='x-small')
+    fontsize='small')
 
   # Adjust y-axis so it is a log plot everywhere except [-1,1] which is linear
   ax.set_yscale('symlog', linthreshy=1.0, linscaley=0.1)
