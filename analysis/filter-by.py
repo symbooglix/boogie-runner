@@ -32,14 +32,12 @@ def main(args):
     parser.add_argument('result_yml', type=argparse.FileType('r'), help='File to open, if \'-\' then use stdin')
     parser.add_argument('-r', '--result-type', dest='result_type', choices=resultTypes, default=None, help='Filter by FinalResultType')
     parser.add_argument('--program-list', dest='program_list', default=None, type=str, help='Filter by the programs in the program list')
+    parser.add_argument('--programs-from-result-yml', dest='programs_from_result_yml', default=None, type=str, help='Filter using the programs in a result YAML file')
     parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for program_list")
     parser.add_argument("--strip-prefix", default=None, dest='strip_prefix', help="Prefix to strip from loaded program list")
     parser.add_argument('-n', '--not-matching', action='store_true', dest='not_matching', help='Change behaviour to output results that are not of type \'result_type\'')
     pargs = parser.parse_args(args)
 
-    if pargs.result_type == None and pargs.program_list == None:
-        logging.error('No filter specified')
-        return 1
 
     # Setup filter functions
     filters = [ ]
@@ -65,6 +63,22 @@ def main(args):
                 newProgList.append(p[len(pargs.strip_prefix):])
             progList = newProgList
         filters.append( lambda r: r['program'] in progList)
+
+    if pargs.programs_from_result_yml != None:
+        if not os.path.exists(pargs.programs_from_result_yml):
+            logging.error('{} does not exist'.format(pargs.programs_from_result_yml))
+            return 1
+        logging.info('Loading result yaml "{}" file to get program names from for filtering'.format(pargs.programs_from_result_yml))
+        with open(pargs.programs_from_result_yml, 'r') as f:
+            resultsToGetProgramsFrom = yaml.load(f, Loader=Loader)
+        assert isinstance(resultsToGetProgramsFrom, list)
+        programNamesFromYml = { p['program'] for p in resultsToGetProgramsFrom}
+        assert len(programNamesFromYml) > 0
+        filters.append( lambda r: r['program'] in programNamesFromYml )
+
+    if len(filters) == 0:
+        logging.error('No filter specified')
+        return 1
 
     def combinedFilters(result):
         for f in filters:
