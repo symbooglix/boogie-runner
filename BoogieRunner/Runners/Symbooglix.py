@@ -75,9 +75,10 @@ class SymbooglixRunner(RunnerBaseClass):
     cmdLine.append('--output-dir={}'.format(self.outputDir))
 
     if self.entryPoint == None:
-      raise SymbooglixRunnerException("entry point not specified")
-    # Set implementation to enter
-    cmdLine.append('--entry-points={}'.format(self.entryPoint))
+      _logger.warning('Entry point not specified!')
+    else:
+      # Set implementation to enter
+      cmdLine.append('--entry-points={}'.format(self.entryPoint))
 
     # Force soft timeout
     cmdLine.append('--timeout={}'.format(self.softTimeout))
