@@ -20,6 +20,8 @@ def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-v", "--verbose", action='store_true', help='Show detailed information about mismatch')
+  parser.add_argument("-i", "--ignore-length-mismatch", dest='ignore_length_mismatch', action='store_true')
+  parser.add_argument("--ignore-missing", dest='ignore_missing', action='store_true')
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   pargs = parser.parse_args(args)
 
@@ -28,6 +30,11 @@ def main(args):
 
   if len(pargs.result_ymls) < 2:
     logging.error('Need to at least 2 YAML files')
+
+  if pargs.ignore_length_mismatch:
+    informLengthMismatch = logging.warning
+  else:
+    informLengthMismatch = logging.error
 
   # Check that each yml file exists
   data = { }
@@ -61,8 +68,9 @@ def main(args):
   # Check the lengths are the same
   for name, rList in data.items():
     if len(rList) != length:
-      logging.error('There is a length mismatch for {}, expected {} entries but was {}'.format(name, length, len(rList)))
-      return 1
+      informLengthMismatch('There is a length mismatch for {}, expected {} entries but was {}'.format(name, length, len(rList)))
+      if not pargs.ignore_length_mismatch:
+        return 1
 
   programToResultSetsMap = { }
   for resultListName in resultListNames:
@@ -77,26 +85,40 @@ def main(args):
   # Check there are the same number of results for each program
   mismatchCount = 0
   for programName, resultListNameToRawResultMap  in programToResultSetsMap.items():
+    mismatch = False
     if len(resultListNameToRawResultMap) != len(resultListNames):
-      logging.error('For program {} there we only {} result lists but expected {}'.format(
-        programName, len(resultListNameToRawResultMap), len(resultListNames)))
-      logging.error(pprint.pformat(resultListNameToRawResultMap))
-      return 1
+      if pargs.ignore_length_mismatch:
+        mismatch = True
+        if pargs.ignore_missing:
+          continue
+      else:
+        logging.error('For program {} there we only {} result lists but expected {}'.format(
+          programName, len(resultListNameToRawResultMap), len(resultListNames)))
+        logging.error(pprint.pformat(resultListNameToRawResultMap))
+        return 1
 
     # For this program check that classifications are consistent
     # we take the first programList name as the expected
-    expectedType = classifyResult(resultListNameToRawResultMap[resultListNames[0]])
-    mismatch = False
-    for resultListName in resultListNames[1:]:
-      typeForResult = classifyResult( resultListNameToRawResultMap[resultListName] )
-      if typeForResult != expectedType:
-        mismatch = True
+    if not mismatch:
+      expectedType = classifyResult(resultListNameToRawResultMap[resultListNames[0]])
+      for resultListName in resultListNames[1:]:
+        typeForResult = classifyResult( resultListNameToRawResultMap[resultListName] )
+        if typeForResult != expectedType:
+          mismatch = True
 
     if mismatch:
       mismatchCount += 1
       logging.warning('Found mismatch for program {}:'.format(programName))
       for resultListName in resultListNames:
-        logging.warning('{}: {}'.format(resultListName, classifyResult(resultListNameToRawResultMap[resultListName])))
+        resultType="***Missing***"
+        try:
+          resultType = classifyResult(resultListNameToRawResultMap[resultListName])
+        except KeyError:
+          if pargs.ignore_length_mismatch:
+            pass
+          else:
+            raise
+        logging.warning('{}: {}'.format(resultListName, resultType))
       if pargs.verbose:
         logging.warning('\n{}'.format(pprint.pformat(resultListNameToRawResultMap)))
       logging.warning('')
