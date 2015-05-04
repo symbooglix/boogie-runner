@@ -35,6 +35,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self.exitCode = None
     self._process = None
     self._eventObj = None
+    self._stackSize = None
 
     if not os.path.isabs(boogieProgram):
       raise RunnerBaseException(
@@ -288,6 +289,19 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # * When running natively PATH is not propagated into the running environment of the tool
     # * We might be running inside a Docker container
 
+    try:
+      self._stackSize = rc['stack_size']
+      if isinstance(self._stackSize, str):
+        if self._stackSize != 'unlimited':
+          raise RunnerBaseException('If "stack_size" maps to a string it must be set to "unlimited"')
+      elif isinstance(self._stackSize, int):
+        if self._stackSize <= 0:
+          raise RunnerBaseException('"stack_size" must be greater than 0')
+      else:
+        raise RunnerBaseException('"stack_size" has unexpected type')
+    except KeyError:
+      self._stackSize = None
+
   def findEntryPoint(self, constraint):
     if not isinstance(constraint, dict):
       raise RunnerBaseException("Expected \"entry_point\" to be a dictionary")
@@ -495,6 +509,15 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
                                      stdout=f,
                                      stderr=f,
                                      env=env)
+
+        if self._stackSize != None:
+          if isinstance(self._stackSize, str) and self._stackSize == "unlimited":
+            _logger.info('Using unlimited stack size')
+            self._process.rlimit(psutil.RLIMIT_STACK, (psutil.RLIM_INFINITY, psutil.RLIM_INFINITY))
+          else:
+            assert isinstance(self._stackSize, int)
+            _logger.info('Using stack size: {} KiB'.format(self._stackSize))
+            self._process.rlimit(psutil.RLIMIT_STACK, (self._stackSize, self._stackSize))
 
         if self.useMemoryLimitPolling:
           pollThread = self._memoryLimitPolling(self._process)

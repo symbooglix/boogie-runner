@@ -71,6 +71,7 @@ is a dictionary.
 * ``mono_path`` - **Optional** Specfies the absolute path to the mono executable to use if mono is required. Note ``~`` will be expanded to the user's home directory.
 * ``copy_program_to_working_directory`` - **Optional** If specified and set to ``true`` input Boogie programs to the runner will be copied to the working directory.
 * ``memory_limit_enforcement`` - **Optional** If specified will control how the memory limit is enforced ( do not use this if you are using docker).
+* ``stack_size`` - **Optional** If specified will limit the stack size in KiB. Can be set to ``"unlimited"`` to allow an unlimited stack size.
 
 ### ``entry_point`` key
 
