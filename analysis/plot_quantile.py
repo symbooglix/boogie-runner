@@ -151,6 +151,7 @@ def main(args):
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument('label_mapping_file', type=argparse.FileType('r'))
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
+  parser.add_argument('--strip-result-set-suffix', dest='strip_result_set_suffix', type=str, default=None)
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
@@ -311,7 +312,10 @@ def main(args):
     curves.append(p[0])
     legendNames.append(resultListName)
   # Add legend
-  suffix='merged.yml'
+  if pargs.strip_result_set_suffix != None:
+    suffix = pargs.strip_result_set_suffix
+  else:
+    suffix='merged.yml'
   legendNames = list(map(lambda s: s[0:-len(suffix) -1] if s.endswith(suffix) else s, legendNames))
   print(legendNames)
   assert len(legendNames) == len(curves)
