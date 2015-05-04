@@ -61,7 +61,7 @@ def main(args):
   # Check the lengths are the same
   for name, rList in data.items():
     if len(rList) != length:
-      logging.error('There is a length mismatch for {}, expected {} entries but was'.format(name, length, len(rList)))
+      logging.error('There is a length mismatch for {}, expected {} entries but was {}'.format(name, length, len(rList)))
       return 1
 
   programToResultSetsMap = { }
