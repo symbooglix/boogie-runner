@@ -323,12 +323,20 @@ def main(args):
   # HACK: move the legend outside
   # Shrink current axis by 20%
   box = ax.get_position()
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  fig.legend(tuple(curves), tuple(legendNames),
-    loc='upper right',
-    bbox_to_anchor=(1.01, 1),
-    fontsize='small')
+  print(box)
+  legend = ax.legend(tuple(curves), tuple(legendNames),
+    loc='upper left',
+    bbox_to_anchor=(1.01, 1.0),
+    borderaxespad=0 # No padding so that corners line up
+    )
 
+  # Work out how wide the legend is in terms of axes co-ordinates
+  fig.canvas.draw() # Needed say that legend size computation is correct
+  legendWidth, _ = ax.transAxes.inverted().transform((legend.get_frame().get_width(), legend.get_frame().get_height()))
+  assert legendWidth > 0.0
+
+  # FIXME: Why do I have to use 0.95??
+  ax.set_position([box.x0, box.y0, box.width * (0.95 - legendWidth), box.height])
   # Adjust y-axis so it is a log plot everywhere except [-1,1] which is linear
   ax.set_yscale('symlog', linthreshy=1.0, linscaley=0.1)
   ax.grid()
