@@ -152,6 +152,7 @@ def main(args):
   parser.add_argument('label_mapping_file', type=argparse.FileType('r'))
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   parser.add_argument('--strip-result-set-suffix', dest='strip_result_set_suffix', type=str, default=None)
+  parser.add_argument('--title', default="Quantile function plot", type=str)
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
@@ -292,9 +293,7 @@ def main(args):
   logging.info('Figure size is:{}'.format(fig.get_size_inches()))
 
 
-  titleString="Quantile plot"
-
-  ax.set_title(titleString)
+  ax.set_title(pargs.title)
   ax.set_xlabel('Accumulated score')
   ax.set_ylabel('Runtime (s)')
 
