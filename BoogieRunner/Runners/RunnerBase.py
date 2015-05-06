@@ -289,6 +289,14 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # * When running natively PATH is not propagated into the running environment of the tool
     # * We might be running inside a Docker container
 
+    self.monoArgs = [ ]
+    try:
+      self.monoArgs = rc['mono_args']
+      if (not isinstance(self.monoArgs, list)) or len(self.monoArgs) == 0 or (not isinstance(self.monoArgs[0], str)):
+        raise RunnerBaseException('"mono_args" must map to a non empty list of strings')
+    except KeyError:
+      pass
+
     try:
       self._stackSize = rc['stack_size']
       if isinstance(self._stackSize, str):
@@ -502,6 +510,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     if isDotNet and os.name == 'posix':
       finalCmdLine.append(self.monoExecutable)
+      if len(self.monoArgs) > 0:
+        finalCmdLine.extend(self.monoArgs)
 
     # Now add the arguments
     finalCmdLine.extend(cmdLine)
