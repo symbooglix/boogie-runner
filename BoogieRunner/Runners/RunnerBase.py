@@ -446,6 +446,20 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         _logger.debug(traceback.format_exc())
         pass
 
+  def _setStacksize(self):
+    """
+      Designed to be called subprocess.POpen() after fork.
+      It will set any limits as appropriate.
+      Note do not try to use the _logger here are the file descriptors have been changed.
+    """
+    assert self._stackSize != None
+    import resource
+    if isinstance(self._stackSize, str) and self._stackSize == "unlimited":
+      resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+    else:
+      assert isinstance(self._stackSize, int)
+      resource.setrlimit(resource.RLIMIT_STACK, (self._stackSize, self._stackSize))
+
   def runTool(self, cmdLine, isDotNet, envExtra = {}):
     finalCmdLine = []
     self._memoryLimitHit = False
@@ -504,20 +518,16 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     with open(self.logFile, 'w') as f:
       try:
         _logger.info('writing to log file {}'.format(self.logFile))
+        preExecFn = None
+        if self._stackSize != None:
+          preExecFn = self._setStacksize
+          _logger.info('Using stacksize limit: {} KiB'.format(self._stackSize))
         self._process = psutil.Popen(finalCmdLine,
                                      cwd=self.workingDirectory,
                                      stdout=f,
                                      stderr=f,
-                                     env=env)
-
-        if self._stackSize != None:
-          if isinstance(self._stackSize, str) and self._stackSize == "unlimited":
-            _logger.info('Using unlimited stack size')
-            self._process.rlimit(psutil.RLIMIT_STACK, (psutil.RLIM_INFINITY, psutil.RLIM_INFINITY))
-          else:
-            assert isinstance(self._stackSize, int)
-            _logger.info('Using stack size: {} KiB'.format(self._stackSize))
-            self._process.rlimit(psutil.RLIMIT_STACK, (self._stackSize, self._stackSize))
+                                     env=env,
+                                     preexec_fn=preExecFn)
 
         if self.useMemoryLimitPolling:
           pollThread = self._memoryLimitPolling(self._process)
