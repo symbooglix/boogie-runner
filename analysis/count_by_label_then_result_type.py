@@ -55,25 +55,25 @@ def main(args):
   print("Total # of results: {}".format(len(results)))
   print("Results expected to be correct (total {})".format(expectedCorrectCount))
   if expectedCorrectCount > 0:
-    for label in sortedResultTypeNames:
-      l = labelledCorrect[label]
+    for rTypeName in sortedResultTypeNames:
+      l = labelledCorrect[rTypeName]
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedCorrectCount)
-      print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
+      print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
   print("Results expected to be incorrect (total {})".format(expectedIncorrectCount))
   if expectedIncorrectCount > 0:
-    for label in sortedResultTypeNames:
-      l = labelledIncorrect[label]
+    for rTypeName in sortedResultTypeNames:
+      l = labelledIncorrect[rTypeName]
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedIncorrectCount)
-      print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
+      print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
   print("Results expected to be unknown (total {})".format(expectedUnknownCount))
   if expectedUnknownCount > 0:
-    for label in sortedResultTypeNames:
-      l = labelledUnknown[label]
+    for rTypeName in sortedResultTypeNames:
+      l = labelledUnknown[rTypeName]
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedUnknownCount)
-      print("# classified as {}: {} ({:.2f}%)".format(label, len(l), percentage))
+      print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
 
   return 0
 
