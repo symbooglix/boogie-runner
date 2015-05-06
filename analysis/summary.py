@@ -17,6 +17,7 @@ except ImportError:
 def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
+  parser.add_argument("-c","--collective-unknown", dest="collective_unknown", default=False, action="store_true")
   parser.add_argument('result_yml', type=argparse.FileType('r'))
   pargs = parser.parse_args(args)
 
@@ -42,11 +43,24 @@ def main(args):
     rTypeToResultMap[rType].append(r)
 
   print("Total: {}".format(len(results)))
+  collectiveUnknownCount = 0
+  collectiveUnknownTypes = [FinalResultType.UNKNOWN, FinalResultType.OUT_OF_MEMORY, FinalResultType.TIMED_OUT]
+  assert len(collectiveUnknownTypes) + 3 == len(FinalResultType)
   for rType in FinalResultType:
     name = rType.name
     resultList = rTypeToResultMap[rType]
     print("# of {}: {} ({:.2f}%)".format(name, len(resultList),
       100*float(len(resultList))/len(results)))
+
+    if pargs.collective_unknown:
+      if rType in collectiveUnknownTypes:
+        collectiveUnknownCount += len(resultList)
+
+  if pargs.collective_unknown:
+    print("")
+    print("# Collective unknowns: {} ({:.2f}%)".format(
+      collectiveUnknownCount,
+      100*float(collectiveUnknownCount)/len(results)))
 
   return 0
 
