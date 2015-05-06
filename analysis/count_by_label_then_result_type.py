@@ -59,14 +59,28 @@ def main(args):
       l = labelledCorrect[rTypeName]
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedCorrectCount)
-      print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
+      # Add description if appropriate
+      if rTypeName == "FULLY_EXPLORED":
+        desc="[True Negatives]"
+      elif rTypeName == "BUG_FOUND":
+        desc="[False Positives]"
+      else:
+        desc=""
+      print("# classified as {}: {} ({:.2f}%) {}".format(rTypeName, len(l), percentage, desc))
   print("Results expected to be incorrect (total {})".format(expectedIncorrectCount))
   if expectedIncorrectCount > 0:
     for rTypeName in sortedResultTypeNames:
       l = labelledIncorrect[rTypeName]
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedIncorrectCount)
-      print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
+      # Add descriptiont if appropriate
+      if rTypeName == "BUG_FOUND":
+        desc="[True Positives]"
+      elif rTypeName == "FULLY_EXPLORED":
+        desc="[False Negatives]"
+      else:
+        desc=""
+      print("# classified as {}: {} ({:.2f}%) {}".format(rTypeName, len(l), percentage, desc))
   print("Results expected to be unknown (total {})".format(expectedUnknownCount))
   if expectedUnknownCount > 0:
     for rTypeName in sortedResultTypeNames:
