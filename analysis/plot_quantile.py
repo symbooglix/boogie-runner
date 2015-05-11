@@ -273,7 +273,11 @@ def main(args):
       accum += score
       accumScores.append(accum)
       runTimes.append(r['total_time'])
-      runTimeStdDevs.append(r['total_time_stddev'])
+      if 'total_time_stddev' in r:
+        runTimeStdDevs.append(r['total_time_stddev'])
+      else:
+        logging.warning('Standard deviation missing for result {}'.format(r['program']))
+        runTimeStdDevs.append(0)
 
     assert len(accumScores) == len(runTimes)
     # offset all points along the x-axis (accumalative score)
