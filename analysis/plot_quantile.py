@@ -146,6 +146,24 @@ class ScoredResultList:
   def totalScore(self):
     return self.totalNegativeScore + self.totalPositiveScore
 
+def computeProgramNameToResults(data, resultListNames):
+  output = { }
+
+  for resultListName in resultListNames:
+    for r in data[resultListName]:
+      program = r['program']
+      if program in output:
+        output[program][resultListName] = r
+      else:
+        output[program] = { resultListName:r}
+
+  for program, results in output.items():
+    if len(results) != len(resultListNames):
+      logging.warning('There are missing results for program {}'.format(program))
+
+  return output
+
+
 def main(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
@@ -217,10 +235,14 @@ def main(args):
       logging.error('There is a length mismatch for {}, expected {} entries but was'.format(name, length, len(rList)))
       return 1
 
+  # For Visualisation later
+  programToResultsMap = computeProgramNameToResults(data, resultListNames)
+
   resultListNameToScoredResultList = {}
   resultListNameToAccumScore = {}
   resultListNameToRunTime = {}
   resultListNameToRunTimeStdDev = {}
+  resultListNameToRawResultsListOrdered = { }
   # Create data structures
   for resultListName in resultListNames:
     srl = ScoredResultList(resultListName, correctnessMapping)
@@ -228,6 +250,7 @@ def main(args):
     resultListNameToAccumScore[resultListName] = accumScores = [ ]
     resultListNameToRunTime[resultListName] = runTimes = [ ]
     resultListNameToRunTimeStdDev[resultListName] = runTimeStdDevs = []
+    resultListNameToRawResultsListOrdered[resultListName] = rawResults = []
 
     # Add results and compute score
     unknownBenchmarkCount=0
@@ -263,6 +286,7 @@ def main(args):
     accumScores.append(0)
     runTimes.append(dummyTime)
     runTimeStdDevs.append(0.0) # Dummy point has no y errors
+    rawResults.append(None) # Dummy
 
     largestSeenTime = dummyTime # used for an assert
     accum = 0
@@ -273,6 +297,7 @@ def main(args):
       accum += score
       accumScores.append(accum)
       runTimes.append(r['total_time'])
+      rawResults.append(r)
       if 'total_time_stddev' in r:
         runTimeStdDevs.append(r['total_time_stddev'])
       else:
@@ -301,6 +326,73 @@ def main(args):
   ax.set_xlabel('Accumulated score')
   ax.set_ylabel('Runtime (s)')
 
+  class DataPointReporter:
+    def __init__(self, plt, resultListName, resultListNames, resultListNameToRawResultsListOrdered, resultListNameToAccumScore, programToResultsMap):
+      print("init")
+      self.plt = plt
+      self.cid = plt.figure.canvas.mpl_connect('pick_event',self)
+      self.resultListNames = resultListNames
+      self.resultListName = resultListName
+      self.resultListNameToRawResultsListOrdered = resultListNameToRawResultsListOrdered # FIXME: Rename, this is just postive score results
+      self.resultListNameToAccumScore = resultListNameToAccumScore
+      self.programToResultsMap = programToResultsMap
+
+    def dump(self, resultListName, program):
+      resultsForProg = self.programToResultsMap[program]
+      if not resultListName in resultsForProg:
+        print("{} : not available".format(resultListName))
+      else:
+        result = resultsForProg[resultListName]
+        rType = classifyResult(result)
+        runTime = result['total_time']
+        stdDev =  "UNKNOWN" if not 'total_time_stddev' in result else result['total_time_stddev']
+        accumScore = self.getAccumScore(resultListName, program)
+        accumScoreStr = "unknown" if accumScore == None else accumScore
+        print("{} : {} ({} ± {} secs) (accumScore: {})".format(resultListName, rType, runTime, stdDev, accumScore))
+
+    def getAccumScore(self, resultListName, program):
+      # Try to find program in raw resultsList ordered
+      # it might not be there
+      index=0
+      found = False
+      for r in self.resultListNameToRawResultsListOrdered[resultListName]:
+        if r == None:
+          index += 1
+          continue # Skip dummy point
+        if r['program'] == program:
+          found = True
+          break
+        index +=1
+
+      if not found:
+        return None
+
+      return self.resultListNameToAccumScore[resultListName][index]
+
+
+    def __call__(self, event):
+      orderedResultList = self.resultListNameToRawResultsListOrdered[self.resultListName]
+      scoreList = self.resultListNameToAccumScore[self.resultListName]
+      artist = event.artist
+
+      # Only print if we were clicked on
+      if self.plt != artist:
+        return
+
+      print("*****")
+      dataIndex = event.ind[0]
+      r=orderedResultList[dataIndex]
+      print("program: {}".format(r['program']))
+      self.dump(self.resultListName, r['program'])
+      print("Accum Score: {}".format(self.resultListNameToAccumScore[self.resultListName][dataIndex]))
+      print("")
+      print("OTHERS:")
+      for resultListName in self.resultListNames:
+        if self.resultListName == resultListName:
+          continue
+        self.dump(resultListName, r['program'])
+      print("*****")
+
   # Add curves
   curves = [ ]
   legendNames = [ ]
@@ -308,10 +400,12 @@ def main(args):
     x = resultListNameToAccumScore[resultListName]
     y = resultListNameToRunTime[resultListName]
     yErrors = resultListNameToRunTimeStdDev[resultListName]
+    pickTolerance=4
     if pargs.error_bars:
-      p = ax.errorbar(x,y,yerr=yErrors)
+      p = ax.errorbar(x,y,yerr=yErrors, picker=pickTolerance)
     else:
-      p = ax.plot(x,y, '-o' if pargs.points else '-')
+      p = ax.plot(x,y, '-o' if pargs.points else '-', picker=pickTolerance)
+    DataPointReporter(p[0], resultListName, resultListNames, resultListNameToRawResultsListOrdered, resultListNameToAccumScore, programToResultsMap)
     curves.append(p[0])
     legendNames.append(resultListName)
   # Add legend
