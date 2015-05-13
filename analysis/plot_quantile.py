@@ -169,8 +169,8 @@ def main(args):
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument('label_mapping_file', type=argparse.FileType('r'))
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
-  parser.add_argument('--strip-result-set-suffix', dest='strip_result_set_suffix', type=str, default=None)
   parser.add_argument('--title', default="Quantile function plot", type=str)
+  parser.add_argument('--legend-name-map',dest='legend_name_map', default=None, type=str)
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
@@ -199,6 +199,24 @@ def main(args):
   # Load correctness mapping file
   correctnessMapping = yaml.load(pargs.label_mapping_file, Loader=Loader)
   validateMappingFile(correctnessMapping)
+
+  legendMapping = None
+  # Load the legend mapping if it exists
+  if pargs.legend_name_map != None:
+    if not os.path.exists(pargs.legend_name_map):
+      logging.error('"{}" does not exist'.format(pargs.legend_name_map))
+      return 1
+    with open(pargs.legend_name_map, 'r') as openFile:
+      legendMapping = yaml.load(openFile, Loader=Loader)
+      if not isinstance(legendMapping, dict):
+        logging.error('Legend mapping should be a dictionary mapping file paths to legend name')
+        return 1
+      
+      # Validate
+      for resultListName in pargs.result_ymls:
+        if not resultListName in legendMapping:
+          logging.error('"{}" key is missing from the legend mapping file {}'.format(resultListName, pargs.legend_name_map))
+          return 1
 
   # Check that each yml file exists
   data = { }
@@ -407,14 +425,8 @@ def main(args):
       p = ax.plot(x,y, '-o' if pargs.points else '-', picker=pickTolerance)
     DataPointReporter(p[0], resultListName, resultListNames, resultListNameToRawResultsListOrdered, resultListNameToAccumScore, programToResultsMap)
     curves.append(p[0])
-    legendNames.append(resultListName)
+    legendNames.append(legendMapping[resultListName] if pargs.legend_name_map else resultListName)
   # Add legend
-  if pargs.strip_result_set_suffix != None:
-    suffix = pargs.strip_result_set_suffix
-  else:
-    suffix='merged.yml'
-  legendNames = list(map(lambda s: s[0:-len(suffix) -1] if s.endswith(suffix) else s, legendNames))
-  print(legendNames)
   assert len(legendNames) == len(curves)
 
   # HACK: move the legend outside
