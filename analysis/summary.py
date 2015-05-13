@@ -44,8 +44,8 @@ def main(args):
 
   print("Total: {}".format(len(results)))
   collectiveUnknownCount = 0
-  collectiveUnknownTypes = [FinalResultType.UNKNOWN, FinalResultType.OUT_OF_MEMORY, FinalResultType.TIMED_OUT]
-  assert len(collectiveUnknownTypes) + 3 == len(FinalResultType)
+  collectiveUnknownTypes = [FinalResultType.UNKNOWN, FinalResultType.OUT_OF_MEMORY, FinalResultType.TIMED_OUT, FinalResultType.BOUND_HIT]
+  assert len(collectiveUnknownTypes) + 2 == len(FinalResultType)
   for rType in FinalResultType:
     name = rType.name
     resultList = rTypeToResultMap[rType]
