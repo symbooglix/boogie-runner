@@ -52,6 +52,7 @@ def main(args):
   sortedResultTypeNames = [ name for name, _ in FinalResultType.__members__.items()]
   sortedResultTypeNames.sort()
 
+  falseAlarmCount=0
   print("Total # of results: {}".format(len(results)))
   print("Results expected to be correct (total {})".format(expectedCorrectCount))
   if expectedCorrectCount > 0:
@@ -64,6 +65,7 @@ def main(args):
         desc="[True Negatives]"
       elif rTypeName == "BUG_FOUND":
         desc="[False Positives]"
+        falseAlarmCount += len(l)
       else:
         desc=""
       print("# classified as {}: {} ({:.2f}%) {}".format(rTypeName, len(l), percentage, desc))
@@ -78,6 +80,7 @@ def main(args):
         desc="[True Positives]"
       elif rTypeName == "FULLY_EXPLORED":
         desc="[False Negatives]"
+        falseAlarmCount += len(l)
       else:
         desc=""
       print("# classified as {}: {} ({:.2f}%) {}".format(rTypeName, len(l), percentage, desc))
@@ -88,6 +91,9 @@ def main(args):
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedUnknownCount)
       print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
+
+  print("")
+  print("# of false alarms: {}".format(falseAlarmCount))
 
   return 0
 
