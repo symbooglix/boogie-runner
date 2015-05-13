@@ -52,7 +52,10 @@ def main(args):
   sortedResultTypeNames = [ name for name, _ in FinalResultType.__members__.items()]
   sortedResultTypeNames.sort()
 
+  collectiveUnknownTypes = list(map(lambda x: x.name, [FinalResultType.OUT_OF_MEMORY, FinalResultType.TIMED_OUT, FinalResultType.UNKNOWN, FinalResultType.BOUND_HIT]))
+
   falseAlarmCount=0
+  collectiveUnknownCount=0
   print("Total # of results: {}".format(len(results)))
   print("Results expected to be correct (total {})".format(expectedCorrectCount))
   if expectedCorrectCount > 0:
@@ -68,6 +71,10 @@ def main(args):
         falseAlarmCount += len(l)
       else:
         desc=""
+
+      if rTypeName in collectiveUnknownTypes:
+        collectiveUnknownCount += len(l)
+
       print("# classified as {}: {} ({:.2f}%) {}".format(rTypeName, len(l), percentage, desc))
   print("Results expected to be incorrect (total {})".format(expectedIncorrectCount))
   if expectedIncorrectCount > 0:
@@ -83,17 +90,26 @@ def main(args):
         falseAlarmCount += len(l)
       else:
         desc=""
+
+      if rTypeName in collectiveUnknownTypes:
+        collectiveUnknownCount += len(l)
+
       print("# classified as {}: {} ({:.2f}%) {}".format(rTypeName, len(l), percentage, desc))
   print("Results expected to be unknown (total {})".format(expectedUnknownCount))
   if expectedUnknownCount > 0:
     for rTypeName in sortedResultTypeNames:
       l = labelledUnknown[rTypeName]
+
+      if rTypeName in collectiveUnknownTypes or rTypeName == "BUG_FOUND": # The BUG_FOUND must be a tool that gives false postives so we didn't trust it when generating the correctness labelling
+        collectiveUnknownCount += len(l)
+
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedUnknownCount)
       print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
 
   print("")
   print("# of false alarms: {}".format(falseAlarmCount))
+  print("# of Collective unknowns (includes BUG_FOUND if benchmark classified as unknown): {}".format(collectiveUnknownCount))
 
   return 0
 
