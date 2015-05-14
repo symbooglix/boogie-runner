@@ -471,7 +471,7 @@ def main(args):
   ax.yaxis.set_minor_locator(yAxisLocator)
   ax.yaxis.set_tick_params(which='minor', length=4)
   ax.yaxis.set_tick_params(which='major', length=6)
-  ax.grid()
+  #ax.grid()
 
 
   # Use major labels to divide the tools
