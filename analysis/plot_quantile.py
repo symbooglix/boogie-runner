@@ -460,6 +460,14 @@ def main(args):
   legend.draggable(True) # Make it so we can move the legend with the mouse
   # Adjust y-axis so it is a log plot everywhere except [-1,1] which is linear
   ax.set_yscale('symlog', linthreshy=1.0, linscaley=0.1)
+
+  #set minor ticks on y-axis
+  from matplotlib.ticker import LogLocator
+  import numpy
+  yAxisLocator = LogLocator(subs=numpy.arange(1.0,10.0))
+  ax.yaxis.set_minor_locator(yAxisLocator)
+  ax.yaxis.set_tick_params(which='minor', length=4)
+  ax.yaxis.set_tick_params(which='major', length=6)
   ax.grid()
 
 
