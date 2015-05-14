@@ -32,6 +32,7 @@ def main(args):
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
   parser.add_argument('-c', '--only-allow-consistent', dest='only_allow_consistent',action='store_true', default=False)
   parser.add_argument('--give-analysis-failure-max-time', dest='give_analysis_failure_max_time', default=False, action='store_true')
+  parser.add_argument('--click-shows-raw-data', dest='click_shows_raw_data', action='store_true', default=False)
 
   group = parser.add_mutually_exclusive_group()
   group.add_argument('-r', '--result-types-to-plot', nargs='+', dest='result_types_to_plot',
@@ -197,7 +198,7 @@ def main(args):
 
 
   # Add annotations that become visible when clicked
-  DataPointReporter(splot, xData, yData, annotationLabels, programToResultSetsMap)
+  DataPointReporter(splot, xData, yData, annotationLabels, programToResultSetsMap, pargs.click_shows_raw_data)
 
   # Identity line
   ax.plot([ 0 , pargs.max_time + extend], [0, pargs.max_time + extend], linewidth=1.0, color='black')
@@ -212,11 +213,12 @@ def main(args):
   return 0
 
 class DataPointReporter:
-  def __init__(self, scatter, xData, yData, annotationLabels, programToResultSetsMap):
+  def __init__(self, scatter, xData, yData, annotationLabels, programToResultSetsMap, clickShowsRawData):
     self.scatter = scatter
     self.cid = scatter.figure.canvas.mpl_connect('pick_event', self)
     self.annotationLabels = annotationLabels
     self.programToResultSetsMap = programToResultSetsMap
+    self.clickShowsRawData = clickShowsRawData
     # Add annotations, by hide them by default
     self.annotationObjects = [ ]
     self.lastClickedAnnotationObj = None
@@ -229,9 +231,19 @@ class DataPointReporter:
 
   def __call__(self, event):
     programName = self.annotationLabels[event.ind[0]]
+    logging.info('*****')
     logging.info('{}'.format(programName))
     for resultListName, rawResultData in self.programToResultSetsMap[programName].items():
-      logging.info('{}: {}\n{}'.format(resultListName, classifyResult(rawResultData), pprint.pformat(rawResultData)))
+      if self.clickShowsRawData:
+        logging.info('{}: {}\n{}'.format(resultListName, classifyResult(rawResultData), pprint.pformat(rawResultData)))
+      else:
+        logging.info('{}: {} ({} ± {} secs)'.format(
+          resultListName,
+          classifyResult(rawResultData),
+          rawResultData['total_time'],
+          rawResultData['total_time_stddev'] if 'total_time_stddev' in rawResultData else 'UNKNOWN'
+          ))
+    logging.info('*****')
 
     theAnnotation = self.annotationObjects[event.ind[0]]
     if self.lastClickedAnnotationObj != None:
