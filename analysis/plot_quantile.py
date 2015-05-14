@@ -415,6 +415,23 @@ def main(args):
           continue
         self.dump(resultListName, r['program'])
       print("*****")
+  
+  # HACK: Hardcode styles
+  # http://matplotlib.org/examples/color/named_colors.html
+  lineColourCycle = [
+  'black',
+  'r',
+  'y',
+  'green',
+  'c',
+  'magenta',
+  'coral',
+  'b',
+  'chartreuse',
+  'cyan',
+  'darkmagenta',
+  ]
+  ax.set_color_cycle(lineColourCycle)
 
   # Add curves
   curves = [ ]
@@ -425,7 +442,7 @@ def main(args):
     yErrors = resultListNameToRunTimeStdDev[resultListName]
     pickTolerance=4
     if pargs.error_bars:
-      p = ax.errorbar(x,y,yerr=yErrors, picker=pickTolerance)
+      p = ax.errorbar(x,y, yerr=yErrors, picker=pickTolerance)
     else:
       p = ax.plot(x,y, '-o' if pargs.points else '-', picker=pickTolerance)
     DataPointReporter(p[0], resultListName, resultListNames, resultListNameToRawResultsListOrdered, resultListNameToAccumScore, programToResultsMap)
