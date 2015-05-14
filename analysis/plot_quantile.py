@@ -402,6 +402,9 @@ def main(args):
       print("*****")
       dataIndex = event.ind[0]
       r=orderedResultList[dataIndex]
+      if r == None:
+        print("Dummy point")
+        return
       print("program: {}".format(r['program']))
       self.dump(self.resultListName, r['program'])
       print("Accum Score: {}".format(self.resultListNameToAccumScore[self.resultListName][dataIndex]))
