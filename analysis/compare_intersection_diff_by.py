@@ -24,6 +24,7 @@ def main(args):
     help="Group by expected result type from a mapping file")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   parser.add_argument('--rank-intersection', dest='rank_intersection', action='store_true', default=False)
+  parser.add_argument('--only-in', dest='only_in', action='store_true', default=False)
 
   extraOutputGroup = parser.add_mutually_exclusive_group()
   extraOutputGroup.add_argument("--uncommon", action='store_true')
@@ -55,6 +56,7 @@ def main(args):
   # Check that each yml file exists
   categorised = { }
   data = { }
+  onlyIn = { }
   resultListNames = [ ]
   for f in pargs.result_ymls:
     if not os.path.exists(f):
@@ -72,10 +74,13 @@ def main(args):
 
     # Initialise data
     categorised[resultListName] = {}
+    onlyIn[resultListName] = {}
     for benchmarkLabel in benchmarkLabels:
       categorised[resultListName][benchmarkLabel] = {}
+      onlyIn[resultListName][benchmarkLabel] = {}
       for name, _ in FinalResultType.__members__.items():
         categorised[resultListName][benchmarkLabel][name] = { 'raw':[], 'program_set': set() }
+        onlyIn[resultListName][benchmarkLabel][name] = None
 
   # Now load YAML
   length = 0
@@ -130,6 +135,7 @@ def main(args):
       except KeyError:
         programToRawResultMap[programName] = { resultListName:r }
 
+
   # Compute union (for count only) and intersection between result sets
   union = {}
   intersection = {}
@@ -157,6 +163,18 @@ def main(args):
           assert isinstance(intersection[name][benchmarkLabel], set)
         else:
           intersection[name][benchmarkLabel] = intersectionSet.intersection( categorised[resultListName][benchmarkLabel][name]['program_set'])
+
+  # compute onlyIn, start with the programs for that resultListName
+  # We will then start removing items until we are left only with the benchmarks
+  # that only that resultListName reported
+  for resultListName in resultListNames:
+    for benchmarkLabel in benchmarkLabels:
+      for name, _ in FinalResultType.__members__.items():
+        thisResultListsPrograms = categorised[resultListName][benchmarkLabel][name]['program_set'].copy()
+        for otherResultListName in list(filter(lambda x: x != resultListName, resultListNames)):
+          thisResultListsPrograms = thisResultListsPrograms.difference( categorised[otherResultListName][benchmarkLabel][name]['program_set'] )
+        onlyIn[resultListName][benchmarkLabel][name] = thisResultListsPrograms.copy() # copy just to be safe
+
 
   # Show computed information
   uncommonResults = { }
@@ -199,6 +217,12 @@ def main(args):
       superSetString = "Result sets that are super sets of the unioned benchmarks {}".format(superSetResultSet)
 
       print("# of common results of type {}: {} out of {} ({:.2f}%)\n{}\n".format(name, intersectionSize, unionSize, percentage, superSetString))
+      if pargs.only_in:
+        for resultListName in resultListNames:
+          theSet = onlyIn[resultListName][benchmarkLabel][name]
+          assert isinstance(theSet, set)
+          print("# of benchmarks only in {} : {}".format(resultListName, len(theSet)))
+        print("")
 
   if pargs.uncommon:
     displayResultSet("uncommon results", uncommonResults, resultListNames, benchmarkLabels, programToRawResultMap)
