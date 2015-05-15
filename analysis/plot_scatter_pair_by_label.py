@@ -271,6 +271,13 @@ def main(args):
   ax.set_yticks(range(0, pargs.max_time + 1, tickFreq))
   ax.grid(False)
 
+  # HACK: Annotate gt,lt and dual timeout numbers
+  # FIXME: don't hardcode
+  ax.annotate('{}'.format(countXLtYExceptDualTimeout), xy=(10,800))
+  ax.annotate('{}'.format(countYLtXExceptDualTimeout), xy=(800,10))
+  ax.annotate('{}'.format(countXEqYExceptDualTimeout), xy=(450,450))
+  ax.annotate('{}'.format(countDualTimeout), xy=(pargs.max_time -5, pargs.max_time -5), xytext=(pargs.max_time -100, pargs.max_time), arrowprops=dict(width=0.5,facecolor='black', shrink=0.05))
+
 
   # Add annotations that become visible when clicked
   DataPointReporter(splot, xData, yData, annotationLabels, programToResultSetsMap, pargs.click_shows_raw_data)
