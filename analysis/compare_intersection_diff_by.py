@@ -55,27 +55,27 @@ def main(args):
   # Check that each yml file exists
   categorised = { }
   data = { }
-  resultSetLabels = [ ]
+  resultListNames = [ ]
   for f in pargs.result_ymls:
     if not os.path.exists(f):
       logging.error('YAML file {} does not exist'.format(f))
       return 1
 
     # Compute result set label
-    resultSetLabel = f
-    resultSetLabels.append(resultSetLabel)
-    if resultSetLabel in data:
-      logging.error('Can\'t use {} as label name because it is already used'.format(resultSetLabel))
+    resultListName = f
+    resultListNames.append(resultListName)
+    if resultListName in data:
+      logging.error('Can\'t use {} as label name because it is already used'.format(resultListName))
       return 1
 
-    data[resultSetLabel] = None # Will be filled with loaded YAML data
+    data[resultListName] = None # Will be filled with loaded YAML data
 
     # Initialise data
-    categorised[resultSetLabel] = {}
+    categorised[resultListName] = {}
     for benchmarkLabel in benchmarkLabels:
-      categorised[resultSetLabel][benchmarkLabel] = {}
+      categorised[resultListName][benchmarkLabel] = {}
       for name, _ in FinalResultType.__members__.items():
-        categorised[resultSetLabel][benchmarkLabel][name] = { 'raw':[], 'program_set': set() }
+        categorised[resultListName][benchmarkLabel][name] = { 'raw':[], 'program_set': set() }
 
   # Now load YAML
   length = 0
@@ -85,8 +85,8 @@ def main(args):
       results = yaml.load(openFile, Loader=Loader)
     logging.info('Loading complete')
     assert isinstance(results, list)
-    resultSetLabel = f
-    data[resultSetLabel] = results
+    resultListName = f
+    data[resultListName] = results
     length = len(results)
 
   # Check the lengths are the same
@@ -97,8 +97,8 @@ def main(args):
 
   programToRawResultMap = { }
   # Put results into buckets based on labels
-  for resultSetLabel in resultSetLabels:
-    for r in data[resultSetLabel]:
+  for resultListName in resultListNames:
+    for r in data[resultListName]:
       if not 'bug_found' in r:
         logging.error('Key "bug_found" not in result')
         return 1
@@ -111,11 +111,11 @@ def main(args):
         benchmarkLabel = 'all'
 
       rType = classifyResult(r)
-      l = categorised[resultSetLabel][benchmarkLabel][rType.name]['raw']
+      l = categorised[resultListName][benchmarkLabel][rType.name]['raw']
       assert isinstance(l, list)
       l.append(r)
 
-      programSet = categorised[resultSetLabel][benchmarkLabel][rType.name]['program_set']
+      programSet = categorised[resultListName][benchmarkLabel][rType.name]['program_set']
       assert isinstance(programSet, set)
       programName = r['program']
       if programName in programSet:
@@ -126,9 +126,9 @@ def main(args):
       # Setup programToRawResultMap
       try:
         existingDict = programToRawResultMap[programName]
-        existingDict[resultSetLabel] = r
+        existingDict[resultListName] = r
       except KeyError:
-        programToRawResultMap[programName] = { resultSetLabel:r }
+        programToRawResultMap[programName] = { resultListName:r }
 
   # Compute union (for count only) and intersection between result sets
   union = {}
@@ -142,21 +142,21 @@ def main(args):
       intersection[name][benchmarkLabel] = None
 
   for name, _ in FinalResultType.__members__.items():
-    for resultSetLabel in resultSetLabels:
+    for resultListName in resultListNames:
       for benchmarkLabel in benchmarkLabels:
-        logging.debug('Computing union for {} for benchmark label {} for result set {}'.format(name, benchmarkLabel, resultSetLabel))
+        logging.debug('Computing union for {} for benchmark label {} for result set {}'.format(name, benchmarkLabel, resultListName))
         unionSet = union[name][benchmarkLabel]
-        union[name][benchmarkLabel] = unionSet.union( categorised[resultSetLabel][benchmarkLabel][name]['program_set'])
+        union[name][benchmarkLabel] = unionSet.union( categorised[resultListName][benchmarkLabel][name]['program_set'])
 
-        logging.debug('Computing intersection for {} for benchmark label {} for result set {}'.format(name, benchmarkLabel, resultSetLabel))
+        logging.debug('Computing intersection for {} for benchmark label {} for result set {}'.format(name, benchmarkLabel, resultListName))
         intersectionSet = intersection[name][benchmarkLabel]
         if intersectionSet == None:
           # This set hasn't been initialised so make it be a copy of the current set of programs
           # We can't do what we do with unions because we'd intersect with the initially empty set
-          intersection[name][benchmarkLabel] = categorised[resultSetLabel][benchmarkLabel][name]['program_set'].copy()
+          intersection[name][benchmarkLabel] = categorised[resultListName][benchmarkLabel][name]['program_set'].copy()
           assert isinstance(intersection[name][benchmarkLabel], set)
         else:
-          intersection[name][benchmarkLabel] = intersectionSet.intersection( categorised[resultSetLabel][benchmarkLabel][name]['program_set'])
+          intersection[name][benchmarkLabel] = intersectionSet.intersection( categorised[resultListName][benchmarkLabel][name]['program_set'])
 
   # Show computed information
   uncommonResults = { }
@@ -184,15 +184,15 @@ def main(args):
 
       # Compute if any result set (i.e. from a tool) is a super set of the unioned benchmarks
       superSetResultSet = [ ]
-      for resultSetLabel in resultSetLabels:
-        if categorised[resultSetLabel][benchmarkLabel][name]['program_set'].issuperset(union[name][benchmarkLabel]):
-          superSetResultSet.append(resultSetLabel)
+      for resultListName in resultListNames:
+        if categorised[resultListName][benchmarkLabel][name]['program_set'].issuperset(union[name][benchmarkLabel]):
+          superSetResultSet.append(resultListName)
 
       if len(superSetResultSet) == 0:
         # No result set is a super set of the unioned benchmarks which implies
         # there are uncommon results. Compute this and store it
         uncommonResults[name][benchmarkLabel] = union[name][benchmarkLabel].difference( intersection[name][benchmarkLabel])
-      elif len(superSetResultSet) < len(resultSetLabels):
+      elif len(superSetResultSet) < len(resultListNames):
         # There is at least one proper superset
         properSuperSetResults[name][benchmarkLabel] = union[name][benchmarkLabel].difference( intersection[name][benchmarkLabel])
 
@@ -201,20 +201,20 @@ def main(args):
       print("# of common results of type {}: {} out of {} ({:.2f}%)\n{}\n".format(name, intersectionSize, unionSize, percentage, superSetString))
 
   if pargs.uncommon:
-    displayResultSet("uncommon results", uncommonResults, resultSetLabels, benchmarkLabels, programToRawResultMap)
+    displayResultSet("uncommon results", uncommonResults, resultListNames, benchmarkLabels, programToRawResultMap)
 
   if pargs.proper_supersets:
-    displayResultSet("superset results", properSuperSetResults, resultSetLabels, benchmarkLabels, programToRawResultMap)
+    displayResultSet("superset results", properSuperSetResults, resultListNames, benchmarkLabels, programToRawResultMap)
 
   if pargs.common:
-    displayResultSet("common results", intersection, resultSetLabels, benchmarkLabels, programToRawResultMap)
+    displayResultSet("common results", intersection, resultListNames, benchmarkLabels, programToRawResultMap)
 
   if pargs.rank_intersection:
-    rankIntersection(intersection, resultSetLabels, benchmarkLabels, programToRawResultMap)
+    rankIntersection(intersection, resultListNames, benchmarkLabels, programToRawResultMap)
 
   return 0
 
-def displayResultSet(setName, data, resultSetLabels, benchmarkLabels, programToRawResultMap):
+def displayResultSet(setName, data, resultListNames, benchmarkLabels, programToRawResultMap):
   assert isinstance(setName, str)
   assert isinstance(benchmarkLabels, list)
 
@@ -226,16 +226,16 @@ def displayResultSet(setName, data, resultSetLabels, benchmarkLabels, programToR
         for program in data[name][benchmarkLabel]:
           print("{}".format(program))
 
-          for resultSetLabel in resultSetLabels:
-            rawResult = programToRawResultMap[program][resultSetLabel]
-            print("{} : {} ({}) ({} secs)".format(resultSetLabel,
+          for resultListName in resultListNames:
+            rawResult = programToRawResultMap[program][resultListName]
+            print("{} : {} ({}) ({} secs)".format(resultListName,
                                                   classifyResult(rawResult),
                                                   rawResult['working_directory'],
                                                   rawResult['total_time']))
 
           print("")
 
-def rankIntersection(intersection, resultSetLabels, benchmarkLabels, programToRawResultMap):
+def rankIntersection(intersection, resultListNames, benchmarkLabels, programToRawResultMap):
   """
     For result intersection rank results by execution time
   """
@@ -251,11 +251,11 @@ def rankIntersection(intersection, resultSetLabels, benchmarkLabels, programToRa
       for program in intersection[rType.name][benchmarkLabel]:
         # Gather the resultSets
         resultsForProgram= []
-        for resultSetLabel in resultSetLabels:
-          r = programToRawResultMap[program][resultSetLabel]
+        for resultListName in resultListNames:
+          r = programToRawResultMap[program][resultListName]
           # Hack the result set name into the result so we know where it came from
           assert not 'result_set' in r
-          r['result_set'] = resultSetLabel
+          r['result_set'] = resultListName
           resultsForProgram.append(r)
         # Reverse sort the results by execution time
         resultsForProgram.sort(key=lambda element: element['total_time'], reverse=True)
@@ -264,15 +264,15 @@ def rankIntersection(intersection, resultSetLabels, benchmarkLabels, programToRa
       # Now we've collected the results for each program reverse sort them by execution time
       sortedResults.sort(key=lambda l: l[0]['total_time'], reverse=True)
 
-      # Now loop over the resultSetLabel (i.e. the files) printing when a tool came first
+      # Now loop over the resultListName (i.e. the files) printing when a tool came first
       winCount = {}
-      for resultSetLabel in resultSetLabels:
-        winCount[resultSetLabel] = 0
-        print("====={} won=====".format(resultSetLabel))
+      for resultListName in resultListNames:
+        winCount[resultListName] = 0
+        print("====={} won=====".format(resultListName))
         for results in sortedResults:
-          if results[-1]['result_set'] != resultSetLabel: # The last element in the list was the fastest (i.e. smallest time)
+          if results[-1]['result_set'] != resultListName: # The last element in the list was the fastest (i.e. smallest time)
             continue
-          winCount[resultSetLabel] += 1
+          winCount[resultListName] += 1
           print("program: {}".format(results[0]['program']))
           for r in results:
             if 'total_time_stddev' in r:
@@ -282,8 +282,8 @@ def rankIntersection(intersection, resultSetLabels, benchmarkLabels, programToRa
           print("")
       
       print("**Win summary**")
-      for resultSetLabel in resultSetLabels:
-        print("{} : {} wins".format(resultSetLabel, winCount[resultSetLabel]))
+      for resultListName in resultListNames:
+        print("{} : {} wins".format(resultListName, winCount[resultListName]))
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
