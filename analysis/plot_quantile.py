@@ -172,6 +172,7 @@ def main(args):
   parser.add_argument('--title', default="", type=str)
   parser.add_argument('--legend-name-map',dest='legend_name_map', default=None, type=str)
   parser.add_argument('--legend-position',dest='legend_position', choices=['outside_bottom', 'outside_right'])
+  parser.add_argument('--no-legend', default=False, dest='no_legend', action='store_true')
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
@@ -451,33 +452,36 @@ def main(args):
   # Add legend
   assert len(legendNames) == len(curves)
 
-  if pargs.legend_position == 'outside_right':
-    # HACK: move the legend outside
-    # Shrink current axis by 20%
-    box = ax.get_position()
-    print(box)
-    legend = ax.legend(tuple(curves), tuple(legendNames),
-      loc='upper left',
-      bbox_to_anchor=(1.01, 1.0),
-      borderaxespad=0 # No padding so that corners line up
-      )
-
-    # Work out how wide the legend is in terms of axes co-ordinates
-    fig.canvas.draw() # Needed say that legend size computation is correct
-    legendWidth, _ = ax.transAxes.inverted().transform((legend.get_frame().get_width(), legend.get_frame().get_height()))
-    assert legendWidth > 0.0
-
-    # FIXME: Why do I have to use 0.95??
-    ax.set_position([box.x0, box.y0, box.width * (0.95 - legendWidth), box.height])
+  if pargs.no_legend:
+    fig.tight_layout()
   else:
-    box = ax.get_position()
-    legend = ax.legend(tuple(curves), tuple(legendNames), ncol=3, bbox_to_anchor=(0.5, -0.09), loc='upper center')
-    # Work out how wide the legend is in terms of axes co-ordinates
-    fig.canvas.draw() # Needed say that legend size computation is correct
-    legendWidth, legendHeight = ax.transAxes.inverted().transform((legend.get_frame().get_width(), legend.get_frame().get_height()))
-    ax.set_position([box.x0, box.y0 + legendHeight + 0.1, box.width, box.height - (legendHeight + 0.05)])
+    if pargs.legend_position == 'outside_right':
+      # HACK: move the legend outside
+      # Shrink current axis by 20%
+      box = ax.get_position()
+      print(box)
+      legend = ax.legend(tuple(curves), tuple(legendNames),
+        loc='upper left',
+        bbox_to_anchor=(1.01, 1.0),
+        borderaxespad=0 # No padding so that corners line up
+        )
 
-  legend.draggable(True) # Make it so we can move the legend with the mouse
+      # Work out how wide the legend is in terms of axes co-ordinates
+      fig.canvas.draw() # Needed say that legend size computation is correct
+      legendWidth, _ = ax.transAxes.inverted().transform((legend.get_frame().get_width(), legend.get_frame().get_height()))
+      assert legendWidth > 0.0
+
+      # FIXME: Why do I have to use 0.95??
+      ax.set_position([box.x0, box.y0, box.width * (0.95 - legendWidth), box.height])
+    else:
+      box = ax.get_position()
+      legend = ax.legend(tuple(curves), tuple(legendNames), ncol=3, bbox_to_anchor=(0.5, -0.09), loc='upper center')
+      # Work out how wide the legend is in terms of axes co-ordinates
+      fig.canvas.draw() # Needed say that legend size computation is correct
+      legendWidth, legendHeight = ax.transAxes.inverted().transform((legend.get_frame().get_width(), legend.get_frame().get_height()))
+      ax.set_position([box.x0, box.y0 + legendHeight + 0.1, box.width, box.height - (legendHeight + 0.05)])
+    legend.draggable(True) # Make it so we can move the legend with the mouse
+
   # Adjust y-axis so it is a log plot everywhere except [-1,1] which is linear
   ax.set_yscale('symlog', linthreshy=1.0, linscaley=0.1)
 
