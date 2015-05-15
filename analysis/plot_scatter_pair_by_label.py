@@ -271,14 +271,15 @@ def main(args):
   fig, ax = plt.subplots()
   splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
 
-  ax.tick_params(which='both', labelsize=15)
+  fontSize=20
+  ax.tick_params(which='both', labelsize=fontSize)
   xAxisLabel += " execution time (s)"
   yAxisLabel += " execution time (s)"
-  ax.set_xlabel(xAxisLabel, fontsize=15)
+  ax.set_xlabel(xAxisLabel, fontsize=fontSize)
   ax.set_xlim(0,pargs.max_time + extend)
   # +1 is just so the pargs.max_time is included because range()'s end is not inclusive
   ax.set_xticks(range(0, pargs.max_time + 1, tickFreq))
-  ax.set_ylabel(yAxisLabel, fontsize=15)
+  ax.set_ylabel(yAxisLabel, fontsize=fontSize)
   ax.set_ylim(0,pargs.max_time + extend)
   ax.set_yticks(range(0, pargs.max_time + 1, tickFreq))
   ax.grid(False)
