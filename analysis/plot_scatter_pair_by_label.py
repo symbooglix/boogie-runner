@@ -38,6 +38,7 @@ def main(args):
   parser.add_argument('--only-show', dest='only_show', default='incorrect', choices=['correct', 'incorrect', 'unknown'])
   parser.add_argument('-c', '--only-allow-consistent', dest='only_allow_consistent',action='store_true', default=False)
   parser.add_argument('--axis-name-map',dest='axis_name_map', default=None, type=str)
+  parser.add_argument('--draw-dual-timeout-count',dest='draw_dual_timeout_count', action='store_true', default=False)
 
   #group = parser.add_mutually_exclusive_group()
   #group.add_argument('-r', '--result-types-to-plot', nargs='+', dest='result_types_to_plot',
@@ -283,14 +284,18 @@ def main(args):
 
   # HACK: Annotate gt,lt and dual timeout numbers
   # FIXME: don't hardcode
-  ax.annotate('{}'.format(countXLtYExceptDualTimeout), xy=(10,800))
-  ax.annotate('{}'.format(countYLtXExceptDualTimeout), xy=(800,10))
-  ax.annotate('{}'.format(countXEqYExceptDualTimeout), xy=(450,450))
-  ax.annotate('{}'.format(countDualTimeout), xy=(pargs.max_time -5, pargs.max_time -5), xytext=(pargs.max_time -100, pargs.max_time), arrowprops=dict(width=0.5,facecolor='black', shrink=0.05))
+  ax.annotate('{}'.format(countXLtYExceptDualTimeout), xy=(200,550), fontsize=30)
+  ax.annotate('{}'.format(countYLtXExceptDualTimeout), xy=(550,200), fontsize=30)
+  if countXEqYExceptDualTimeout > 0:
+    ax.annotate('{}'.format(countXEqYExceptDualTimeout), xy=(450,450))
+  if pargs.draw_dual_timeout_count:
+    ax.annotate('{}'.format(countDualTimeout), xy=(pargs.max_time -5, pargs.max_time -5), xytext=(pargs.max_time -100, pargs.max_time), arrowprops=dict(width=0.5,facecolor='black', shrink=0.05))
 
 
   # Add annotations that become visible when clicked
   DataPointReporter(splot, xData, yData, annotationLabels, programToResultSetsMap, pargs.click_shows_raw_data)
+
+  fig.tight_layout()
 
   # Identity line
   ax.plot([ 0 , pargs.max_time + extend], [0, pargs.max_time + extend], linewidth=1.0, color='black')
