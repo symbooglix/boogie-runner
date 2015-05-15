@@ -428,7 +428,7 @@ def main(args):
   'coral',
   'b',
   'chartreuse',
-  'cyan',
+  'saddlebrown',
   'darkmagenta',
   ]
   ax.set_color_cycle(lineColourCycle)
@@ -471,7 +471,7 @@ def main(args):
     ax.set_position([box.x0, box.y0, box.width * (0.95 - legendWidth), box.height])
   else:
     box = ax.get_position()
-    legend = ax.legend(tuple(curves), tuple(legendNames), ncol=3, bbox_to_anchor=(0.5, -0.08), loc='upper center')
+    legend = ax.legend(tuple(curves), tuple(legendNames), ncol=3, bbox_to_anchor=(0.5, -0.09), loc='upper center')
     # Work out how wide the legend is in terms of axes co-ordinates
     fig.canvas.draw() # Needed say that legend size computation is correct
     legendWidth, legendHeight = ax.transAxes.inverted().transform((legend.get_frame().get_width(), legend.get_frame().get_height()))
