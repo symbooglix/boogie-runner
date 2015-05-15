@@ -271,21 +271,22 @@ def main(args):
   fig, ax = plt.subplots()
   splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
 
+  ax.tick_params(which='both', labelsize=15)
   xAxisLabel += " execution time (s)"
   yAxisLabel += " execution time (s)"
-  ax.set_xlabel(xAxisLabel)
+  ax.set_xlabel(xAxisLabel, fontsize=15)
   ax.set_xlim(0,pargs.max_time + extend)
   # +1 is just so the pargs.max_time is included because range()'s end is not inclusive
   ax.set_xticks(range(0, pargs.max_time + 1, tickFreq))
-  ax.set_ylabel(yAxisLabel)
+  ax.set_ylabel(yAxisLabel, fontsize=15)
   ax.set_ylim(0,pargs.max_time + extend)
   ax.set_yticks(range(0, pargs.max_time + 1, tickFreq))
   ax.grid(False)
 
   # HACK: Annotate gt,lt and dual timeout numbers
   # FIXME: don't hardcode
-  ax.annotate('{}'.format(countXLtYExceptDualTimeout), xy=(200,550), fontsize=30)
-  ax.annotate('{}'.format(countYLtXExceptDualTimeout), xy=(550,200), fontsize=30)
+  ax.annotate('{}'.format(countXLtYExceptDualTimeout), xy=(200,550), fontsize=40)
+  ax.annotate('{}'.format(countYLtXExceptDualTimeout), xy=(550,200), fontsize=40)
   if countXEqYExceptDualTimeout > 0:
     ax.annotate('{}'.format(countXEqYExceptDualTimeout), xy=(450,450))
   if pargs.draw_dual_timeout_count:
