@@ -155,6 +155,10 @@ def main(args):
   failedAnalysisGivenMaxTimeCount = 0
   xData = [ ]
   yData = [ ]
+  countXLtYExceptDualTimeout=0
+  countYLtXExceptDualTimeout=0
+  countDualTimeout=0
+  countXEqYExceptDualTimeout=0
   annotationLabels = [ ]
   for programName, resultListNameToRawResultMap  in programToResultSetsMap.items():
     if len(resultListNameToRawResultMap) != len(resultListNames):
@@ -209,21 +213,33 @@ def main(args):
 
         
     # Add data point for plotting
-    xData.append(firstResult['total_time'])
-    yData.append(secondResult['total_time'])
+    xPoint = firstResult['total_time']
+    yPoint = secondResult['total_time']
+
+    # Update counts
+    if xPoint == yPoint and xPoint == pargs.max_time:
+      countDualTimeout += 1
+    else:
+      if xPoint < yPoint:
+        countXLtYExceptDualTimeout +=1
+        #print(programName)
+        #print(pprint.pformat(resultListNameToRawResultMap))
+        #return 1
+      elif yPoint < xPoint:
+        countYLtXExceptDualTimeout +=1
+      else:
+        assert xPoint == yPoint
+        countXEqYExceptDualTimeout +=1
+
+    xData.append(xPoint)
+    yData.append(yPoint)
     annotationLabels.append(programName)
 
   # Finally do plotting
   assert len(xData) == len(yData) == len(annotationLabels)
+  assert countXLtYExceptDualTimeout + countYLtXExceptDualTimeout + countXEqYExceptDualTimeout + countDualTimeout == len(xData)
   extend = 100
   tickFreq = 100
-  if pargs.only_allow_consistent:
-    logging.info('# of mismatches when only allowing consistent results: {}'.format(allowConsistentMismatchCount))
-  logging.info('# of result pairs clamped: {}'.format(clampCount))
-  logging.info('# of points plotted: {} out of {}'.format(len(xData), len(programToResultSetsMap)))
-  fig, ax = plt.subplots()
-  splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
-
   xAxisLabel=""
   yAxisLabel=""
   if pargs.axis_name_map:
@@ -232,6 +248,18 @@ def main(args):
   else:
     xAxisLabel=resultListNames[0]
     yAxisLabel=resultListNames[1]
+
+  if pargs.only_allow_consistent:
+    logging.info('# of mismatches when only allowing consistent results: {}'.format(allowConsistentMismatchCount))
+  logging.info('# of result pairs clamped: {}'.format(clampCount))
+  logging.info('# of points plotted: {} out of {}'.format(len(xData), len(programToResultSetsMap)))
+  logging.info('# of {x} < {y} (x < y): {}'.format(countXLtYExceptDualTimeout, x=xAxisLabel, y=yAxisLabel))
+  logging.info('# of {y} < {x} (y < x): {}'.format(countYLtXExceptDualTimeout, x=xAxisLabel, y=yAxisLabel))
+  logging.info('# of {x} == {y} (x == y) (ignoring timeouts): {}'.format(countXEqYExceptDualTimeout, x=xAxisLabel, y=yAxisLabel))
+  logging.info('# of dual timeouts: {}'.format(countDualTimeout))
+  fig, ax = plt.subplots()
+  splot = ax.scatter(xData, yData, picker=5, s=pargs.point_size)
+
   xAxisLabel += " execution time (s)"
   yAxisLabel += " execution time (s)"
   ax.set_xlabel(xAxisLabel)
