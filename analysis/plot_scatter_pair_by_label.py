@@ -235,6 +235,16 @@ def main(args):
     yData.append(yPoint)
     annotationLabels.append(programName)
 
+  # Give information
+  # This is highly result specific and probably should be removed.
+  occuranceCount = 0
+  yValueThresh = 10.0
+  xValueThresh = 100.0
+  for xValue, yValue in zip(xData, yData):
+    if yValue < yValueThresh and xValue > xValueThresh and xValue != pargs.max_time:
+      occuranceCount += 1
+  print(" # of times yValue < {} and xValue > {} and where for tool on x axis it was not a timeout : {}".format(yValueThresh, xValueThresh, occuranceCount))
+
   # Finally do plotting
   assert len(xData) == len(yData) == len(annotationLabels)
   assert countXLtYExceptDualTimeout + countYLtXExceptDualTimeout + countXEqYExceptDualTimeout + countDualTimeout == len(xData)
