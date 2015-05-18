@@ -171,7 +171,7 @@ def main(args):
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   parser.add_argument('--title', default="", type=str)
   parser.add_argument('--legend-name-map',dest='legend_name_map', default=None, type=str)
-  parser.add_argument('--legend-position',dest='legend_position', choices=['outside_bottom', 'outside_right', 'inner', 'none'])
+  parser.add_argument('--legend-position',dest='legend_position', default='outside_bottom', choices=['outside_bottom', 'outside_right', 'inner', 'none'])
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
