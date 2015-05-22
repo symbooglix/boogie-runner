@@ -22,83 +22,37 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   staticCounter = 0
   _toolInDockerImageCache = {}
 
-  # FIXME: Add a lock so instances cannot be created in parallel
-  def __init__(self, boogieProgram, workingDirectory, rc):
-    _logger.debug('Initialising {}'.format(boogieProgram))
-
-    # Unique ID (we assume this constructor is never called in parallel)
-    self.uid = RunnerBaseClass.staticCounter
-    RunnerBaseClass.staticCounter += 1
-
-    self._timeoutHit = False
-    self._memoryLimitHit = None
-    self.exitCode = None
-    self._process = None
-    self._eventObj = None
-    self._stackSize = None
-
-    if not os.path.isabs(boogieProgram):
+  def _checkBoogieProgram(self):
+    if not os.path.isabs(self.program):
       raise RunnerBaseException(
-        'Boogie program ("{}")must be absolute path'.format(boogieProgram))
+        'Boogie program ("{}")must be absolute path'.format(self.program))
 
-    if not os.path.exists(boogieProgram):
+    if not os.path.exists(self.program):
       raise RunnerBaseException(
-        'Boogie program ("{}") does not exist'.format(boogieProgram))
+        'Boogie program ("{}") does not exist'.format(self.program))
 
-    self.program = boogieProgram
-
-    # Check working directory
-    if not os.path.isabs(workingDirectory):
+  def _setupWorkingDirectory(self, workingDirectory):
+    self.workingDirectory = workingDirectory
+    if not os.path.isabs(self.workingDirectory):
       raise RunnerBaseException(
-        'working directory "{}" must be an absolute path'.format(workingDirectory))
+        'working directory "{}" must be an absolute path'.format(self.workingDirectory))
 
-    if not os.path.exists(workingDirectory):
+    if not os.path.exists(self.workingDirectory):
       raise RunnerBaseException(
-        'working directory "{}" does not exist'.format(workingDirectory))
+        'working directory "{}" does not exist'.format(self.workingDirectory))
 
-    if not os.path.isdir(workingDirectory):
+    if not os.path.isdir(self.workingDirectory):
       raise RunnerBaseException(
-        'Specified working directory ("{}") is not a directory'.format(workingDirectory))
+        'Specified working directory ("{}") is not a directory'.format(self.workingDirectory))
 
     # Check the directory is empty
-    firstLevel = next(os.walk(workingDirectory, topdown=True))
+    firstLevel = next(os.walk(self.workingDirectory, topdown=True))
     if len(firstLevel[1]) > 0 or len(firstLevel[2]) > 0:
       raise RunnerBaseException(
-        'working directory "{}" is not empty'.format(workingDirectory))
+        'working directory "{}" is not empty'.format(self.workingDirectory))
 
-    # Set working directory and create empty log file in it This should avoid
-    # there being two instances of this class using the same working directory
-    # (due to empty dir check) provided the instances are created sequentially.
-    self.workingDirectory = workingDirectory
-    with open(self.logFile, 'w') as f:
-      pass
-
-    if not isinstance(rc, dict):
-      raise RunnerBaseException('Config passed to runner must be a dictionary')
-
-    if not 'tool_path' in rc:
-      raise RunnerBaseException('"tool_path" missing from "runner_config"')
-
-    self.toolPath = os.path.expanduser(rc['tool_path'])
-    if not os.path.isabs(self.toolPath):
-      raise RunnerBaseException('"tool_path" must be an absolute path')
-
-    # Handle making a copy of the input boogie program if necessary
-    self._copyProgramToWorkingDirectory = False
-    try:
-      self._copyProgramToWorkingDirectory = rc['copy_program_to_working_directory']
-    except KeyError:
-      pass
-
-    if not isinstance(self._copyProgramToWorkingDirectory, bool):
-      raise RunnerBaseException('"copy_program_to_working_directory" should map to a boolean')
-
-    if self._copyProgramToWorkingDirectory:
-      # Make the copy now
-      _logger.info('Copying input program to {}'.format(self.workingDirectory))
-      shutil.copy(self.program, self.workingDirectory)
-
-
+  # FIXME: Move the docker stuff out!
+  def _setupDocker(self, rc):
     # Check if docker will be used in this runner
     self.useDocker = 'docker' in rc
 
@@ -164,9 +118,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
     else:
       # check the tool exists in the current filesystem
+      assert isinstance(self.toolPath, str) and len(self.toolPath) > 0
       if not os.path.exists(self.toolPath):
         raise RunnerBaseException('tool_path set to "{}", but it does not exist'.format(self.toolPath))
 
+  def _setupMaxMemory(self, rc):
     try:
       self.maxMemoryInMiB = rc['max_memory']
 
@@ -217,6 +173,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     if self.maxMemoryInMiB < 0:
       raise RunnerBaseException('"max_memory" must be > 0')
 
+  def _setupMaxTime(self, rc):
     try:
       self.maxTimeInSeconds = rc['max_time']
     except KeyError:
@@ -226,6 +183,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     if self.maxTimeInSeconds < 0:
       raise RunnerBaseException('"max_time" must be > 0')
 
+  def _setupEntryPoint(self, rc):
     try:
       entryPoint = rc['entry_point']
       if isinstance(entryPoint,str):
@@ -239,6 +197,23 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       _logger.warning('"entry_point" not specified, it is implementation defined what this runner will do')
       self.entryPoint = None
 
+  def _setupProgramCopy(self, rc):
+    # Handle making a copy of the input boogie program if necessary
+    self._copyProgramToWorkingDirectory = False
+    try:
+      self._copyProgramToWorkingDirectory = rc['copy_program_to_working_directory']
+    except KeyError:
+      pass
+
+    if not isinstance(self._copyProgramToWorkingDirectory, bool):
+      raise RunnerBaseException('"copy_program_to_working_directory" should map to a boolean')
+
+    if self._copyProgramToWorkingDirectory:
+      # Make the copy now
+      _logger.info('Copying input program to {}'.format(self.workingDirectory))
+      shutil.copy(self.program, self.workingDirectory)
+
+  def _setupAdditionalArgs(self, rc):
     self.additionalArgs = [ ]
     if 'additional_args' in rc:
       if not isinstance(rc['additional_args'],list):
@@ -250,6 +225,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         self.additionalArgs.append(arg)
 
+  def _setupEnvironmentVariables(self, rc):
     # Set environment variables
     self.toolEnvironmentVariables = {}
     if 'env' in rc:
@@ -266,6 +242,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
         self.toolEnvironmentVariables[key] = value
 
+  def _setupMono(self, rc):
     # Set path to mono if specified
     self.monoExecutable = "mono"
     try:
@@ -297,6 +274,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     except KeyError:
       pass
 
+  def _setupStackSize(self, rc):
     try:
       self._stackSize = rc['stack_size']
       if isinstance(self._stackSize, str):
@@ -309,6 +287,56 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         raise RunnerBaseException('"stack_size" has unexpected type')
     except KeyError:
       self._stackSize = None
+
+  def _setupToolPath(self, rc):
+    if not 'tool_path' in rc:
+      raise RunnerBaseException('"tool_path" missing from "runner_config"')
+
+    self.toolPath = os.path.expanduser(rc['tool_path'])
+    if not os.path.isabs(self.toolPath):
+      raise RunnerBaseException('"tool_path" must be an absolute path')
+
+  def _readConfig(self, rc):
+    if not isinstance(rc, dict):
+      raise RunnerBaseException('Config passed to runner must be a dictionary')
+    self._setupToolPath(rc)
+    self._setupProgramCopy(rc)
+    self._setupDocker(rc)
+    self._setupMaxMemory(rc)
+    self._setupMaxTime(rc)
+    self._setupEntryPoint(rc)
+    self._setupAdditionalArgs(rc)
+    self._setupEnvironmentVariables(rc)
+    self._setupMono(rc)
+    self._setupStackSize(rc)
+
+  # FIXME: Add a lock so instances cannot be created in parallel
+  def __init__(self, boogieProgram, workingDirectory, rc):
+    _logger.debug('Initialising {}'.format(boogieProgram))
+
+    # Unique ID (we assume this constructor is never called in parallel)
+    self.uid = RunnerBaseClass.staticCounter
+    RunnerBaseClass.staticCounter += 1
+
+    self._timeoutHit = False
+    self._memoryLimitHit = None
+    self.exitCode = None
+    self._process = None
+    self._eventObj = None
+    self._stackSize = None
+    self.program = boogieProgram # FIXME: Hide this so if make copy we only expose that
+
+    self._checkBoogieProgram()
+    self._setupWorkingDirectory(workingDirectory)
+
+    # FIXME: This is gross!
+    # Create empty log file in it This should avoid
+    # there being two instances of this class using the same working directory
+    # (due to empty dir check) provided the instances are created sequentially.
+    with open(self.logFile, 'w') as f:
+      pass
+
+    self._readConfig(rc)
 
   def findEntryPoint(self, constraint):
     if not isinstance(constraint, dict):
