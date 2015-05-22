@@ -18,7 +18,7 @@ programs. Supported tools ("runners") include
 The following python packages (available via ``pip install <package>``)
 
 * PyYAML
-* psutil
+* psutil (if using the ``PythonPsUtil`` backend)
 
 # Running
 
@@ -66,13 +66,12 @@ is a dictionary.
 * ``max_time`` - **Optional** The maximum amount of time (in seconds) that a single run is allowed to use before being killed. By default there is no limit.
 * ``additional_args`` **Optional** A list of additional command line arguments to pass to the tool
 * ``entry_point`` - **Optional** Specifies the entry point in the Boogie program to use. This will be further explained in another section.
-* ``docker`` - **Optional** Specifies that the tool should be run in a [Docker](https://www.docker.com) container. This will be further explained in another section.
 * ``env`` - **Optional** Specifies the environment variables to pass when running.
 * ``mono_path`` - **Optional** Specfies the absolute path to the mono executable to use if mono is required. Note ``~`` will be expanded to the user's home directory.
 * ``mono_args`` - **Optional** A list of additional command line arguments to pass to mono.
 * ``copy_program_to_working_directory`` - **Optional** If specified and set to ``true`` input Boogie programs to the runner will be copied to the working directory.
-* ``memory_limit_enforcement`` - **Optional** If specified will control how the memory limit is enforced ( do not use this if you are using docker).
 * ``stack_size`` - **Optional** If specified will limit the stack size in KiB. Can be set to ``"unlimited"`` to allow an unlimited stack size.
+* ``backend`` - **Optional** If specified sets the backend to use and various options to pass to the backend. This will be further explained in another section.
 
 ### ``entry_point`` key
 
@@ -91,50 +90,34 @@ Two different values are currently supported
 If this key is present in ``runner_config`` then if should map to a dictionary which maps environment variable names to values
 (string to string). Note a runner may chose to modify the enviroment variables and can override what is specifed in the config file.
 
-### ``docker`` key
+### ``backend`` key
 
-If this key is not specified the tool will be run natively. If the key is specified then the tool will be run inside a Docker container.
+If this key is set then it must map to a dictionary that defines the key ``name`` which should map to the name of a backend to use. Optionally
+a key ``config`` may also be specified in this dictionary which maps to another dictionary containing settings for backend specific options.
 
-The ``docker`` key should map to another dictionary which must contain the following keys
+#### Backends
 
-* ``image`` - The docker image to use. You should make sure the image is on your machine first (run ``docker images``)
-* ``volume`` - The location to mount the native file system (containing the Boogie program and the temporary directory) inside the container (e.g. ``/vol/``)
+See the ``BoogierRunner/Backends/`` directory for the implemented backends. The purpose of having different backends is to abstract
+the way a tool is executed from the command line used to run it. This gives us the flexibility to easily swap out different methods of
+running a tool. For example in the future we might support a ``systemd-run`` or ``lxc`` backend.
 
-### ``memory_limit_enforcement`` key
+The default backend is ``PythonPsutil``.
 
-If this key is set and ``max_memory`` is set then this specifies how the memory limit will be enforced, unless docker is being used. You
-should not use this key if you are using Docker.
+##### PythonPsUtil
 
-This key should map to a dictionary with at least the following key
+This backend uses the Python ``psutil`` module to run the application and enforce a timeout. The memory limit is enforced using a period polling
+thread. The time period for the poll can be controlled by setting ``memory_limit_poll_time_period`` key to map to postive float in the backend's
+``config``.
 
-* ``enforcer`` - This is the enforcement method being used.
+##### Docker
 
-There may be other keys depending on which enforcer is being used
-
-#### Memory enforcers
-
-##### ``Poll``
-
-This enforces the memory limit by polling the memory used by a process and all its children
-periodically. The polling time period is set by the ``time_period`` key which sets the time
-period in seconds.
+TODO: This backend is not yet implemented
 
 ## ``program_list``
 
 This is a line seperate list of paths to Boogie programs to run. Duplicates are not allowed and
 comments are allowed (start the line with a ``#``). The paths may be absolute or relative. If using
 relative paths the base can be specified using the ``--rprefix`` command line argument to ``boogie-runner.py``.
-
-
-# Notes on memory limit
-
-If using Docker then the memory limit is enforced by using the ``--memory=``
-argument to the ``docker run`` command. **NOTE: You should check that this flag
-works before using boogie-runner because this flag has no effect unless your
-kernel is configured correctly**
-
-If running an executable directly (i.e. not using Docker) then by default the ``Poll``
-memory enforcer is used with a polling time period of 5 seconds.
 
 # ``yaml_output``
 

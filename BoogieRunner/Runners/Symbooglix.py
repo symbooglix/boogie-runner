@@ -39,7 +39,7 @@ class SymbooglixRunner(RunnerBaseClass):
     return "symbooglix"
 
   def GetNewAnalyser(self):
-    return SymbooglixAnalyser(self.exitCode, self.logFile, self.useDocker, self.hitHardTimeout)
+    return SymbooglixAnalyser(self.exitCode, self.logFile, self.hitHardTimeout)
 
   # FIXME: This belongs in the analyser
   # but would require that it be aware of the soft-timeout
@@ -54,7 +54,7 @@ class SymbooglixRunner(RunnerBaseClass):
       return True
 
     # Check if the soft timeout was hit
-    if self.time > self.softTimeout:
+    if self.runTime > self.softTimeout:
       return True
 
     return False
@@ -87,10 +87,8 @@ class SymbooglixRunner(RunnerBaseClass):
     cmdLine.append(self.programPathArgument)
 
     self.hitHardTimeout = False
-    try:
-      exitCode = self.runTool(cmdLine, isDotNet=True)
-      assert exitCode == self.exitCode
-    except psutil.TimeoutExpired as e:
+    backendResult = self.runTool(cmdLine, isDotNet=True)
+    if backendResult.outOfTime:
       self.hitHardTimeout = True
       _logger.warning('Hard timeout hit')
 

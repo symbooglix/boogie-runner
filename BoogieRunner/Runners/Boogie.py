@@ -23,7 +23,7 @@ class BoogieRunner(RunnerBaseClass):
     return "boogie"
 
   def GetNewAnalyser(self):
-    return BoogieAnalyser(self.exitCode, self.logFile, self.useDocker)
+    return BoogieAnalyser(self.exitCode, self.logFile)
 
   def run(self):
     cmdLine = [self.toolPath]
@@ -37,11 +37,9 @@ class BoogieRunner(RunnerBaseClass):
     cmdLine.append(self.programPathArgument)
 
     # We assume that Boogie has no default timeout
-    # so we force the timeout within python
-    try:
-      exitCode = self.runTool(cmdLine, isDotNet=True)
-      assert exitCode == self.exitCode
-    except psutil.TimeoutExpired as e:
+    # so we force the timeout with the backend
+    backendResult = exitCode = self.runTool(cmdLine, isDotNet=True)
+    if backendResult.outOfTime:
       _logger.warning('Boogie hit timeout')
 
 def get():

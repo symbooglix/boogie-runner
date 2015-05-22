@@ -7,8 +7,8 @@ import re
 _logger = logging.getLogger(__name__)
 
 class BoogalooAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile, useDocker, **kargs):
-    super(BoogalooAnalyser, self).__init__(exitCode, logFile, useDocker, **kargs)
+  def __init__(self, exitCode, logFile, **kargs):
+    super(BoogalooAnalyser, self).__init__(exitCode, logFile, **kargs)
 
   @property
   def foundBug(self):

@@ -38,6 +38,7 @@ class GPUVerifyRunner(RunnerBaseClass):
   def name(self):
     return "gpuverify"
 
+  # Override the normal implementation
   @property
   def timeoutWasHit(self):
     if self.hitHardTimeout:
@@ -54,7 +55,7 @@ class GPUVerifyRunner(RunnerBaseClass):
     return results
 
   def GetNewAnalyser(self):
-    return GPUVerifyAnalyser(self.exitCode, self.logFile, self.useDocker, self.hitHardTimeout)
+    return GPUVerifyAnalyser(self.exitCode, self.logFile, self.hitHardTimeout)
 
   def run(self):
     self.hitHardTimeout = False
@@ -80,12 +81,10 @@ class GPUVerifyRunner(RunnerBaseClass):
     # Add the boogie source file as last arg
     cmdLine.append(self.programPathArgument)
 
-    try:
-      exitCode = self.runTool(cmdLine,
-        isDotNet=False,
-        envExtra=env)
-      assert self.exitCode == exitCode
-    except psutil.TimeoutExpired as e:
+    backendResult = self.runTool(cmdLine,
+      isDotNet=False,
+      envExtra=env)
+    if backendResult.outOfTime:
       self.hitHardTimeout = True
       _logger.warning('GPUVerify hit hard timeout')
 

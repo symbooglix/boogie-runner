@@ -35,10 +35,10 @@ class BoogalooRunner(RunnerBaseClass):
 
   @property
   def name(self):
-    return "boogaloo" + ('-docker' if self.useDocker else '')
+    return "boogaloo"
 
   def GetNewAnalyser(self):
-    return BoogalooAnalyser(self.exitCode, self.logFile, self.useDocker)
+    return BoogalooAnalyser(self.exitCode, self.logFile)
 
   def run(self):
     cmdLine = [ ]
@@ -61,11 +61,9 @@ class BoogalooRunner(RunnerBaseClass):
     cmdLine.append(self.programPathArgument)
 
     # We assume that Boogaloo has no default timeout
-    # so we force the timeout within python
-    try:
-      exitCode = self.runTool(cmdLine, isDotNet=False)
-      assert self.exitCode == exitCode
-    except psutil.TimeoutExpired as e:
+    # so we force the timeout within the backend
+    backendResult = self.runTool(cmdLine, isDotNet=False)
+    if backendResult.outOfTime:
       _logger.warning('Boogaloo hit hard timeout')
 
 def get():

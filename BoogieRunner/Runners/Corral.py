@@ -23,7 +23,7 @@ class CorralRunner(RunnerBaseClass):
     return "corral"
 
   def GetNewAnalyser(self):
-    return CorralAnalyser(self.exitCode, self.logFile, self.useDocker)
+    return CorralAnalyser(self.exitCode, self.logFile)
 
   def run(self):
     # We assume that Corral has no default timeout.
@@ -40,10 +40,8 @@ class CorralRunner(RunnerBaseClass):
 
     cmdLine.extend(self.additionalArgs)
 
-    try:
-      exitCode = self.runTool(cmdLine, isDotNet=True)
-      assert self.exitCode == exitCode
-    except psutil.TimeoutExpired as e:
+    backendResult = self.runTool(cmdLine, isDotNet=True)
+    if backendResult.outOfTime:
       _logger.warning('Corral hit timeout')
 
 def get():

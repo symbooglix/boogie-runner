@@ -11,6 +11,7 @@ import time
 import traceback
 import threading
 from .. import EntryPointFinder
+from .. import BackendFactory
 
 _logger = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ class RunnerBaseException(Exception):
 
 class RunnerBaseClass(metaclass=abc.ABCMeta):
   staticCounter = 0
-  _toolInDockerImageCache = {}
 
   def _checkBoogieProgram(self):
     if not os.path.isabs(self.program):
@@ -51,137 +51,46 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       raise RunnerBaseException(
         'working directory "{}" is not empty'.format(self.workingDirectory))
 
-  # FIXME: Move the docker stuff out!
-  def _setupDocker(self, rc):
-    # Check if docker will be used in this runner
-    self.useDocker = 'docker' in rc
-
-    self.dockerImage = None
-    self.dockerSourceVolume = None
-    if self.useDocker:
-      # Check that the docker image is specified correctly
-      _logger.info('Using docker')
-
-      dockerConfig = rc['docker']
-      if not isinstance(dockerConfig, dict):
-        raise BoogalooRunnerException('"docker" key must map to a dictionary')
-
-      if not 'image' in dockerConfig:
-        raise BoogalooRunner('"image" missing from docker config')
-
-      self.dockerImage = dockerConfig['image']
-
-      if not isinstance(self.dockerImage, str):
-        raise BoogalooRunnerException(
-          '"image" must be a string that is a valid docker image name')
-
-      if len(self.dockerImage) == 0:
-        raise BoogalooRunnerException('"image" cannot be an empty string')
-
-      # Get the docker volume location (inside the container)
-      try:
-        self.dockerSourceVolume = dockerConfig['volume']
-      except KeyError:
-        raise BoogalooRunnerException('"volume" not specified for docker container')
-
-      checkImg = False
-      try:
-        # Try the cache first
-        if self.toolPath in RunnerBaseClass._toolInDockerImageCache[self.dockerImage]:
-          checkImg = False
-          _logger.info('Cache hit not checking if {} is in docker image {}'.format(
-          self.toolPath, self.dockerImage))
-          checkImg = False
-        else:
-          checkImg = True
-      except KeyError:
-        checkImg = True
-
-      if checkImg:
-        # check the tool exists inside the container
-        _logger.info('Cache miss, checking if {} is in docker image {}'.format(
-          self.toolPath, self.dockerImage))
-        process = psutil.Popen(['docker','run','--net=none', '--rm', self.dockerImage, 'ls', self.toolPath])
-        exitCode = process.wait()
-        if exitCode != 0:
-          raise RunnerBaseException('"{}" (tool_path) does not exist inside container'.format(
-            self.toolPath))
-
-        toolsInDockerImage = None
-        try:
-          toolsInDockerImage = RunnerBaseClass._toolInDockerImageCache[self.dockerImage]
-        except KeyError:
-          toolsInDockerImage = set()
-          RunnerBaseClass._toolInDockerImageCache[self.dockerImage] = toolsInDockerImage
-
-        toolsInDockerImage.add(self.toolPath)
-
-    else:
-      # check the tool exists in the current filesystem
-      assert isinstance(self.toolPath, str) and len(self.toolPath) > 0
-      if not os.path.exists(self.toolPath):
-        raise RunnerBaseException('tool_path set to "{}", but it does not exist'.format(self.toolPath))
-
   def _setupMaxMemory(self, rc):
     try:
       self.maxMemoryInMiB = rc['max_memory']
-
-      if self.maxMemoryInMiB > 0:
-        if 'memory_limit_enforcement' in rc:
-
-          if self.useDocker:
-            raise RunnerBaseException('Cannot use "memory_limit_enforcement" when using Docker')
-
-          if not isinstance(rc['memory_limit_enforcement'], dict):
-            raise RunnerBaseException('"memory_limit_enforcement" should map to a dictionary')
-
-          mleDict = rc['memory_limit_enforcement']
-          if not 'enforcer' in mleDict:
-            raise RunnerBaseException('"enforcer" key expected in "memory_limit_enforcement" dictionary')
-
-          if mleDict['enforcer'] != 'poll':
-            raise NotImplementedError('{} enforcer not supported'.format(mleDict['enforcer']))
-
-          self.useMemoryLimitPolling = True
-
-          if not 'time_period' in mleDict:
-            raise RunnerBaseException('"time_period" key expected in "memory_limit_enforcement" dictionary')
-          self.memoryLimitPollTimePeriodInSeconds = mleDict['time_period']
-
-          if self.memoryLimitPollTimePeriodInSeconds < 0.1:
-            raise RunnerBaseException('"time_period" must be 0.1 or greater')
-
-          assert isinstance(self.memoryLimitPollTimePeriodInSeconds, float)
-        elif self.useDocker:
-          # Don't use memory polling when using Docker
-          self.useMemoryLimitPolling = False
-          self.memoryLimitPollTimePeriodInSeconds = 0
-        else:
-          # Set sensible defaults
-          self.useMemoryLimitPolling = True
-          self.memoryLimitPollTimePeriodInSeconds = 2.0
-      else:
-        self.useMemoryLimitPolling = False
-        self.memoryLimitPollTimePeriodInSeconds = 0
-
     except KeyError:
       _logger.info('"max_memory" not specified, assuming no tool memory limit')
       self.maxMemoryInMiB = 0
-      self.useMemoryLimitPolling = False
-      self.memoryLimitPollTimePeriodInSeconds = 0
 
     if self.maxMemoryInMiB < 0:
       raise RunnerBaseException('"max_memory" must be > 0')
 
   def _setupMaxTime(self, rc):
     try:
-      self.maxTimeInSeconds = rc['max_time']
+      self._maxTimeInSeconds = rc['max_time']
     except KeyError:
       _logger.info('"max_time" not specified, assuming no tool timeout')
-      self.maxTimeInSeconds = 0
+      self._maxTimeInSeconds = 0
 
-    if self.maxTimeInSeconds < 0:
+    if self._maxTimeInSeconds < 0:
       raise RunnerBaseException('"max_time" must be > 0')
+
+  # These two property decorators exist because GPUVerify and Symbooglix
+  # runners need to modify the maxTimeInSeconds in their constructors.
+  # Unfortunately the backend will have already been initialised with the
+  # old time so we provide these methods to ensure the backend gets updated
+  # too
+  @property
+  def maxTimeInSeconds(self):
+    if self._backend == None:
+      return self._maxTimeInSeconds
+    else:
+      return self._backend.timeLimit
+
+  @maxTimeInSeconds.setter
+  def maxTimeInSeconds(self, value):
+    if not isinstance(value, int):
+      raise RunnerBaseException('value must be an int')
+    self._maxTimeInSeconds = value
+    if self._backend != None:
+      self._backend.timeLimit = value
+
 
   def _setupEntryPoint(self, rc):
     try:
@@ -296,12 +205,56 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     if not os.path.isabs(self.toolPath):
       raise RunnerBaseException('"tool_path" must be an absolute path')
 
+  def _setupBackend(self, rc):
+    default="PythonPsUtil"
+    if not 'backend' in rc:
+      backendName = default
+      _logger.warning('Backend not specified, using default backend "{}"'.format(default))
+      backendSpecificOptions = {}
+    else:
+      backendDict = rc['backend']
+      if not isinstance(backendDict, dict):
+        raise RunnerBaseException('"backend" key must map to a dictionary')
+      try:
+        backendName = backendDict['name']
+        if not isinstance(backendName, str):
+          raise RunnerBaseException('backend "name" must be a string')
+      except KeyError:
+        raise RunnerBaseException('"name" key missing inside "backend"')
+
+      # Backend specific options are optional
+      backendSpecificOptions = backendDict.get('config', {})
+
+    if not isinstance(backendSpecificOptions, dict):
+      raise RunnerBaseException('"config" must map to a dictionary')
+
+    # Check the keys of the backendSpecificOptions are strings
+    for key in backendSpecificOptions.keys():
+      if not isinstance(key, str):
+        raise RunnerBaseException('The keys in "config" must be strings')
+
+    self._backend = None
+    backendClass = BackendFactory.getBackendClass(backendName)
+    self._backend = backendClass(hostProgramPath=self._programPathOnHostToUse,
+                                 workingDirectory=self.workingDirectory,
+                                 timeLimit=self.maxTimeInSeconds,
+                                 memoryLimit=self.maxMemoryInMiB,
+                                 stackLimit=0 if self._stackSize == 'unlimited' else self._stackSize,
+                                 **backendSpecificOptions)
+
   def _readConfig(self, rc):
     if not isinstance(rc, dict):
       raise RunnerBaseException('Config passed to runner must be a dictionary')
+
+    # Check for disallowed legacy config
+    if 'docker' in rc:
+      raise RunnerBaseException("'docker' is a legacy option which is no longer supported.")
+
+    if 'memory_limit_enforcement' in rc:
+      raise RunnerBaseException('"memory_limit_enforcement" is a legacy option which is no longer supported')
+
     self._setupToolPath(rc)
     self._setupProgramCopy(rc)
-    self._setupDocker(rc)
     self._setupMaxMemory(rc)
     self._setupMaxTime(rc)
     self._setupEntryPoint(rc)
@@ -309,6 +262,14 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self._setupEnvironmentVariables(rc)
     self._setupMono(rc)
     self._setupStackSize(rc)
+
+  @property
+  def _programPathOnHostToUse(self):
+    progFilename = os.path.basename(self.program)
+    if self._copyProgramToWorkingDirectory:
+      return os.path.join(self.workingDirectory, progFilename)
+    else:
+      return self.program
 
   # FIXME: Add a lock so instances cannot be created in parallel
   def __init__(self, boogieProgram, workingDirectory, rc):
@@ -318,12 +279,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     self.uid = RunnerBaseClass.staticCounter
     RunnerBaseClass.staticCounter += 1
 
-    self._timeoutHit = False
-    self._memoryLimitHit = None
-    self.exitCode = None
-    self._process = None
-    self._eventObj = None
-    self._stackSize = None
+    self._backendResult = None
     self.program = boogieProgram # FIXME: Hide this so if make copy we only expose that
 
     self._checkBoogieProgram()
@@ -337,6 +293,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       pass
 
     self._readConfig(rc)
+    self._setupBackend(rc)
 
   def findEntryPoint(self, constraint):
     if not isinstance(constraint, dict):
@@ -371,7 +328,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
   @property
   def timeoutWasHit(self):
-    return self._timeoutHit
+    return self._backendResult.outOfTime
 
   @abc.abstractmethod
   def GetNewAnalyser(self):
@@ -384,16 +341,20 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       Return False if the tool did not run out of memory
       Return None if this could not be determined
     """
-    if self.useDocker:
-      _logger.error('FIXME: Detecting memory limit being hit is not implemented when using Docker')
-      return None
-    else:
-      return self._memoryLimitHit
+    return self._backendResult.outOfMemory
+
+  @property
+  def exitCode(self):
+    return self._backendResult.exitCode
+
+  @property
+  def runTime(self):
+    return self._backendResult.runTime
 
   def getResults(self):
     results = {}
     results['program'] = self.program
-    results['total_time'] = self.time
+    results['total_time'] = self.runTime
     results['working_directory'] = self.workingDirectory
     results['exit_code'] = self.exitCode
     results['timeout_hit'] = timeoutHit = self.timeoutWasHit
@@ -424,29 +385,9 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     """
       This the argument to pass to the tool when running.
       This should be used instead of ``self.program`` because
-      this property takes into account if docker is being used and
-      whether or not we need to operate on a copy of the boogie program
+      this property takes into account the backend being used.
     """
-    progFilename = os.path.basename(self.program)
-    if self._copyProgramToWorkingDirectory:
-      if self.useDocker:
-        return os.path.join(self.dockerWorkDirVolume, progFilename)
-      else:
-        return os.path.join(self.workingDirectory, progFilename)
-    else:
-      if self.useDocker:
-        return os.path.join(self.dockerSourceVolume, progFilename)
-      else:
-        return self.program
-
-  @property
-  def dockerContainerName(self):
-    return '{}-bg-{}-{}'.format(self.name, os.getpid(), self.uid)
-
-  @property
-  def dockerWorkDirVolume(self):
-    # FIXME: We should make this settable from the config
-    return '/mnt/'
+    return self._backend.programPath()
 
   def kill(self, pause=0.0):
     """
@@ -454,23 +395,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     run() method doesn't use runTool()
     """
     _logger.debug('Trying to kill {}'.format(self.name))
-    if self._process != None:
-      try:
-        if self._process.is_running():
-          self._terminateProcess(self._process, pause)
-      except psutil.NoSuchProcess:
-        pass
-
-      if self.useDocker:
-        # The container will carry on running so we need to kill it
-        _logger.info('Trying to kill container {}'.format(self.dockerContainerName))
-        process = psutil.Popen(['docker', 'kill', self.dockerContainerName])
-        process.wait()
-
-        # We also may need to manually remove the container
-        _logger.info('Trying to remove container {}'.format(self.dockerContainerName))
-        process = psutil.Popen(['docker', 'rm', self.dockerContainerName])
-        process.wait()
+    self._backend.kill()
 
     if self._copyProgramToWorkingDirectory:
       toDelete=os.path.join(self.workingDirectory, os.path.basename(self.program))
@@ -482,64 +407,18 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
         _logger.debug(traceback.format_exc())
         pass
 
-  def _setStacksize(self):
-    """
-      Designed to be called subprocess.POpen() after fork.
-      It will set any limits as appropriate.
-      Note do not try to use the _logger here are the file descriptors have been changed.
-    """
-    assert self._stackSize != None
-    import resource
-    if isinstance(self._stackSize, str) and self._stackSize == "unlimited":
-      resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
-    else:
-      assert isinstance(self._stackSize, int)
-      resource.setrlimit(resource.RLIMIT_STACK, (self._stackSize, self._stackSize))
-
   def runTool(self, cmdLine, isDotNet, envExtra = {}):
     finalCmdLine = []
     self._memoryLimitHit = False
-
-    containerName=""
-    if self.useDocker:
-      finalCmdLine.extend(['docker', 'run', '--rm'])
-
-      # Specifying tty prevents buffering of boogaloo's output
-      finalCmdLine.append('--tty')
-
-      # Setup the volume to mount the directory containing boogie program
-      # we do this as as read-only volume
-      volumeSrc = os.path.dirname(self.program)
-      finalCmdLine.append('--volume={src}:{dest}:ro'.format(
-        src=volumeSrc, dest=self.dockerSourceVolume))
-
-
-      # Setup working directory inside the container (this is writable)
-      finalCmdLine.append('--volume={src}:{dest}:rw'.format(src=self.workingDirectory, dest=self.dockerWorkDirVolume))
-      finalCmdLine.append('--workdir={}'.format(self.dockerWorkDirVolume))
-
-      finalCmdLine.append('--name={}'.format(self.dockerContainerName))
-
-    # Set up the initial values of the environment variables.
-    # Note we do not propagate the variables of the current environment.
-    env = {}
-    env.update(self.toolEnvironmentVariables)
-    env.update(envExtra) # envExtra takes presedence
-    # Setup memory limits
-
-    # Setup environment to enforce memory limit if using docker
-    if self.maxMemoryInMiB > 0 and self.useDocker:
-      finalCmdLine.append('--memory={}m'.format(self.maxMemoryInMiB))
-      _logger.info('Enforcing memory limit ({} MiB) using Docker'.format(self.maxMemoryInMiB))
-
-    if self.useDocker:
-      finalCmdLine.append('--net=none') # No network access should be needed
-      finalCmdLine.append(self.dockerImage)
 
     if isDotNet and os.name == 'posix':
       finalCmdLine.append(self.monoExecutable)
       if len(self.monoArgs) > 0:
         finalCmdLine.extend(self.monoArgs)
+    
+    env = {}
+    env.update(self.toolEnvironmentVariables)
+    env.update(envExtra) # These take precendence
 
     # Now add the arguments
     finalCmdLine.extend(cmdLine)
@@ -549,136 +428,5 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       pprint.pformat(env)))
 
     # Run the tool
-    exitCode = None
-    self._process = None
-    startTime = time.perf_counter()
-    pollThread = None
-    with open(self.logFile, 'w') as f:
-      try:
-        _logger.info('writing to log file {}'.format(self.logFile))
-        preExecFn = None
-        if self._stackSize != None:
-          preExecFn = self._setStacksize
-          _logger.info('Using stacksize limit: {} KiB'.format(self._stackSize))
-        self._process = psutil.Popen(finalCmdLine,
-                                     cwd=self.workingDirectory,
-                                     stdout=f,
-                                     stderr=f,
-                                     env=env,
-                                     preexec_fn=preExecFn)
-
-        if self.useMemoryLimitPolling:
-          pollThread = self._memoryLimitPolling(self._process)
-
-        _logger.info('Running with timeout of {} seconds'.format(self.maxTimeInSeconds))
-        exitCode = self._process.wait(timeout=self.maxTimeInSeconds)
-      except (psutil.TimeoutExpired) as e:
-        self._timeoutHit = True
-        # Note the code in the finally block will sort out clean up
-        raise e
-      finally:
-        self.kill()
-
-        # This is a sanity check to make sure that the memory polling thread exits
-        # before this method exits
-        if pollThread != None:
-          if self._eventObj != None:
-            self._eventObj.set() # Wake up polling thread if it's blocked on eventObj
-          _logger.debug('Joining memory polling thread START')
-          try:
-            pollThread.join()
-            _logger.debug('Joining memory polling thread FINISHED')
-          except RuntimeError:
-            _logger.error('RuntimeError waiting for memory polling thread to terminate')
-        self._process = None
-
-        endTime = time.perf_counter()
-        self.time = endTime - startTime
-        self.exitCode = exitCode
-
-    return exitCode
-
-  def _getProcessMemoryUsageInMiB(self, process):
-    # use Virtual memory size rather than resident set
-    return process.memory_info()[1] / (2**20)
-
-  def _terminateProcess(self, process, pause):
-    assert isinstance(pause, float)
-    assert pause >= 0.0
-    # Gently terminate
-    _logger.debug('Trying to terminate PID:{}'.format(process.pid))
-    children = process.children(recursive=True)
-    process.terminate()
-    for child in children:
-      try:
-        _logger.debug('Trying to terminate child process PID:{}'.format(child.pid))
-        child.terminate()
-      except psutil.NoSuchProcess:
-        pass
-
-    # If requested give the process time to clean up after itself
-    # if it is still running
-    if self._processIsRunning(process) and pause > 0.0:
-      time.sleep(pause)
-
-    # Now aggresively kill
-    _logger.info('Trying to kill PID:{}'.format(process.pid))
-    children = process.children(recursive=True)
-    process.kill()
-    for child in children:
-      try:
-        _logger.info('Trying to kill child process PID:{}'.format(child.pid))
-        child.kill()
-      except psutil.NoSuchProcess:
-        pass
-
-  def _processIsRunning(self, process):
-    return process.is_running() and not process.status() == psutil.STATUS_ZOMBIE
-
-  def _memoryLimitPolling(self, process):
-    """
-      This function launches a new thread that will periodically
-      poll the total memory usage of the tool that is being run.
-      If it goes over the limit will kill it
-    """
-    assert self.memoryLimitPollTimePeriodInSeconds > 0
-
-    # Other parts of the runner can can set on this to prevent this thread
-    # from waiting on this Event object.
-    self._eventObj = threading.Event()
-    self._eventObj.clear()
-
-    def threadBody():
-      _logger.info('Launching memory limit polling thread for PID {} with polling time period of {} seconds'.format(
-        process.pid, self.memoryLimitPollTimePeriodInSeconds))
-      try:
-        while self._processIsRunning(process):
-          self._eventObj.wait(self.memoryLimitPollTimePeriodInSeconds)
-          totalMemoryUsage = 0
-          totalMemoryUsage += self._getProcessMemoryUsageInMiB(process)
-
-          # The process might of forked so add the memory usage of its children too
-          childCount = 0
-          for childProc in process.children(recursive=True):
-            try:
-              totalMemoryUsage += self._getProcessMemoryUsageInMiB(childProc)
-              childCount += 1
-            except psutil.NoSuchProcess:
-              _logger.warning('Child process disappeared whilst examining it\'s memory use')
-
-          _logger.debug('Total memory usage in MiB:{}'.format(totalMemoryUsage))
-          _logger.debug('Total number of children: {}'.format(childCount))
-
-          if totalMemoryUsage > self.maxMemoryInMiB:
-            _logger.warning('Memory limit reached (recorded {} MiB). Killing tool with PID {}'.format(totalMemoryUsage, process.pid))
-            self._memoryLimitHit = True
-            # Give the tool a chance to clean up after itself before aggressively killing it
-            self._terminateProcess(process, pause=1.0)
-            break
-      except psutil.NoSuchProcess:
-        _logger.warning('Main process no longer available')
-
-    newThreadName = 'memory_poller-{}'.format(process.pid)
-    thread = threading.Thread(target=threadBody, name=newThreadName, daemon=True)
-    thread.start()
-    return thread
+    self._backendResult = self._backend.run(finalCmdLine, self.logFile, env)
+    return self._backendResult

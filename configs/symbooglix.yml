@@ -11,7 +11,8 @@ runner_config:
     - "--skip-log-unsat-assume-states"
     - "--write-smt2=0"
   entry_point: "main"
-  memory_limit_enforcement:
-    enforcer: "poll"
-    # Poll every 5 seconds
-    time_period: 5.0
+  backend:
+    name: "PythonPsUtil"
+    config:
+      # Poll for out of memory every 0.1 seconds
+      memory_limit_poll_time_period: 0.1

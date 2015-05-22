@@ -2,10 +2,9 @@
 import abc
 
 class AnalyserBaseClass(metaclass=abc.ABCMeta):
-  def __init__(self, exitCode, logFile, useDocker, **kargs):
+  def __init__(self, exitCode, logFile, **kargs):
     self.exitCode = exitCode
     self.logFile = logFile
-    self.useDocker = useDocker
 
   @abc.abstractproperty
   def foundBug(self):
