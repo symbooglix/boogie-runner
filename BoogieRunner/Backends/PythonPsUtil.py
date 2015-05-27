@@ -1,6 +1,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 from . BackendBase import *
 import logging
+import os
 import pprint
 import psutil
 import threading
@@ -207,6 +208,16 @@ class PythonPsUtilBackend(BackendBaseClass):
     thread = threading.Thread(target=threadBody, name=newThreadName, daemon=True)
     thread.start()
     return thread
+
+  def checkToolExists(self, toolPath):
+    assert os.path.isabs(toolPath)
+    if not os.path.exists(toolPath):
+      raise PythonPsUtilBackendException('Tool "{}" does not exist'.format(toolPath))
+
+  @property
+  def workingDirectoryInternal(self):
+    # Nothing special here. We work directly on the host
+    return self.workingDirectory
 
 
 def get():

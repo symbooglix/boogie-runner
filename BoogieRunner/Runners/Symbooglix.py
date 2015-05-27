@@ -71,7 +71,7 @@ class SymbooglixRunner(RunnerBaseClass):
     cmdLine = [ self.toolPath ] + self.additionalArgs
 
     # symbooglix outputdir
-    self.outputDir = os.path.join(self.workingDirectory, "sbx")
+    self.outputDir = os.path.join(self.workingDirectoryInBackend, "sbx")
     cmdLine.append('--output-dir={}'.format(self.outputDir))
 
     if self.entryPoint == None:

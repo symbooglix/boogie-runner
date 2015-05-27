@@ -130,3 +130,19 @@ class BackendBaseClass(metaclass=abc.ABCMeta):
       will be located when run() is invoked.
     """
     pass
+
+  @abc.abstractproperty
+  def workingDirectoryInternal(self):
+    """
+      Returns the absolute path to the working directory used internally
+      by the backend.
+    """
+    pass
+
+  @abc.abstractmethod
+  def checkToolExists(self, toolPath):
+    """
+    Checks that the ``toolPath`` exists in the environment that this
+    backend will use. Throws an exception if the tool cannot be found
+    """
+    pass

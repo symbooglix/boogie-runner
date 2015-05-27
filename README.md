@@ -105,13 +105,20 @@ The default backend is ``PythonPsutil``.
 
 ##### PythonPsUtil
 
-This backend uses the Python ``psutil`` module to run the application and enforce a timeout. The memory limit is enforced using a period polling
-thread. The time period for the poll can be controlled by setting ``memory_limit_poll_time_period`` key to map to postive float in the backend's
-``config``.
+This backend uses the Python ``psutil`` module to run the application and enforce a timeout. The following ``config`` keys are supported.
+
+- ``memory_limit_poll_time_period`` . **Optional** The memory limit is enforced using a period polling
+thread. The time period for the poll can be controlled by setting. This key should map to float which is
+the polling time period is seconds. If not specified a default time period is used.
 
 ##### Docker
 
-TODO: This backend is not yet implemented
+This backend uses the Python ``docker-py`` module to run application locally inside a Docker container. The following ``config`` keys are
+supported.
+
+- ``image``. The docker image name. E.g. ``symbooglix/symbooglix:ase15``.
+- ``skip_tool_check`` **Optional**. If set to ``true`` then the check that checks that ``tool_path`` exists in the Docker image ``image``
+  is skipped.
 
 ## ``program_list``
 

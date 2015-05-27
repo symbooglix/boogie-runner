@@ -6,9 +6,6 @@ runner_config:
   mode: "exec"
   # This is the tool_path inside the container
   tool_path: "/home/boogaloo/.cabal/bin/boogaloo"
-  docker:
-    image: "delcypher/boogaloo-docker"
-    volume: "/vol/"
   max_memory: 4096
   max_time: 5
   additional_args:
@@ -25,3 +22,8 @@ runner_config:
     # - program fully explored
     - "--pass=False"
   entry_point: "main"
+  backend:
+    name: "Docker"
+    config:
+      image: "delcypher/boogaloo-docker:latest"
+      skip_tool_check: false # Slower but safer

@@ -242,6 +242,9 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
                                  stackLimit=0 if self._stackSize == 'unlimited' else self._stackSize,
                                  **backendSpecificOptions)
 
+    # Check the tool exists in the backend
+    self._backend.checkToolExists(self.toolPath)
+
   def _readConfig(self, rc):
     if not isinstance(rc, dict):
       raise RunnerBaseException('Config passed to runner must be a dictionary')
@@ -388,6 +391,14 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
       this property takes into account the backend being used.
     """
     return self._backend.programPath()
+
+  @property
+  def workingDirectoryInBackend(self):
+    """
+      This should be used if it is necessary to know the working
+      directory path inside the environment of the backend
+    """
+    return self._backend.workingDirectoryInternal
 
   def kill(self, pause=0.0):
     """
