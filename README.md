@@ -17,8 +17,9 @@ programs. Supported tools ("runners") include
 
 The following python packages (available via ``pip install <package>``)
 
-* PyYAML
-* psutil (if using the ``PythonPsUtil`` backend)
+* [PyYAML](http://pyyaml.org/)
+* [psutil](https://github.com/giampaolo/psutil)
+* [docker-py](https://github.com/docker/docker-py) (only if using the ``Docker`` backend)
 
 # Running
 
