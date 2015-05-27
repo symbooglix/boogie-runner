@@ -143,3 +143,4 @@ The following keys are written by all runners
   and None if it could not be determined if a bug was found.
 * ``failed`` - True if the Runner failed to run correctly.
 * ``exit_code`` - The exit code of the run tool. Null if a time out was hit
+* ``out_of_memory`` - True if the tool memory limit was reached, false otherwise.
