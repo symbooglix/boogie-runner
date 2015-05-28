@@ -120,6 +120,12 @@ supported.
 - ``image``. The docker image name. E.g. ``symbooglix/symbooglix:ase15``.
 - ``skip_tool_check`` **Optional**. If set to ``true`` then the check that checks that ``tool_path`` exists in the Docker image ``image``
   is skipped.
+- ``image_work_dir``. **Optional**. Set the directory used as the working directory inside the
+  container. If not specified ``/mnt`` is used as the default.
+- ``user``. **Optional**. Set the user used inside the container. If set to ``"$HOST_USER"`` then the
+  UID and GID used on the host is used inside the container. If set to ``null`` then the default
+  user inside the container is used. If set to an integer that UID will be used inside the container.
+  The default is ``"$HOST_USER"``.
 
 ## ``program_list``
 

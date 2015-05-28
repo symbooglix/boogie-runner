@@ -20,8 +20,9 @@ class DockerBackend(BackendBaseClass):
   def __init__(self, hostProgramPath, workingDirectory, timeLimit, memoryLimit, stackLimit, **kwargs):
     super().__init__(hostProgramPath, workingDirectory, timeLimit, memoryLimit, stackLimit, **kwargs)
     self._container = None
-    self._workDirInsideContainer='/mnt/' # FIXME: Make this an option
+    self._workDirInsideContainer='/mnt/'
     self._skipToolExistsCheck = False
+    self._userToUseInsideContainer = None
     # handle required options
     if not 'image' in kwargs:
       raise DockerBackendException('"image" but be specified')
@@ -29,10 +30,48 @@ class DockerBackend(BackendBaseClass):
     if not (isinstance(self._dockerImageName, str) and len(self._dockerImageName) > 0):
       raise DockerBackendException('"image" must to a non empty string')
 
-    if 'skip_tool_check' in kwargs:
-      self._skipToolExistsCheck = kwargs['skip_tool_check']
-      if not isinstance(self._skipToolExistsCheck, bool):
-        raise DockerBackendException('"skip_tool_check" must map to a bool')
+    # Pretend user default is $USER
+    if not 'user' in kwargs:
+      kwargs['user'] = '$HOST_USER'
+
+    requiredOptions= ['image']
+    # handle other options
+    for key, value in kwargs.items():
+      if key in requiredOptions:
+        continue
+      if key == 'skip_tool_check':
+        self._skipToolExistsCheck = value
+        if not isinstance(self._skipToolExistsCheck, bool):
+          raise DockerBackendException('"skip_tool_check" must map to a bool')
+        continue
+      if key == 'image_work_dir':
+        self._workDirInsideContainer = value
+        if not (isinstance(self._workDirInsideContainer, str) and len(self._workDirInsideContainer) > 0):
+          raise DockerBackendException('"image_work_dir" must be a non empty string')
+        if not os.path.isabs(value):
+          raise DockerBackendException('"image_work_dir" must be an absolute path')
+        continue
+      if key == 'user':
+        if not (isinstance(value, str) or isinstance(value, int) or value == None):
+          raise DockerBackendException('"user" must be integer or a string')
+        if value == None:
+          self._userToUseInsideContainer = None
+        elif isinstance(value, int):
+          if value < 0:
+            raise DockerBackendException('"user" specified as an integer must be >= 0')
+          self._userToUseInsideContainer = value
+        else:
+          # The choice of $ is deliberate because it is not a valid character in a username
+          if value == "$HOST_USER":
+            self._userToUseInsideContainer = "{}:{}".format(os.getuid(), os.getgid())
+          else:
+            import re
+            if re.match(r'[a-z_][a-z0-9_-]*[$]?', value) == None:
+              raise DockerBackendException('"{}" is not a valid username'.format(value))
+            self._userToUseInsideContainer = value
+        continue
+      # Not recognised option
+      raise DockerBackendException('"{}" key is not a recognised option'.format(key))
 
     # Initialise the docker client
     try:
@@ -116,6 +155,10 @@ class DockerBackend(BackendBaseClass):
       extraContainerArgs['mem_limit']='{}m'.format(self.memoryLimit)
       _logger.info('Setting memory limit to {} MiB'.format(self.memoryLimit))
 
+    if self._userToUseInsideContainer != None:
+      extraContainerArgs['user'] = self._userToUseInsideContainer
+      _logger.info('Using user "{}" inside container'.format(self._userToUseInsideContainer))
+
     # Finally create the container
     self._container=self._dc.create_container(
       image=self._dockerImage['Id'],
@@ -145,9 +188,6 @@ class DockerBackend(BackendBaseClass):
         outOfTime = True
         _logger.info('Timeout occurred')
         exitCode=None
-    except Exception as e:
-      _logger.error('Exception raised during container run:\n{}'.format(e))
-      raise e
     finally:
       self.kill()
 
