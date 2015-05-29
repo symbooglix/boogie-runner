@@ -123,7 +123,7 @@ def entryPoint(args):
   # Create the runners
   runners = []
   for index, program in enumerate(programList):
-    _logger.info('Creating runner {} out of {} ({:.1f}%)'.format(index +1, len(programList), float(index +1)/len(programList)))
+    _logger.info('Creating runner {} out of {} ({:.1f}%)'.format(index +1, len(programList), 100*float(index +1)/len(programList)))
     # Create working directory for this runner
     workDir = os.path.join(workDirsRoot, 'workdir-{}'.format(index))
     assert not os.path.exists(workDir)
