@@ -152,7 +152,12 @@ class DockerBackend(BackendBaseClass):
     extraContainerArgs={}
 
     if self.memoryLimit > 0:
+      # http://docs.docker.com/reference/run/#memory-constraints
+      #
+      # memory=L<inf, memory-swap=S<inf, L<=S
+      # (specify both memory and memory-swap) The container is not allowed to use more than L bytes of memory, swap *plus* memory usage is limited by S.
       extraContainerArgs['mem_limit']='{}m'.format(self.memoryLimit)
+      extraContainerArgs['memswap_limit']='{}m'.format(self.memoryLimit)
       _logger.info('Setting memory limit to {} MiB'.format(self.memoryLimit))
 
     if self._userToUseInsideContainer != None:
