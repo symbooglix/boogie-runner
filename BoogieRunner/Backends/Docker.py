@@ -5,6 +5,7 @@ import os
 import pprint
 import time
 import psutil
+import threading
 
 _logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class DockerBackend(BackendBaseClass):
     self._workDirInsideContainer='/mnt/'
     self._skipToolExistsCheck = False
     self._userToUseInsideContainer = None
+    self._killLock = threading.Lock()
     # handle required options
     if not 'image' in kwargs:
       raise DockerBackendException('"image" but be specified')
@@ -200,26 +202,31 @@ class DockerBackend(BackendBaseClass):
     return BackendResult(exitCode=exitCode, runTime=runTime, oot=outOfTime, oom=self._outOfMemory)
 
   def kill(self):
-    self._endTime=time.perf_counter()
-    if self._container != None:
-      _logger.info('Stopping container:{}'.format(self._container['Id']))
-      self._dc.kill(self._container['Id'])
+    try:
+      self._killLock.acquire()
+      self._endTime=time.perf_counter()
+      if self._container != None:
+        _logger.info('Stopping container:{}'.format(self._container['Id']))
+        self._dc.kill(self._container['Id'])
 
-      # Write logs to file (note we get binary in Python 3, not sure about Python 2)
-      with open(self._logFilePath, 'wb') as f:
-        logData = self._dc.logs(container=self._container['Id'],
-            stdout=True, stderr=True, timestamps=False,
-            tail='all', stream=False)
-        _logger.info('Writing log to {}'.format(self._logFilePath))
-        f.write(logData)
+        # Write logs to file (note we get binary in Python 3, not sure about Python 2)
+        with open(self._logFilePath, 'wb') as f:
+          logData = self._dc.logs(container=self._container['Id'],
+              stdout=True, stderr=True, timestamps=False,
+              tail='all', stream=False)
+          _logger.info('Writing log to {}'.format(self._logFilePath))
+          f.write(logData)
 
-      # Record if OOM occurred
-      containerInfo = self._dc.inspect_container(container=self._container['Id'])
-      self._outOfMemory = containerInfo['State']['OOMKilled']
-      assert isinstance(self._outOfMemory, bool)
+        # Record if OOM occurred
+        containerInfo = self._dc.inspect_container(container=self._container['Id'])
+        self._outOfMemory = containerInfo['State']['OOMKilled']
+        assert isinstance(self._outOfMemory, bool)
 
-      _logger.info('Destroying container:{}'.format(self._container['Id']))
-      self._dc.remove_container(container=self._container['Id'], force=True)
+        _logger.info('Destroying container:{}'.format(self._container['Id']))
+        self._dc.remove_container(container=self._container['Id'], force=True)
+        self._container = None
+    finally:
+      self._killLock.release()
 
 
   def programPath(self):
