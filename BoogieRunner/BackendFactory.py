@@ -7,7 +7,7 @@ import os
 _logger = logging.getLogger(__name__)
 
 def getBackendClass(backendString):
-  _logger.info('Attempting to load backend "{}"'.format(backendString))
+  _logger.debug('Attempting to load backend "{}"'.format(backendString))
   from . import Backends
 
   module = None
