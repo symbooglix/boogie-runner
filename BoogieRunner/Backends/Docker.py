@@ -6,7 +6,7 @@ import pprint
 import time
 import psutil
 import threading
-
+import requests.exceptions
 _logger = logging.getLogger(__name__)
 
 class DockerBackendException(BackendException):
@@ -192,9 +192,13 @@ class DockerBackend(BackendBaseClass):
         _logger.info('Using timeout {} seconds'.format(self.timeLimit))
       exitCode = self._dc.wait(container=self._container['Id'], **timeoutArg)
       if exitCode == -1:
+        # FIXME: Does this even happen? Docker-py's documentation is unclear.
         outOfTime = True
         _logger.info('Timeout occurred')
         exitCode=None
+    except requests.exceptions.ReadTimeout as e:
+      _logger.info('Timeout occurred')
+      outOfTime = True
     finally:
       self.kill()
 
