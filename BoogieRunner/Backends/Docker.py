@@ -230,6 +230,7 @@ class DockerBackend(BackendBaseClass):
         self._dc.remove_container(container=self._container['Id'], force=True)
         self._container = None
     finally:
+      self._dc.close() # Try to avoid hitting file limit closing the client session when we're done
       self._killLock.release()
 
 
