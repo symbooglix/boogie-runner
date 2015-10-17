@@ -363,6 +363,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['timeout_hit'] = timeoutHit = self.timeoutWasHit
     results['out_of_memory'] = self.ranOutOfMemory
 
+    # FIXME: It would make more sense to pass the results
+    # dict to the Analyser so it can use the resultDict
+    # (change design so sub class initialisation all done
+    # first). Then the analyser doesn't need to be initialised
+    # with parameters
     analyser = self.GetNewAnalyser()
     # Add the results of Analyser
     results.update(analyser.getAnalysesDict())
