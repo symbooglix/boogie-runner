@@ -214,7 +214,9 @@ class DockerBackend(BackendBaseClass):
       if self._container != None:
         _logger.info('Stopping container:{}'.format(self._container['Id']))
         try:
-          self._dc.kill(self._container['Id'])
+          containerStatus = self._dc.inspect_container(self._container['Id'])
+          if containerStatus["State"]["Running"]:
+            self._dc.kill(self._container['Id'])
         except docker.errors.APIError as e:
           _logger.error('Failed to kill container:"{}".\n{}'.format(self._container['Id'], str(e)))
 
