@@ -37,8 +37,8 @@ class BoogalooRunner(RunnerBaseClass):
   def name(self):
     return "boogaloo"
 
-  def GetNewAnalyser(self):
-    return BoogalooAnalyser(self.exitCode, self.logFile)
+  def GetNewAnalyser(self, resultDict):
+    return BoogalooAnalyser(resultDict)
 
   def run(self):
     cmdLine = [ ]

@@ -22,8 +22,8 @@ class CorralRunner(RunnerBaseClass):
   def name(self):
     return "corral"
 
-  def GetNewAnalyser(self):
-    return CorralAnalyser(self.exitCode, self.logFile)
+  def GetNewAnalyser(self, resultDict):
+    return CorralAnalyser(resultDict)
 
   def run(self):
     # We assume that Corral has no default timeout.

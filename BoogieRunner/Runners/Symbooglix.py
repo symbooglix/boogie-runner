@@ -38,8 +38,8 @@ class SymbooglixRunner(RunnerBaseClass):
   def name(self):
     return "symbooglix"
 
-  def GetNewAnalyser(self):
-    return SymbooglixAnalyser(self.exitCode, self.logFile, self.hitHardTimeout)
+  def GetNewAnalyser(self, resultDict):
+    return SymbooglixAnalyser(resultDict)
 
   # FIXME: This belongs in the analyser
   # but would require that it be aware of the soft-timeout
@@ -59,8 +59,8 @@ class SymbooglixRunner(RunnerBaseClass):
 
     return False
 
-  def getResults(self):
-    results = super(SymbooglixRunner, self).getResults()
+  def _buildResultDict(self):
+    results = super(SymbooglixRunner, self)._buildResultDict()
     results['sbx_dir'] = self.outputDir
 
     results['hit_hard_timeout'] = self.hitHardTimeout

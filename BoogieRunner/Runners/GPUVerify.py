@@ -49,13 +49,13 @@ class GPUVerifyRunner(RunnerBaseClass):
       else:
         return False
 
-  def getResults(self):
-    results = super(GPUVerifyRunner, self).getResults()
+  def _buildResultDict(self):
+    results = super(GPUVerifyRunner, self)._buildResultDict()
     results['hit_hard_timeout'] = self.hitHardTimeout
     return results
 
-  def GetNewAnalyser(self):
-    return GPUVerifyAnalyser(self.exitCode, self.logFile, self.hitHardTimeout)
+  def GetNewAnalyser(self, resultDict):
+    return GPUVerifyAnalyser(resultDict)
 
   def run(self):
     self.hitHardTimeout = False

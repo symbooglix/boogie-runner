@@ -7,9 +7,9 @@ import re
 _logger = logging.getLogger(__name__)
 
 class SymbooglixAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile, hitHardTimeout, **kargs):
-    super(SymbooglixAnalyser, self).__init__(exitCode, logFile, **kargs)
-    self.hitHardTimeout = hitHardTimeout
+  def __init__(self, resultDict):
+    super(SymbooglixAnalyser, self).__init__(resultDict)
+    assert 'hit_hard_timeout' in self._resultDict
 
   @property
   def foundBug(self):
@@ -51,6 +51,10 @@ class SymbooglixAnalyser(AnalyserBaseClass):
   @property
   def foundSpeculativePathsAndNoBug(self):
     return self.exitCode == 9
+
+  @property
+  def hitHardTimeout(self):
+    return self._resultDict['hit_hard_timeout']
 
   def getAnalysesDict(self):
     results = super(SymbooglixAnalyser, self).getAnalysesDict()

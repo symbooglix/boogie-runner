@@ -334,7 +334,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     return self._backendResult.outOfTime
 
   @abc.abstractmethod
-  def GetNewAnalyser(self):
+  def GetNewAnalyser(self, resultDict):
     pass
 
   @property
@@ -354,7 +354,10 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def runTime(self):
     return self._backendResult.runTime
 
-  def getResults(self):
+  # Subclasses should override this and call it first
+  # to populate the resultDict and then add to it as
+  # necessary
+  def _buildResultDict(self):
     results = {}
     results['program'] = self.program
     results['total_time'] = self.runTime
@@ -362,27 +365,28 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['exit_code'] = self.exitCode
     results['timeout_hit'] = timeoutHit = self.timeoutWasHit
     results['out_of_memory'] = self.ranOutOfMemory
+    results['log_file'] = self.logFile
+    return results
 
-    # FIXME: It would make more sense to pass the results
-    # dict to the Analyser so it can use the resultDict
-    # (change design so sub class initialisation all done
-    # first). Then the analyser doesn't need to be initialised
-    # with parameters
-    analyser = self.GetNewAnalyser()
-    # Add the results of Analyser
-    results.update(analyser.getAnalysesDict())
-    assert 'bug_found' in results
-    assert 'failed' in results
+  def getResults(self):
+    results = self._buildResultDict()
+
+    # The anaylser will take a copy of the dictionary and
+    # augment it with additional values
+    analyser = self.GetNewAnalyser(results)
+    newResults = analyser.getAnalysesDict()
+    assert len(newResults) > len(results)
+    assert 'bug_found' in newResults
+    assert 'failed' in newResults
+    assert 'program' in newResults
 
     # HACK:
     # FIXME: Pass this information to the Analysers so they can handle it
     if self.ranOutOfMemory:
       _logger.warning('Setting "failed" to true due to running out of memory')
-      results['failed'] = True
+      newResults['failed'] = True
 
-    bugFound = results['bug_found']
-    runFailed = results['failed']
-    return results
+    return newResults
 
   @abc.abstractproperty
   def name(self):

@@ -7,9 +7,6 @@ import re
 _logger = logging.getLogger(__name__)
 
 class CorralAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile, **kargs):
-    super(CorralAnalyser, self).__init__(exitCode, logFile, **kargs)
-
   @property
   def foundBug(self):
     if not os.path.exists(self.logFile):

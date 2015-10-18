@@ -2,9 +2,13 @@
 import abc
 
 class AnalyserBaseClass(metaclass=abc.ABCMeta):
-  def __init__(self, exitCode, logFile, **kargs):
-    self.exitCode = exitCode
-    self.logFile = logFile
+  def __init__(self, resultDict):
+    # Quick sanity checks
+    assert isinstance(resultDict, dict)
+    assert 'exit_code' in resultDict
+    assert 'log_file' in resultDict
+    # Make sure we work on a copy
+    self._resultDict = resultDict.copy()
 
   @abc.abstractproperty
   def foundBug(self):
@@ -23,13 +27,21 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
     """
     pass
 
+  @property
+  def exitCode(self):
+    return self._resultDict['exit_code']
+
+  @property
+  def logFile(self):
+    return self._resultDict['log_file']
+
   def getAnalysesDict(self):
     """
       Returns a dictionary of the results of
       Analyser analyses. Subclasses should override
       this if they provide additional analyses.
     """
-    results = {}
+    results = self._resultDict
     results['bug_found'] = self.foundBug
     results['failed'] = self.failed
 

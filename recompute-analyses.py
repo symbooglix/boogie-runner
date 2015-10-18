@@ -17,8 +17,7 @@ _logger = None
 def entryPoint(args):
   global _logger
   parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument("-l","--log-level",type=str, default="debug", dest="log_level", choices=['debug','info','warning','error'])
-  parser.add_argument("--fake-use-docker", dest="useDocker", default=False, action='store_true', help='pretend docker was used')
+  parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-s", "--search-workdir-regex", default="", dest="search_workdir_regex", help="Substitue workdir matching this regex")
   parser.add_argument("-r", "--replace-workdir-regex", default="", dest="replace_workdir_regex", help="replace matched workdir with this (can use backrefs)")
   parser.add_argument("analyser", help="Analyser name (e.g. Boogaloo)")
@@ -77,45 +76,31 @@ def entryPoint(args):
   for index, r in enumerate(oldResults):
     assert isinstance(r, dict)
 
-    # Extract the keys we need to initialise the analyser
-    exitCode = None
-    hitHardTimeout = None
-    workingDirectory = None
+    logFileName = os.path.basename(r['log_file'])
+    logFileDir = os.path.dirname(r['log_file'])
+    logFileDir = getWorkingDirectory(logFileDir,
+                                     pargs.search_workdir_regex,
+                                     pargs.replace_workdir_regex)
 
-    try:
-      exitCode = r['exit_code']
-    except KeyError:
-      _logger.error('exit_code key is missing from input file at index {}'.format(index))
+    patchedLogFilePath = os.path.join(logFileDir, logFileName)
+    if not os.path.exists(patchedLogFilePath):
+      _logger.error('Could not find log file {}'.format(patchedLogFilePath))
       return 1
 
-    # hit_hard_timeout is only implemented by some runners
-    try:
-      hitHardTimeout = r['hit_hard_timeout']
-    except KeyError:
-      pass
-
-    # Find the log file
-    try:
-      workingDirectory = r['working_directory']
-    except KeyError:
-      _logger.error('working_directory key is missing from input file at index {}'.format(index))
-      return 1
-
-    # FIXME: There should be a better way to do this
-    # Guess where it is
-    workingDirectory = getWorkingDirectory(workingDirectory, pargs.search_workdir_regex, pargs.replace_workdir_regex)
-    logFilePath = os.path.join(workingDirectory, 'log.txt')
-
-    if not os.path.exists(logFilePath):
-      _logger.error('Could not find log file {}'.format(logFilePath))
-      return 1
+    originalLogFilePath = r['log_file']
+    # Patch for the analyser
+    r['log_file'] = patchedLogFilePath
 
     # Create analyser and reanalyse result
-    analyser = analyserClass(exitCode=exitCode, logFile=logFilePath, useDocker=pargs.useDocker, hitHardTimeout=hitHardTimeout)
-    updatedAnalyses = analyser.getAnalysesDict()
+    analyser = analyserClass(r)
+    newResult = analyser.getAnalysesDict()
+
+    # Undo the patch the log file path
+    assert 'log_file' in newResult
+    newResult['log_file'] = originalLogFilePath
 
     # Merge the old and new results
-    mergedResult = merge(r, updatedAnalyses, workingDirectory)
+    mergedResult = merge(r, newResult, logFileDir)
     newResults.append(mergedResult)
 
   # Write result to file

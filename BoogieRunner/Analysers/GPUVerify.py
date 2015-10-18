@@ -7,9 +7,9 @@ import re
 _logger = logging.getLogger(__name__)
 
 class GPUVerifyAnalyser(AnalyserBaseClass):
-  def __init__(self, exitCode, logFile, hitHardTimeout, **kargs):
-    super(GPUVerifyAnalyser, self).__init__(exitCode, logFile, **kargs)
-    self.hitHardTimeout = hitHardTimeout
+  def __init__(self, resultDict):
+    super(GPUVerifyAnalyser, self).__init__(resultDict)
+    assert 'hit_hard_timeout' in self._resultDict
 
   @property
   def foundBug(self):
@@ -47,6 +47,10 @@ class GPUVerifyAnalyser(AnalyserBaseClass):
       return False
 
     return True
+
+  @property
+  def hitHardTimeout(self):
+    return self._resultDict['hit_hard_timeout']
 
 def get():
   return GPUVerifyAnalyser

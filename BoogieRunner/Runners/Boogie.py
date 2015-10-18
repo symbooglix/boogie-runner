@@ -22,8 +22,8 @@ class BoogieRunner(RunnerBaseClass):
   def name(self):
     return "boogie"
 
-  def GetNewAnalyser(self):
-    return BoogieAnalyser(self.exitCode, self.logFile)
+  def GetNewAnalyser(self, resultDict):
+    return BoogieAnalyser(resultDict)
 
   def run(self):
     cmdLine = [self.toolPath]
