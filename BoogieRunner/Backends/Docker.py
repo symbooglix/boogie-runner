@@ -144,12 +144,6 @@ class DockerBackend(BackendBaseClass):
     }
     _logger.debug('Declaring bindings:\n{}'.format(pprint.pformat(bindings)))
 
-    hostCfg = docker.utils.create_host_config(
-      binds=bindings,
-      privileged=False,
-      network_mode=None,
-      **extraHostCfgArgs
-    )
 
     extraContainerArgs={}
 
@@ -158,14 +152,20 @@ class DockerBackend(BackendBaseClass):
       #
       # memory=L<inf, memory-swap=S<inf, L<=S
       # (specify both memory and memory-swap) The container is not allowed to use more than L bytes of memory, swap *plus* memory usage is limited by S.
-      extraContainerArgs['mem_limit']='{}m'.format(self.memoryLimit)
-      extraContainerArgs['memswap_limit']='{}m'.format(self.memoryLimit)
+      extraHostCfgArgs['mem_limit']='{}m'.format(self.memoryLimit)
+      extraHostCfgArgs['memswap_limit']='{}m'.format(self.memoryLimit)
       _logger.info('Setting memory limit to {} MiB'.format(self.memoryLimit))
 
     if self._userToUseInsideContainer != None:
       extraContainerArgs['user'] = self._userToUseInsideContainer
       _logger.info('Using user "{}" inside container'.format(self._userToUseInsideContainer))
 
+    hostCfg = self._dc.create_host_config(
+      binds=bindings,
+      privileged=False,
+      network_mode=None,
+      **extraHostCfgArgs
+    )
     # Finally create the container
     self._container=self._dc.create_container(
       image=self._dockerImage['Id'],
