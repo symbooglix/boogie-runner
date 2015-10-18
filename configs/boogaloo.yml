@@ -5,9 +5,8 @@ runner_config:
   # this mode, we should move this into the runner
   mode: "exec"
   # This is the tool_path inside the container
-  tool_path: "/home/boogaloo/.cabal/bin/boogaloo"
+  tool_path: "/home/ase/.cabal/bin/boogaloo"
   max_memory: 4096
-  max_time: 5
   additional_args:
     - "--format=Plain"
     - "--exec=-1" # Don't bound the number of executions to try
@@ -22,8 +21,9 @@ runner_config:
     # - program fully explored
     - "--pass=False"
   entry_point: "main"
+  stack_size: 100
   backend:
     name: "Docker"
     config:
-      image: "delcypher/boogaloo-docker:latest"
+      image: "symbooglix/boogaloo:ase15"
       skip_tool_check: false # Slower but safer
