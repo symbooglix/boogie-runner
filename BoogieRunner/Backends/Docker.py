@@ -211,7 +211,10 @@ class DockerBackend(BackendBaseClass):
       self._endTime=time.perf_counter()
       if self._container != None:
         _logger.info('Stopping container:{}'.format(self._container['Id']))
-        self._dc.kill(self._container['Id'])
+        try:
+          self._dc.kill(self._container['Id'])
+        except docker.errors.APIError as e:
+          _logger.error('Failed to kill container:"{}".\n{}'.format(self._container['Id'], str(e)))
 
         # Write logs to file (note we get binary in Python 3, not sure about Python 2)
         with open(self._logFilePath, 'wb') as f:
