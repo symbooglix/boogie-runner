@@ -378,13 +378,16 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     assert len(newResults) > len(results)
     assert 'bug_found' in newResults
     assert 'failed' in newResults
+    # Just check that one of the original fields is still there
     assert 'program' in newResults
 
-    # HACK:
-    # FIXME: Pass this information to the Analysers so they can handle it
+    # Check that our current conventions are being enforced
+    # Convention: If we ran_out_memory then that's a failure.
+    # Is this really the right choice? We treat timeout
+    # (exhaustion of time) as not a failure but out of memory
+    # (exhausation of memory) as a failure.
     if self.ranOutOfMemory:
-      _logger.warning('Setting "failed" to true due to running out of memory')
-      newResults['failed'] = True
+      assert newResults['failed'] == True
 
     return newResults
 

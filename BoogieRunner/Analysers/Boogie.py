@@ -37,6 +37,9 @@ class BoogieAnalyser(AnalyserBaseClass):
 
   @property
   def failed(self):
+    if self.ranOutOfMemory:
+      return True
+
     if self.exitCode == None:
       return False # Timeout is not a failure
 

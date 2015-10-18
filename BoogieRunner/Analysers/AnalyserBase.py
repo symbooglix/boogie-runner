@@ -7,6 +7,7 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
     assert isinstance(resultDict, dict)
     assert 'exit_code' in resultDict
     assert 'log_file' in resultDict
+    assert 'out_of_memory' in resultDict
     # Make sure we work on a copy
     self._resultDict = resultDict.copy()
 
@@ -35,6 +36,10 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
   def logFile(self):
     return self._resultDict['log_file']
 
+  @property
+  def ranOutOfMemory(self):
+    return self._resultDict['out_of_memory']
+
   def getAnalysesDict(self):
     """
       Returns a dictionary of the results of
@@ -44,5 +49,6 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
     results = self._resultDict
     results['bug_found'] = self.foundBug
     results['failed'] = self.failed
+
 
     return results

@@ -30,6 +30,9 @@ class SymbooglixAnalyser(AnalyserBaseClass):
 
   @property
   def failed(self):
+    if self.ranOutOfMemory:
+      return True
+
     if self.hitHardTimeout:
       return False # Timeout is not a failure
 

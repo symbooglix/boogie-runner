@@ -36,6 +36,9 @@ class BoogalooAnalyser(AnalyserBaseClass):
 
   @property
   def failed(self):
+    if self.ranOutOfMemory:
+      return True
+
     if self.exitCode != None and self.exitCode !=0:
       # Boogaloo returns a non zero exit code if parser/type check errors occurred
       return True
