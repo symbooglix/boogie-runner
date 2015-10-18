@@ -199,6 +199,8 @@ class DockerBackend(BackendBaseClass):
     except requests.exceptions.ReadTimeout as e:
       _logger.info('Timeout occurred')
       outOfTime = True
+    except docker.errors.NotFound as e:
+      _logger.error('Failed to start/wait on container "{}".\nReason: {}'.format(self._container['Id'],str(e)))
     finally:
       self.kill()
 
