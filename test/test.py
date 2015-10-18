@@ -12,8 +12,7 @@ import yaml
 
 testDir = os.path.dirname(os.path.abspath(__file__))
 repoDir = os.path.dirname(testDir)
-workDir = os.path.join(testDir, 'working_dir')
-yamlOutput = os.path.join(testDir, 'result.yml')
+
 # Hack
 sys.path.insert(0, repoDir)
 from BoogieRunner import ProgramListLoader
@@ -21,72 +20,85 @@ from BoogieRunner import ProgramListLoader
 sys.path.insert(0, os.path.join(repoDir, 'analysis'))
 from br_util import FinalResultType, classifyResult
 
-class BatchRunnerTool:
-  def __init__(self, configFile):
-    self.listLocation = os.path.join(testDir, 'list.txt')
+class RunnerTool:
+  def __init__(self, configFile, listFile, relativePathPrefix, workDir, yamlOutput):
     self.configFile = configFile
+    self.listLocation = listFile
+    self.relativePathPrefix = relativePathPrefix
+    self.workDir = workDir
+    self.yamlOutput = yamlOutput
+    assert os.path.exists(self.listLocation)
+
+  def doCleanUp(self):
+    shutil.rmtree(self.workDir)
+    os.remove(self.yamlOutput)
 
   def getFileList(self):
-    return ProgramListLoader.load(self.listLocation, testDir)
+    return ProgramListLoader.load(self.listLocation, self.relativePathPrefix)
 
-  def getResults(self, testFiles):
-    if os.path.exists(yamlOutput):
-      os.remove(yamlOutput)
+class BatchRunnerTool(RunnerTool):
+  def __init__(self, configFile, listFile, relativePathPrefix, workDir, yamlOutput):
+    super(BatchRunnerTool, self).__init__(configFile, listFile, relativePathPrefix, workDir, yamlOutput)
+    self.numJobs = 1
+
+  def setNumJobs(self, count):
+    assert count > 0
+    self.numJobs = count
+
+  def getResults(self, testFiles, clean=True):
+    if os.path.exists(self.yamlOutput):
+      os.remove(self.yamlOutput)
 
     exitCode = subprocess.call([self.tool,
+                                "--jobs={}".format(self.numJobs),
                                 self.configFile,
                                 self.listLocation,
-                                workDir,
-                                yamlOutput
+                                self.workDir,
+                                self.yamlOutput
                                ])
     if exitCode != 0:
       logging.error('Tool failed')
       sys.exit(1)
 
-    if not os.path.exists(yamlOutput):
+    if not os.path.exists(self.yamlOutput):
       logging.error('cannot find yaml output')
       sys.exit(1)
 
-    with open(yamlOutput, 'r') as y:
-      return yaml.load(y)
+    results = None
+    with open(self.yamlOutput, 'r') as y:
+      results = yaml.load(y)
+
+    if clean:
+      self.doCleanUp()
+    return results
 
   @property
   def tool(self):
     return os.path.join(repoDir, 'boogie-batch-runner.py')
 
-class SingleRunTool:
-  def __init__(self, configFile):
-    self.configFile = configFile
-
-  def getFileList(self):
-    _, _, filenames = next(os.walk(testDir, topdown=True))
-    return [ f for f in filenames if f.endswith('.bpl')]
-
-  def getResults(self, testFiles):
-    
+class SingleRunTool(RunnerTool):
+  def getResults(self, testFiles, clean=False):
+    logging.warning('clean directive ignored')
     # Run over the tests
     results = [ ]
     for testFile in testFiles.keys():
       exitCode = subprocess.call([self.tool,
                                   self.configFile,
                                   testFile,
-                                  workDir,
-                                  yamlOutput
+                                  self.workDir,
+                                  self.yamlOutput
                                  ])
       if exitCode != 0:
         logging.error('Tool failed')
         sys.exit(1)
 
-      if not os.path.exists(yamlOutput):
+      if not os.path.exists(self.yamlOutput):
         logging.error('Yaml output is missing')
         sys.exit(1)
 
-      with open(yamlOutput, 'r') as f:
+      with open(self.yamlOutput, 'r') as f:
         results.extend(yaml.load(f))
-
-      shutil.rmtree(workDir)
-      os.remove(yamlOutput)
-
+      self.doCleanUp()
     return results
 
   @property
@@ -96,21 +108,43 @@ class SingleRunTool:
 def main(args):
   logging.basicConfig(level=logging.DEBUG)
   parser = argparse.ArgumentParser()
+  parser.add_argument("-j", "--jobs", type=int, default=1,
+                      help='jobs to run in parallel. Only works when using batch mode')
+  parser.add_argument("-k", "--keep-files", dest='keep_files',
+                      action='store_true', default=False)
+  parser.add_argument("-l", "--list-file", dest='list_file',
+                      type=str, default="list.txt")
   parser.add_argument("config_file")
   parser.add_argument("mode", choices=['single', 'batch'], help="Front end to use. Valid options %(choices)s")
   pargs = parser.parse_args(args)
+
+  if pargs.mode != 'batch' and pargs.jobs > 1:
+    logging.error('Can only specify jobs when using "batch" mode')
+    return 1
+
+  # Compute some paths
+  workDir = os.path.join(testDir, 'working_dir')
+  yamlOutput = os.path.join(testDir, 'result.yml')
 
   if not os.path.exists(pargs.config_file):
     logging.error('Could not find config_file {}'.format(pargs.config_file))
     return 1
 
+  listFile = os.path.join(testDir, pargs.list_file)
+  if not os.path.exists(listFile):
+    logging.error('Could not find list file "{}".'.format(listFile))
+    return 1
+
   if pargs.mode == 'single':
-    runner = SingleRunTool(pargs.config_file)
+    runnerConstructor = SingleRunTool
   elif pargs.mode == 'batch':
-    runner = BatchRunnerTool(pargs.config_file)
+    runnerConstructor = BatchRunnerTool
   else:
     logging.error('Invalid mode')
     return 1
+  runner = runnerConstructor(pargs.config_file, listFile, testDir, workDir, yamlOutput)
+  if pargs.jobs > 1:
+    runner.setNumJobs(pargs.jobs)
 
   if not os.path.exists(runner.tool):
     logging.error('Cannot find {}'.format(runner.tool))
@@ -148,7 +182,7 @@ def main(args):
     shutil.rmtree(workDir)
 
   os.mkdir(workDir)
-  results = runner.getResults(testFiles)
+  results = runner.getResults(testFiles, clean= not pargs.keep_files)
 
   # Check the results against the testFiles
   logging.info('Got results:\n{}'.format(pprint.pformat(results)))
