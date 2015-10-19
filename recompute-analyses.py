@@ -76,6 +76,12 @@ def entryPoint(args):
   for index, r in enumerate(oldResults):
     assert isinstance(r, dict)
 
+    # Handle the case of error reports being in result list (generated on boogie-batch-runner being terminated)
+    if ('log_file' not in r) and ('error' in r) and ('program' in r):
+      _logger.warning(('Found error report in results for program "{}",' +
+                      ' copying result over without processing').format(r['program']))
+      newResults.append(r)
+      continue
     logFileName = os.path.basename(r['log_file'])
     logFileDir = os.path.dirname(r['log_file'])
     logFileDir = getWorkingDirectory(logFileDir,
