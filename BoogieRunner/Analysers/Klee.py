@@ -50,6 +50,7 @@ class KleeAnalyser(AnalyserBaseClass):
     msgs = [ re.compile('Error: failed external call'),
              re.compile('invalid klee_assume call'),
              re.compile('ERROR:\s+unable to load symbol'),
+             re.compile('ERROR:\s+Code generator does not support intrinsic function'),
            ]
     with open(self.logFile, 'r') as f:
       for line in f:
