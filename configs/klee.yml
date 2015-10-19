@@ -1,0 +1,22 @@
+# vim: set sw=2 ts=2 softtabstop=2 expandtab:
+runner: Klee
+runner_config:
+  # This is the tool_path inside the container
+  tool_path: "/home/klee/klee_build/klee/Release+Asserts/bin/klee"
+  max_memory: 4096
+  max_time: 10
+  additional_args:
+    - "-libc=none"
+    - "-max-solver-time=30"
+    - "-dump-states-on-halt=false"
+    # Need svcomp runtime
+    - "--svcomp-runtime"
+  # Must specify this otherwise boogie-runner
+  # will try to parse the bitcode file!
+  entry_point: "main"
+  backend:
+    name: "Docker"
+    config:
+      # KLEE Docker image with sv-comp patches
+      image: "local_klee_svcomp:latest"
+      skip_tool_check: True # Faster
