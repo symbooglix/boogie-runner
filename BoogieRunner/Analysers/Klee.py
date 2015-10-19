@@ -17,23 +17,23 @@ class KleeAnalyser(AnalyserBaseClass):
     if self.exitCode == 0:
       return False
 
+    if self.ranOutOfTime:
+      return False
+
     # Should we do more to inspect the bug type?
     if self.exitCode == 1:
-      # Note eliminating self.failed case is important because
-      # we don't want assume failures to be flagged as bugs.
-      if not (self.failed or self.ranOutOfTime):
-        with open(self.logFile, 'r') as f:
-          msgs = [
-              # This regex vaguely matches an error message containing a source file
-              # name and line number
-              re.compile(r'^KLEE: ERROR:\s*.+\.(c|i|cpp|cxx):\d+:'),
-                 ]
-          for line in f:
-            for msgRegex in msgs:
-              m = msgRegex.search(line)
-              if m != None:
-                return True
-    return None
+      with open(self.logFile, 'r') as f:
+        msgs = [
+            # This regex vaguely matches an error message containing a source file
+            # name and line number
+            re.compile(r'^KLEE: ERROR:\s*.+\.(c|i|cpp|cxx):\d+:'),
+               ]
+        for line in f:
+          for msgRegex in msgs:
+            m = msgRegex.search(line)
+            if m != None:
+              return True
+    return False
 
   @property
   def failed(self):
@@ -46,27 +46,22 @@ class KleeAnalyser(AnalyserBaseClass):
     if self.exitCode == 0:
       return False
 
-    # Looks for certain failure messages
-    msgs = [ re.compile('Error: failed external call'),
-             re.compile('invalid klee_assume call'),
-             re.compile('ERROR:\s+unable to load symbol'),
-             re.compile('ERROR:\s+Code generator does not support intrinsic function'),
-           ]
-    with open(self.logFile, 'r') as f:
-      for line in f:
-        for msgRegex in msgs:
-          m = msgRegex.search(line)
-          if m != None:
-            return True
-
-    # This exit code is also used when finding a bug or a timeout
-    # occurs. We've eliminated the cases we want to treat as failure
-    # for this exit code so the remaining cases aren't "failures"
-    if self.exitCode == 1:
+    if self.foundBug:
       return False
+
+    # Should we use these? It can lead to weird scenarios because
+    # we can have a failed klee_assume() call but later find a bug on
+    # a different path.
+    # Looks for certain failure messages
+    #msgs = [ re.compile('Error: failed external call'),
+    #         re.compile('invalid klee_assume call'),
+    #         re.compile('ERROR:\s+unable to load symbol'),
+    #         re.compile('ERROR:\s+Code generator does not support intrinsic function'),
+    #       ]
 
     # We don't know what happened. Probably a failure worth investigating
     return True
+
 
   @property
   def hitHardTimeout(self):
