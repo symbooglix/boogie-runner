@@ -20,3 +20,6 @@ runner_config:
       # KLEE Docker image with sv-comp patches
       image: "local_klee_svcomp:latest"
       skip_tool_check: True # Faster
+      # Use same UID/GID inside container as outside so the container
+      # can write to our files.
+      user: "$HOST_USER"
