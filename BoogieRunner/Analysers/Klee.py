@@ -49,6 +49,7 @@ class KleeAnalyser(AnalyserBaseClass):
     # Looks for certain failure messages
     msgs = [ re.compile('Error: failed external call'),
              re.compile('invalid klee_assume call'),
+             re.compile('ERROR:\s+unable to load symbol'),
            ]
     with open(self.logFile, 'r') as f:
       for line in f:
