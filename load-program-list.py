@@ -18,6 +18,7 @@ def entryPoint(args):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for program_list")
+  parser.add_argument('--report-missing', dest='report_missing', default=False, action="store_true")
   parser.add_argument("program_list", help="File containing list of Boogie programs")
 
   pargs = parser.parse_args()
@@ -34,11 +35,26 @@ def entryPoint(args):
   programList = None
   try:
     _logger.debug('Loading program_list from "{}"'.format(pargs.program_list))
-    programList = ProgramListLoader.load(pargs.program_list, pargs.rprefix)
+    programList = ProgramListLoader.load(pargs.program_list,
+                  pargs.rprefix,
+                  existCheck= not pargs.report_missing)
   except (ProgramListLoader.ProgramListLoaderException) as e:
     _logger.error(e)
     _logger.debug(traceback.format_exc())
     return 1
+
+  # Report missing files if requested
+  missingCount=0
+  presentCount=0
+  if pargs.report_missing:
+    for p in programList:
+      if not os.path.exists(p):
+        _logger.warning('Program "{}" is missing'.format(p))
+        missingCount += 1
+      else:
+        presentCount +=1
+    _logger.info('{} missing programs'.format(missingCount))
+    _logger.info('{} present programs'.format(presentCount))
 
   logging.info('Loaded {} programs'.format(len(programList)))
   return 0
