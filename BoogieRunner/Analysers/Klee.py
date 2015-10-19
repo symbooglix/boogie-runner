@@ -63,7 +63,8 @@ class KleeAnalyser(AnalyserBaseClass):
     if self.exitCode == 1:
       return False
 
-    return False
+    # We don't know what happened. Probably a failure worth investigating
+    return True
 
   @property
   def hitHardTimeout(self):
