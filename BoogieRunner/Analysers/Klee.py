@@ -26,7 +26,7 @@ class KleeAnalyser(AnalyserBaseClass):
           msgs = [
               # This regex vaguely matches an error message containing a source file
               # name and line number
-              re.compile(r'^KLEE: ERROR:\s*.+\.(c|cpp|cxx):\d+:'),
+              re.compile(r'^KLEE: ERROR:\s*.+\.(c|i|cpp|cxx):\d+:'),
                  ]
           for line in f:
             for msgRegex in msgs:
