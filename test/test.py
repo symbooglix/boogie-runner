@@ -113,7 +113,7 @@ def main(args):
   parser.add_argument("-k", "--keep-files", dest='keep_files',
                       action='store_true', default=False)
   parser.add_argument("-l", "--list-file", dest='list_file',
-                      type=str, default="list.txt")
+                      type=str, default="simple_boogie_programs.txt")
   parser.add_argument("config_file")
   parser.add_argument("mode", choices=['single', 'batch'], help="Front end to use. Valid options %(choices)s")
   pargs = parser.parse_args(args)
@@ -157,11 +157,13 @@ def main(args):
   # Find all the tests
   testFiles = {}
   filenames = runner.getFileList()
-  for potentialTest in [os.path.basename(f) for f in filenames]:
-
+  for potentialTest in filenames:
+    if not os.path.exists(potentialTest):
+      logging.error('Could not find file "{}"'.format(potentialTest))
+      return 1
     r = re.compile(r'^//\s*(\w+)')
     # Read expected test result from first line of file
-    with open(os.path.join(testDir, potentialTest), 'r') as testFile:
+    with open(potentialTest, 'r') as testFile:
       line = testFile.readline()
 
       m = r.match(line)
@@ -188,7 +190,7 @@ def main(args):
   logging.info('Got results:\n{}'.format(pprint.pformat(results)))
 
   for result in results:
-    filename = os.path.basename(result['program'])
+    filename = result['program']
     actualClassification =  classifyResult(result)
     expectedClassification = testFiles[filename]
 

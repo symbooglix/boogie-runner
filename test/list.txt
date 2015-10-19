@@ -1,7 +1,0 @@
-multi_args_error.bpl
-error.bpl
-no-error.bpl
-parse-error.bpl
-counter_dependent_bug.bpl
-divtest.bpl
-remtest.bpl

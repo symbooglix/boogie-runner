@@ -1,0 +1,7 @@
+simple_boogie_programs/multi_args_error.bpl
+simple_boogie_programs/error.bpl
+simple_boogie_programs/no-error.bpl
+simple_boogie_programs/parse-error.bpl
+simple_boogie_programs/counter_dependent_bug.bpl
+simple_boogie_programs/divtest.bpl
+simple_boogie_programs/remtest.bpl
