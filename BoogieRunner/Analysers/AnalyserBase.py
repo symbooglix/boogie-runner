@@ -8,6 +8,7 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
     assert 'exit_code' in resultDict
     assert 'log_file' in resultDict
     assert 'out_of_memory' in resultDict
+    assert 'backend_timeout' in resultDict
     # Make sure we work on a copy
     self._resultDict = resultDict.copy()
 
@@ -40,6 +41,10 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
   def ranOutOfMemory(self):
     return self._resultDict['out_of_memory']
 
+  @property
+  def ranOutOfTime(self):
+    return self._resultDict['backend_timeout']
+
   def getAnalysesDict(self):
     """
       Returns a dictionary of the results of
@@ -49,6 +54,7 @@ class AnalyserBaseClass(metaclass=abc.ABCMeta):
     results = self._resultDict
     results['bug_found'] = self.foundBug
     results['failed'] = self.failed
+    results['timeout_hit'] = self.ranOutOfTime
 
 
     return results

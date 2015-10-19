@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 class GPUVerifyAnalyser(AnalyserBaseClass):
   def __init__(self, resultDict):
     super(GPUVerifyAnalyser, self).__init__(resultDict)
-    assert 'hit_hard_timeout' in self._resultDict
+    assert 'backend_timeout' in self._resultDict
 
   @property
   def foundBug(self):
@@ -53,7 +53,18 @@ class GPUVerifyAnalyser(AnalyserBaseClass):
 
   @property
   def hitHardTimeout(self):
-    return self._resultDict['hit_hard_timeout']
+    return self._resultDict['backend_timeout']
+
+  # Override normal implementation
+  @property
+  def ranOutOfTime(self):
+    if self.hitHardTimeout:
+      return True
+    else:
+      if self.exitCode == 7:
+        return True
+      else:
+        return False
 
 def get():
   return GPUVerifyAnalyser

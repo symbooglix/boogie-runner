@@ -38,28 +38,16 @@ class GPUVerifyRunner(RunnerBaseClass):
   def name(self):
     return "gpuverify"
 
-  # Override the normal implementation
-  @property
-  def timeoutWasHit(self):
-    if self.hitHardTimeout:
-      return True
-    else:
-      if self.exitCode == 7:
-        return True
-      else:
-        return False
-
   def _buildResultDict(self):
     results = super(GPUVerifyRunner, self)._buildResultDict()
-    results['hit_hard_timeout'] = self.hitHardTimeout
+    # TODO: Remove this. It's now redundant
+    results['hit_hard_timeout'] = results['backend_timeout']
     return results
 
   def GetNewAnalyser(self, resultDict):
     return GPUVerifyAnalyser(resultDict)
 
   def run(self):
-    self.hitHardTimeout = False
-
     # Run using python interpreter
     cmdLine = [ sys.executable, self.toolPath ]
 
@@ -85,7 +73,6 @@ class GPUVerifyRunner(RunnerBaseClass):
       isDotNet=False,
       envExtra=env)
     if backendResult.outOfTime:
-      self.hitHardTimeout = True
       _logger.warning('GPUVerify hit hard timeout')
 
 def get():

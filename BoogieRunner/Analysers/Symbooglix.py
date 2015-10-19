@@ -9,7 +9,10 @@ _logger = logging.getLogger(__name__)
 class SymbooglixAnalyser(AnalyserBaseClass):
   def __init__(self, resultDict):
     super(SymbooglixAnalyser, self).__init__(resultDict)
-    assert 'hit_hard_timeout' in self._resultDict
+    assert 'backend_timeout' in self._resultDict
+    # FIXME: Remove this!
+    assert '__soft_timeout' in self._resultDict
+    assert 'total_time' in self._resultDict
 
   @property
   def foundBug(self):
@@ -33,7 +36,7 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     if self.ranOutOfMemory:
       return True
 
-    if self.hitHardTimeout:
+    if self.ranOutOfTime:
       return False # Timeout is not a failure
 
     # NO_ERRORS_NO_TIMEOUT_BUT_FOUND_SPECULATIVE_PATHS : 9
@@ -47,6 +50,25 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     # All exit codes above 4 indicate something went badly wrong
     return self.exitCode > 4 or self.exitCode == 1
 
+  # Override normal implementation
+  @property
+  def ranOutOfTime(self):
+    if self.hitHardTimeout:
+      return True
+
+    if self.exitCode == 3 or self.exitCode == 4:
+      # NO_ERRORS_TIMEOUT,
+      # ERRORS_TIMEOUT,
+      return True
+
+    # FIXME: This hack will waste space in the results. We should
+    # find a better way to check this
+    # Check if the soft timeout was hit
+    if self._resultDict['total_time'] > self.softTimeout:
+      return True
+
+    return False
+
   @property
   def hitBound(self):
     return self.exitCode == 10
@@ -57,7 +79,12 @@ class SymbooglixAnalyser(AnalyserBaseClass):
 
   @property
   def hitHardTimeout(self):
-    return self._resultDict['hit_hard_timeout']
+    return self._resultDict['backend_timeout']
+
+  # FIXME: Remove this!
+  @property
+  def softTimeout(self):
+    return self._resultDict['__soft_timeout']
 
   def getAnalysesDict(self):
     results = super(SymbooglixAnalyser, self).getAnalysesDict()

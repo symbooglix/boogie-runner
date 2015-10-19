@@ -329,9 +329,11 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
   def run(self):
     pass
 
-  @property
-  def timeoutWasHit(self):
-    return self._backendResult.outOfTime
+  # timeouts are a little different. An analyser needs
+  # to determine if this happened so getResults() needs
+  # to be called to determine this.
+  #@property
+  #def timeoutWasHit(self):
 
   @abc.abstractmethod
   def GetNewAnalyser(self, resultDict):
@@ -363,9 +365,12 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     results['total_time'] = self.runTime
     results['working_directory'] = self.workingDirectory
     results['exit_code'] = self.exitCode
-    results['timeout_hit'] = timeoutHit = self.timeoutWasHit
+    #results['timeout_hit'] # The analyser now sets this
     results['out_of_memory'] = self.ranOutOfMemory
     results['log_file'] = self.logFile
+    # This isn't the same as a timeout because the Analyser decides the
+    # 'timeout_hit' field
+    results['backend_timeout'] = self._backendResult.outOfTime
     return results
 
   def getResults(self):
@@ -378,6 +383,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     assert len(newResults) > len(results)
     assert 'bug_found' in newResults
     assert 'failed' in newResults
+    assert 'timeout_hit' in newResults
     # Just check that one of the original fields is still there
     assert 'program' in newResults
 
