@@ -233,8 +233,11 @@ class DockerBackend(BackendBaseClass):
         self._outOfMemory = containerInfo['State']['OOMKilled']
         assert isinstance(self._outOfMemory, bool)
 
-        _logger.info('Destroying container:{}'.format(self._container['Id']))
-        self._dc.remove_container(container=self._container['Id'], force=True)
+        try:
+          _logger.info('Destroying container:{}'.format(self._container['Id']))
+          self._dc.remove_container(container=self._container['Id'], force=True)
+        except docker.errors.APIError as e:
+          _logger.error('Failed to remove container:"{}".\n{}'.format(self._container['Id'], str(e)))
         self._container = None
     finally:
       self._dc.close() # Try to avoid hitting file limit closing the client session when we're done
