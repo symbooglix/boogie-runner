@@ -26,13 +26,29 @@ class KleeAnalyser(AnalyserBaseClass):
         msgs = [
             # This regex vaguely matches an error message containing a source file
             # name and line number
-            re.compile(r'^KLEE: ERROR:\s*.+\.(c|i|cpp|cxx):\d+:'),
+            re.compile(r'^KLEE: ERROR:\s*.+\.(c|i|cpp|cxx):\d+:(.+)$'),
                ]
+        disallowedErrorMsgs = [
+                                re.compile(r'failed external call'),
+                                re.compile(r'invalid klee_assume call'),
+                              ]
         for line in f:
           for msgRegex in msgs:
             m = msgRegex.search(line)
             if m != None:
-              return True
+              # Found potential error, check that it doesn't match "errors"
+              # that we don't consider to be useful errors
+              errorMsg = m.group(2)
+              foundDisallowedMsg = False
+              for disallowedMsg in disallowedErrorMsgs:
+                disallowMatch = disallowedMsg.search(errorMsg)
+                if disallowMatch != None:
+                  foundDisallowedMsg = True
+                  # Break out of inner loop but keep excuting the outer loop, we want to check all lines.
+                  # because we may find an error message we care about further down
+                  break
+              if not foundDisallowedMsg:
+                return True
     return False
 
   @property
