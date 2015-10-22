@@ -20,6 +20,8 @@ def entryPoint(args):
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
   parser.add_argument("-s", "--search-workdir-regex", default="", dest="search_workdir_regex", help="Substitue workdir matching this regex")
   parser.add_argument("-r", "--replace-workdir-regex", default="", dest="replace_workdir_regex", help="replace matched workdir with this (can use backrefs)")
+  parser.add_argument("--allow-new-fields-only", default=False, dest="allow_new_fields_only", action='store_true',
+                      help="When getting new results from the analyser only allow new fields to be added")
   parser.add_argument("analyser", help="Analyser name (e.g. Boogaloo)")
   parser.add_argument("yaml_old_results")
   parser.add_argument("yaml_output")
@@ -106,7 +108,7 @@ def entryPoint(args):
     newResult['log_file'] = originalLogFilePath
 
     # Merge the old and new results
-    mergedResult = merge(r, newResult, logFileDir)
+    mergedResult = merge(r, newResult, logFileDir, pargs.allow_new_fields_only)
     newResults.append(mergedResult)
 
   # Write result to file
@@ -117,7 +119,7 @@ def entryPoint(args):
 
   return 0
 
-def merge(oldResult, updatedAnalyses, workingDirectory):
+def merge(oldResult, updatedAnalyses, workingDirectory, allowNewFieldsOnly):
   _logger.info('Merging {}'.format(oldResult['program']))
   newResult = oldResult.copy()
 
@@ -131,6 +133,9 @@ def merge(oldResult, updatedAnalyses, workingDirectory):
   for k, v in newOrChanged:
     if k in oldResult:
       _logger.warning('[{}] Key {} changed "{}" => "{}"'.format(workingDirectory, k, oldResult[k], v))
+      if allowNewFieldsOnly:
+        _logger.error('Changing field values disallowed by --allow-new-fields-only')
+        sys.exit(1)
     else:
       _logger.info('[{}] New key added {}: "{}"'.format(workingDirectory, k, v))
 
