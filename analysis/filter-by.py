@@ -31,9 +31,9 @@ def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('result_yml', type=argparse.FileType('r'), help='File to open, if \'-\' then use stdin')
     parser.add_argument('-r', '--result-type', dest='result_type', choices=resultTypes, default=None, help='Filter by FinalResultType')
-    parser.add_argument('--program-list', dest='program_list', default=None, type=str, help='Filter by the programs in the program list')
+    parser.add_argument('--programs-from-list', dest='programs_from_list', default=None, type=str, help='Filter by the programs in the program list')
     parser.add_argument('--programs-from-result-yml', dest='programs_from_result_yml', default=None, type=str, help='Filter using the programs in a result YAML file')
-    parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for program_list")
+    parser.add_argument("--rprefix", default=os.getcwd(), help="Prefix for relative paths for programs_from_list")
     parser.add_argument("--strip-prefix", default=None, dest='strip_prefix', help="Prefix to strip from loaded program list")
     parser.add_argument('-n', '--not-matching', action='store_true', dest='not_matching', help='Change behaviour to output results that are not of type \'result_type\'')
     pargs = parser.parse_args(args)
@@ -45,12 +45,12 @@ def main(args):
         matchResultType = FinalResultType[pargs.result_type]
         filters.append( lambda r: classifyResult(r) == matchResultType)
 
-    if pargs.program_list != None:
-        logging.info('Loading program list {}'.format(pargs.program_list))
-        if not os.path.exists(pargs.program_list):
-            logging.error('{} does not exist'.format(pargs.program_list))
+    if pargs.programs_from_list != None:
+        logging.info('Loading program list {}'.format(pargs.programs_from_list))
+        if not os.path.exists(pargs.programs_from_list):
+            logging.error('{} does not exist'.format(pargs.programs_from_list))
             return 1
-        progList = ProgramListLoader.load(pargs.program_list, pargs.rprefix, existCheck=False)
+        progList = ProgramListLoader.load(pargs.programs_from_list, pargs.rprefix, existCheck=False)
 
         if pargs.strip_prefix:
             logging.info('Stripping with prefix "{}"'.format(pargs.strip_prefix))
