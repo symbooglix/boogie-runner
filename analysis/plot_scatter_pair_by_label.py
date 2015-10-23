@@ -35,7 +35,7 @@ def main(args):
   parser.add_argument('--ipython', action='store_true')
   parser.add_argument('--point-size', type=float, default=30.0, dest='point_size')
   parser.add_argument('--click-shows-raw-data', dest='click_shows_raw_data', action='store_true', default=False)
-  parser.add_argument('--only-show', dest='only_show', default='incorrect', choices=['correct', 'incorrect', 'unknown'])
+  parser.add_argument('--only-show', dest='only_show', default='all', choices=['all', 'correct', 'incorrect', 'unknown'])
   parser.add_argument('-c', '--only-allow-consistent', dest='only_allow_consistent',action='store_true', default=False)
   parser.add_argument('--axis-name-map',dest='axis_name_map', default=None, type=str)
   parser.add_argument('--draw-dual-timeout-count',dest='draw_dual_timeout_count', action='store_true', default=False)
@@ -137,6 +137,8 @@ def main(args):
       elif pargs.only_show == 'unknown':
         if expectedCorrect != None:
           skipBenchmark = True
+      elif pargs.only_show == 'all':
+        skipBenchmark = False
       else:
         assert False
 
