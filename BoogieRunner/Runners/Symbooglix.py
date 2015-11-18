@@ -34,6 +34,8 @@ class SymbooglixRunner(RunnerBaseClass):
     self.maxTimeInSeconds = self.softTimeout + self.softTimeoutDiff
     assert self.maxTimeInSeconds >= self.softTimeout
 
+    self.sbxDirName = "sbx"
+
   @property
   def name(self):
     return "symbooglix"
@@ -43,7 +45,7 @@ class SymbooglixRunner(RunnerBaseClass):
 
   def _buildResultDict(self):
     results = super(SymbooglixRunner, self)._buildResultDict()
-    results['sbx_dir'] = self.outputDir
+    results['sbx_dir'] = self.outputDirOnHost
     # TODO: Remove this. It's redundant
     results['hit_hard_timeout'] = results['backend_timeout']
     # FIXME: This is wasteful
@@ -55,8 +57,9 @@ class SymbooglixRunner(RunnerBaseClass):
     cmdLine = [ self.toolPath ] + self.additionalArgs
 
     # symbooglix outputdir
-    self.outputDir = os.path.join(self.workingDirectoryInBackend, "sbx")
-    cmdLine.append('--output-dir={}'.format(self.outputDir))
+    self.outputDirInBackend = os.path.join(self.workingDirectoryInBackend, self.sbxDirName)
+    self.outputDirOnHost = os.path.join(self.workingDirectory, self.sbxDirName)
+    cmdLine.append('--output-dir={}'.format(self.outputDirInBackend))
 
     if self.entryPoint == None:
       _logger.warning('Entry point not specified!')

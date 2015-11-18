@@ -1,8 +1,10 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 from . AnalyserBase import AnalyserBaseClass
+import functools
 import logging
 import os
 import re
+import yaml
 
 _logger = logging.getLogger(__name__)
 
@@ -10,6 +12,7 @@ class SymbooglixAnalyser(AnalyserBaseClass):
   def __init__(self, resultDict):
     super(SymbooglixAnalyser, self).__init__(resultDict)
     assert 'backend_timeout' in self._resultDict
+    assert 'sbx_dir' in self._resultDict
     # FIXME: Remove this!
     assert '__soft_timeout' in self._resultDict
     assert 'total_time' in self._resultDict
@@ -90,7 +93,47 @@ class SymbooglixAnalyser(AnalyserBaseClass):
     results = super(SymbooglixAnalyser, self).getAnalysesDict()
     results['bound_hit'] = self.hitBound
     results['speculative_paths_nb'] = self.foundSpeculativePathsAndNoBug
+    results['instructions_executed'] = self.instructionsExecuted
     return results
+
+  def _getSbxWorkDir(self):
+    sbxDir = self._resultDict['sbx_dir']
+    if not os.path.exists(sbxDir):
+      _logger.error('{} does not exist'.format(sbxDir))
+      return None
+    return sbxDir
+
+  @property
+  def instructionsExecuted(self):
+    executorInfo = self.getExecutorInfo()
+    if executorInfo == None:
+      return None
+
+    try:
+      return executorInfo['instructions_executed']
+    except KeyError as e:
+      _logger.error(str(e))
+      return None
+
+  @functools.lru_cache(maxsize=1)
+  def getExecutorInfo(self):
+    sbxDir = self._getSbxWorkDir()
+    if sbxDir == None:
+      return None
+
+    executorYamlPath = os.path.join(sbxDir, 'executor_info.yml')
+    if not os.path.exists(executorYamlPath):
+      _logger.error('{} does not exist'.format(executorYamlPath))
+      return None
+
+    data = None
+    try:
+      with open(executorYamlPath, 'r') as f:
+        data = yaml.load(f)
+        return data
+    except Exception as e:
+      _logger.error(str(e))
+      return None
 
 def get():
   return SymbooglixAnalyser
