@@ -174,6 +174,7 @@ class DockerBackend(BackendBaseClass):
       working_dir=self.workingDirectoryInternal,
       volumes=list(bindings.keys()),
       host_config=hostCfg,
+      cpu_shares=0, # The default. When all containers are created this way they will all get the same proportion of CPU cycles.
       **extraContainerArgs
     )
     _logger.debug('Created container:\n{}'.format(pprint.pformat(self._container['Id'])))
