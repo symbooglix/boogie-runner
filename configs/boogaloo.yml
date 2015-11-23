@@ -5,7 +5,7 @@ runner_config:
   # this mode, we should move this into the runner
   mode: "exec"
   # This is the tool_path inside the container
-  tool_path: "/home/ase/.cabal/bin/boogaloo"
+  tool_path: "/home/icst/.cabal/bin/boogaloo"
   max_memory: 4096
   additional_args:
     - "--format=Plain"
@@ -25,5 +25,5 @@ runner_config:
   backend:
     name: "Docker"
     config:
-      image: "symbooglix/boogaloo:ase15"
+      image: "symbooglix/boogaloo:icst16"
       skip_tool_check: false # Slower but safer
