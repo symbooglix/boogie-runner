@@ -9,11 +9,13 @@ class BackendException(Exception):
   pass
 
 class BackendResult:
-  def __init__(self, exitCode, runTime, oot, oom):
+  def __init__(self, exitCode, runTime, oot, oom, userCpuTime=None, sysCpuTime=None):
     self.exitCode = exitCode
     self.runTime = runTime
     self.outOfTime = oot
     self.outOfMemory = oom
+    self.userCpuTime = userCpuTime
+    self.sysCpuTime = sysCpuTime
 
     if not (isinstance(self.exitCode, int) or self.exitCode == None):
       msg = 'exitCode was expected to be an int or None but was a {}'.format(
@@ -33,6 +35,16 @@ class BackendResult:
     if not isinstance(self.outOfMemory, bool):
       msg = 'outOfMemory was expected to be a bool but was "{}"'.format(
         self.outOfMemory)
+      _logger.error(msg)
+      raise BackendException(msg)
+    if not (isinstance(self.userCpuTime, float) or self.userCpuTime == None):
+      msg = ('userCpuTime was expected to be a float or None but was'
+             ' {}'.format(self.userCpuTime))
+      _logger.error(msg)
+      raise BackendException(msg)
+    if not (isinstance(self.sysCpuTime, float) or self.sysCpuTime == None):
+      msg = ('sysCpuTime was expected to be a float or None but was'
+             ' {}'.format(self.sysCpuTime))
       _logger.error(msg)
       raise BackendException(msg)
 

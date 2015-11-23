@@ -354,6 +354,7 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
 
   @property
   def runTime(self):
+    # Wallclock time
     return self._backendResult.runTime
 
   # Subclasses should override this and call it first
@@ -371,6 +372,8 @@ class RunnerBaseClass(metaclass=abc.ABCMeta):
     # This isn't the same as a timeout because the Analyser decides the
     # 'timeout_hit' field
     results['backend_timeout'] = self._backendResult.outOfTime
+    results['user_cpu_time'] = self._backendResult.userCpuTime
+    results['sys_cpu_time'] = self._backendResult.sysCpuTime
     return results
 
   def getResults(self):
