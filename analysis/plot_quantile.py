@@ -172,6 +172,7 @@ def main(args):
   parser.add_argument('--title', default="", type=str)
   parser.add_argument('--legend-name-map',dest='legend_name_map', default=None, type=str)
   parser.add_argument('--legend-position',dest='legend_position', default='outside_bottom', choices=['outside_bottom', 'outside_right', 'inner', 'none'])
+  parser.add_argument('--report-negative-results',dest='report_negative_results', default=False, action='store_true')
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
@@ -289,6 +290,13 @@ def main(args):
                 srl.numOfNegativeResults,
                 len(data[resultListName]),
                 unknownBenchmarkCount))
+
+    if pargs.report_negative_results:
+      logging.info('*** Results with negative scores ***')
+      for r in srl.negativeResults:
+        logging.info(pprint.pformat(r))
+      logging.info('*** Results with negative scores ***')
+
 
     positiveResults = srl.positiveResults
     # Add dummy point
