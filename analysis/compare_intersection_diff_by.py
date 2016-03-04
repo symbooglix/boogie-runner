@@ -24,7 +24,12 @@ def main(args):
     help="Group by expected result type from a mapping file")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
   parser.add_argument('--rank-intersection', dest='rank_intersection', action='store_true', default=False)
-  parser.add_argument('--only-in', dest='only_in', action='store_true', default=False)
+  parser.add_argument('--only-in',
+                      dest='only_in',
+                      action='store_true',
+                      default=False,
+                      help="Report the number of benchmarks for each result type where only one "
+                      "result_yml recorded the benchmark as being of that result type")
 
   extraOutputGroup = parser.add_mutually_exclusive_group()
   extraOutputGroup.add_argument("--uncommon", action='store_true')
