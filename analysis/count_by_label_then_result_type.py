@@ -23,6 +23,7 @@ def main(args):
     help='correctness label mapping file')
   parser.add_argument('result_yml', type=argparse.FileType('r'), help='Input YAML file')
   parser.add_argument('--show-false-positives', dest='show_false_positives', action='store_true')
+  parser.add_argument('--show-classified-unknowns', dest='show_classified_unknowns', action='store_true')
   pargs = parser.parse_args(args)
 
   logging.info('Loading correctness label mapping file')
@@ -109,6 +110,8 @@ def main(args):
       assert isinstance(l, list)
       percentage = 100 * (float(len(l))/ expectedUnknownCount)
       print("# classified as {}: {} ({:.2f}%)".format(rTypeName, len(l), percentage))
+      if pargs.show_classified_unknowns and (rTypeName == "BUG_FOUND" or rTypeName == "FULLY_EXPLORED"):
+        print("{}".format(pprint.pformat(l)))
 
   print("")
   print("# of false alarms: {}".format(falseAlarmCount))
