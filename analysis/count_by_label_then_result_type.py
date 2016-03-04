@@ -2,6 +2,7 @@
 # vim: set sw=2 ts=2 softtabstop=2 expandtab:
 import argparse
 import os
+import pprint
 import logging
 import sys
 import yaml
@@ -21,6 +22,7 @@ def main(args):
   parser.add_argument('label_mapping_file', type=argparse.FileType('r'),
     help='correctness label mapping file')
   parser.add_argument('result_yml', type=argparse.FileType('r'), help='Input YAML file')
+  parser.add_argument('--show-false-positives', dest='show_false_positives', action='store_true')
   pargs = parser.parse_args(args)
 
   logging.info('Loading correctness label mapping file')
@@ -71,11 +73,12 @@ def main(args):
         falseAlarmCount += len(l)
       else:
         desc=""
-
       if rTypeName in collectiveUnknownTypes:
         collectiveUnknownCount += len(l)
-
       print("# classified as {}: {} ({:.2f}%) {}".format(rTypeName, len(l), percentage, desc))
+      if rTypeName == "BUG_FOUND" and pargs.show_false_positives:
+        print("{}".format(pprint.pformat(l)))
+
   print("Results expected to be incorrect (total {})".format(expectedIncorrectCount))
   if expectedIncorrectCount > 0:
     for rTypeName in sortedResultTypeNames:
