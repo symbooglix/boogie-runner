@@ -19,7 +19,6 @@ except ImportError:
 def main(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("-l","--log-level",type=str, default="info", dest="log_level", choices=['debug','info','warning','error'])
-  parser.add_argument("-s", "--proper-supersets", dest='proper_supersets', action='store_true', help='show information about results in supersets')
   parser.add_argument("-e", "--label-mapping", default=None, type=argparse.FileType('r'), dest="label_mapping",
     help="Group by expected result type from a mapping file")
   parser.add_argument('result_ymls', nargs='+', help='Input YAML files')
@@ -31,9 +30,21 @@ def main(args):
                       help="Report the number of benchmarks for each result type where only one "
                       "result_yml recorded the benchmark as being of that result type")
 
-  extraOutputGroup = parser.add_mutually_exclusive_group()
-  extraOutputGroup.add_argument("--uncommon", action='store_true')
-  extraOutputGroup.add_argument("--common", action='store_true')
+  parser.add_argument("--common", action='store_true',
+                      help="Show information about benchmarks where all result_yml files agree"
+                      " on the result type for that benchmark")
+  parser.add_argument("-s", "--proper-supersets",
+                      dest='proper_supersets',
+                      action='store_true',
+                      help='Show information about benchmarks where the set of '
+                      'benchmarks classified by a particular result_yml for a '
+                      'particular result type is a proper superset of the '
+                      'results from all othe result_ymls with the same result type')
+  parser.add_argument("--uncommon",
+                      action='store_true',
+                      help='Show information about benchmarks were not classified'
+                      ' with the same result type by all result_ymls and are not '
+                      'reported by --proper-supersets')
 
   pargs = parser.parse_args(args)
 
@@ -208,6 +219,8 @@ def main(args):
       # Compute if any result set (i.e. from a tool) is a super set of the unioned benchmarks
       superSetResultSet = [ ]
       for resultListName in resultListNames:
+        # Note here this is "non-proper" superset. This is a little confusing
+        # because the option that uses this is called --proper-supersets
         if categorised[resultListName][benchmarkLabel][name]['program_set'].issuperset(union[name][benchmarkLabel]):
           superSetResultSet.append(resultListName)
 
@@ -246,6 +259,7 @@ def main(args):
 def displayResultSet(setName, data, resultListNames, benchmarkLabels, programToRawResultMap):
   assert isinstance(setName, str)
   assert isinstance(benchmarkLabels, list)
+  print('Showing "{}"'.format(setName))
 
   for benchmarkLabel in benchmarkLabels:
     print("==={}===".format(benchmarkLabel))
