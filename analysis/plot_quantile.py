@@ -177,6 +177,7 @@ def main(args):
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
   actionGroup.add_argument('--pdf', help='Write graph to PDF')
+  actionGroup.add_argument('--svg', help='Write graph to svg')
 
   plotGroup = parser.add_mutually_exclusive_group()
   plotGroup.add_argument("--points", action='store_true')
@@ -197,6 +198,15 @@ def main(args):
     if os.path.exists(pargs.pdf):
       logging.error('Refusing to overwrite {}'.format(pargs.pdf))
       return 1
+
+  if pargs.svg != None:
+    if not pargs.svg.endswith('.svg'):
+      logging.error('--pdf argument must end with .svg')
+      return 1
+    if os.path.exists(pargs.svg):
+      logging.error('Refusing to overwrite {}'.format(pargs.svg))
+      return 1
+
 
   # Load correctness mapping file
   correctnessMapping = yaml.load(pargs.label_mapping_file, Loader=Loader)
@@ -526,6 +536,10 @@ def main(args):
     fig.show()
     logging.info('Writing PDF to {}'.format(pargs.pdf))
     fig.savefig(pargs.pdf)
+  elif pargs.svg != None:
+    fig.show()
+    logging.info('Writing svg to {}'.format(pargs.svg))
+    fig.savefig(pargs.svg)
   else:
     plt.show()
   return 0
