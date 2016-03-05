@@ -173,6 +173,7 @@ def main(args):
   parser.add_argument('--legend-name-map',dest='legend_name_map', default=None, type=str)
   parser.add_argument('--legend-position',dest='legend_position', default='outside_bottom', choices=['outside_bottom', 'outside_right', 'inner', 'none'])
   parser.add_argument('--report-negative-results',dest='report_negative_results', default=False, action='store_true')
+  parser.add_argument('--legend-font-size', dest='legend_font_size', default=None, type=int)
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
@@ -472,7 +473,7 @@ def main(args):
   if pargs.legend_position == 'none':
     fig.tight_layout()
   elif pargs.legend_position == 'inner':
-    legend = ax.legend(tuple(curves), tuple(legendNames), ncol=2, loc='upper left')
+    legend = ax.legend(tuple(curves), tuple(legendNames), ncol=2, loc='upper left', fontsize=pargs.legend_font_size)
     fig.tight_layout()
   elif pargs.legend_position == 'outside_right':
     # HACK: move the legend outside
@@ -482,7 +483,8 @@ def main(args):
     legend = ax.legend(tuple(curves), tuple(legendNames),
       loc='upper left',
       bbox_to_anchor=(1.01, 1.0),
-      borderaxespad=0 # No padding so that corners line up
+      borderaxespad=0, # No padding so that corners line up
+      fontsize=pargs.legend_font_size
       )
 
     # Work out how wide the legend is in terms of axes co-ordinates
@@ -494,7 +496,7 @@ def main(args):
     ax.set_position([box.x0, box.y0, box.width * (0.95 - legendWidth), box.height])
   elif pargs.legend_position == 'outside_bottom':
     box = ax.get_position()
-    legend = ax.legend(tuple(curves), tuple(legendNames), ncol=3, bbox_to_anchor=(0.5, -0.09), loc='upper center')
+    legend = ax.legend(tuple(curves), tuple(legendNames), ncol=3, bbox_to_anchor=(0.5, -0.09), loc='upper center', fontsize=pargs.legend_font_size)
     # Work out how wide the legend is in terms of axes co-ordinates
     fig.canvas.draw() # Needed say that legend size computation is correct
     legendWidth, legendHeight = ax.transAxes.inverted().transform((legend.get_frame().get_width(), legend.get_frame().get_height()))
