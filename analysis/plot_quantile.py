@@ -174,6 +174,7 @@ def main(args):
   parser.add_argument('--legend-position',dest='legend_position', default='outside_bottom', choices=['outside_bottom', 'outside_right', 'inner', 'none'])
   parser.add_argument('--report-negative-results',dest='report_negative_results', default=False, action='store_true')
   parser.add_argument('--legend-font-size', dest='legend_font_size', default=None, type=int)
+  parser.add_argument('--draw-style', dest='drawstyle', choices=['steps','default'], default='default', help='Line draw style')
 
   actionGroup = parser.add_mutually_exclusive_group()
   actionGroup.add_argument('--ipython', action='store_true')
@@ -461,9 +462,9 @@ def main(args):
     yErrors = resultListNameToRunTimeStdDev[resultListName]
     pickTolerance=4
     if pargs.error_bars:
-      p = ax.errorbar(x,y, yerr=yErrors, picker=pickTolerance)
+      p = ax.errorbar(x,y, yerr=yErrors, picker=pickTolerance, drawstyle=pargs.drawstyle)
     else:
-      p = ax.plot(x,y, '-o' if pargs.points else '-', picker=pickTolerance)
+      p = ax.plot(x,y, '-o' if pargs.points else '-', picker=pickTolerance, drawstyle=pargs.drawstyle)
     DataPointReporter(p[0], resultListName, resultListNames, resultListNameToRawResultsListOrdered, resultListNameToAccumScore, programToResultsMap)
     curves.append(p[0])
     legendNames.append(legendMapping[resultListName] if pargs.legend_name_map else resultListName)
