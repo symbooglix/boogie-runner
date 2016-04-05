@@ -258,7 +258,17 @@ def main(args):
           print("# of benchmarks only in {} : {}".format(resultListName, len(theSet)))
       if pargs.label_mapping != None:
         if benchmarkLabel in usefulClassifications and usefulClassifications[benchmarkLabel] == name:
-          print("# of benchmarks not classifed as {0} but expected to be {0}: {1}".format(benchmarkLabel, len(notUsefulyClassified[benchmarkLabel])))
+          notUsefulyClassifiedSize = len(notUsefulyClassified[benchmarkLabel])
+          print("# of benchmarks not classifed as {0} but expected to be {0}: {1}".format(benchmarkLabel, notUsefulyClassifiedSize))
+          # Check the numbers make sense
+          expectCorrect = None
+          if benchmarkLabel == 'correct':
+            expectCorrect = True
+          elif benchmarkLabel == 'incorrect':
+            expectCorrect = False
+          countExpectedOfExpectedBenchmarkLabel = len(list(filter(lambda m: m['expected_correct'] == expectCorrect, correctnessMapping.values())))
+          logging.debug("{}: {} + {} ==? {}".format(benchmarkLabel, unionSize, notUsefulyClassifiedSize, countExpectedOfExpectedBenchmarkLabel))
+          assert unionSize + notUsefulyClassifiedSize == countExpectedOfExpectedBenchmarkLabel
         print("")
 
   if pargs.uncommon:
