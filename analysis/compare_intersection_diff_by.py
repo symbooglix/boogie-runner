@@ -73,6 +73,7 @@ def main(args):
   categorised = { }
   data = { }
   onlyIn = { }
+  notUsefulyClassified = { }
   resultListNames = [ ]
   for f in pargs.result_ymls:
     if not os.path.exists(f):
@@ -94,9 +95,17 @@ def main(args):
     for benchmarkLabel in benchmarkLabels:
       categorised[resultListName][benchmarkLabel] = {}
       onlyIn[resultListName][benchmarkLabel] = {}
+      notUsefulyClassified[benchmarkLabel] = set()
       for name, _ in FinalResultType.__members__.items():
         categorised[resultListName][benchmarkLabel][name] = { 'raw':[], 'program_set': set() }
         onlyIn[resultListName][benchmarkLabel][name] = None
+
+  # Initially assume no benchmark was usefully classified
+  if pargs.label_mapping != None:
+    for program, info in correctnessMapping.items():
+      benchmarkLabel = labelFieldToString(info['expected_correct'])
+      notUsefulyClassified[benchmarkLabel].add(program)
+      logging.debug('Adding {} with expected correctness {}'.format(program, benchmarkLabel))
 
   # Now load YAML
   length = 0
@@ -180,6 +189,13 @@ def main(args):
         else:
           intersection[name][benchmarkLabel] = intersectionSet.intersection( categorised[resultListName][benchmarkLabel][name]['program_set'])
 
+  # Update set of not usefully classified benchmarks
+  usefulClassifications = { 'correct':'FULLY_EXPLORED', 'incorrect':'BUG_FOUND'}
+  if pargs.label_mapping != None:
+    for resultListName in resultListNames:
+      for benchmarkLabel, name in usefulClassifications.items():
+        notUsefulyClassified[benchmarkLabel].difference_update( categorised[resultListName][benchmarkLabel][name]['program_set'] )
+
   # compute onlyIn, start with the programs for that resultListName
   # We will then start removing items until we are left only with the benchmarks
   # that only that resultListName reported
@@ -240,6 +256,9 @@ def main(args):
           theSet = onlyIn[resultListName][benchmarkLabel][name]
           assert isinstance(theSet, set)
           print("# of benchmarks only in {} : {}".format(resultListName, len(theSet)))
+      if pargs.label_mapping != None:
+        if benchmarkLabel in usefulClassifications and usefulClassifications[benchmarkLabel] == name:
+          print("# of benchmarks not classifed as {0} but expected to be {0}: {1}".format(benchmarkLabel, len(notUsefulyClassified[benchmarkLabel])))
         print("")
 
   if pargs.uncommon:
